@@ -1,4 +1,4 @@
-# Rondo
+# Rondo Highlights
 
 **European football highlights, back to back.** Pick a league and a matchweek, press *Play all*, and every match's highlights play one after another. You can also build your own queue, and choose short or extended cuts.
 
@@ -61,11 +61,12 @@ docs/           landscape.md (competitor comparison)
 ## Deployment
 
 ```
-GitHub repo ──push──▶ Netlify (npm run build → dist/) ──▶ rondo.tareksakakini.com
-     ▲
-     └── GitHub Actions, every 2 h: npm run ingest → commit public/data if anything changed
+GitHub (private repo) ── GitHub Actions ──▶ Cloudflare Pages ──▶ rondohighlights.com
+   every 2 h: npm run ingest → commit data if changed → build → wrangler pages deploy
+   every push to main: build → deploy
 ```
 
-- **Netlify** builds on every push using `netlify.toml`. The domain's DNS is already on Netlify, so the subdomain and HTTPS are set up automatically.
-- **Refresh:** `.github/workflows/refresh-data.yml` runs the ingest every 2 hours using the repo secrets `FOOTBALL_DATA_KEY` and `YOUTUBE_API_KEY`. It commits only when highlights actually changed, and each commit triggers a redeploy. To backfill, open Actions → *Refresh highlights* → *Run workflow* and set a `since` date.
-- Keys live only in GitHub secrets and your local `.env`. They're never shipped to the browser.
+- **Hosting:** Cloudflare Pages on the free plan. Commercial use (ads) is fine, and bandwidth is unmetered for static sites. Response headers live in `public/_headers`.
+- **Workflow:** `.github/workflows/deploy.yml`. It deploys only when highlights actually changed, or on a code push or manual run. To backfill, open Actions → *Refresh & deploy* → *Run workflow* and set a `since` date.
+- **Repo secrets:** `FOOTBALL_DATA_KEY`, `YOUTUBE_API_KEY`, `CLOUDFLARE_API_TOKEN` (permission: *Cloudflare Pages: Edit*) and `CLOUDFLARE_ACCOUNT_ID`. Keys never reach the browser.
+- **Attribution:** football-data.org requires "Football data provided by the Football-Data.org API" to be shown on the site. It's in the footer.

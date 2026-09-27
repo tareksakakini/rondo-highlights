@@ -1,9 +1,9 @@
 {
-  "name": "rondo",
+  "name": "rondo-highlights",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Rondo \u2014 European football highlights, back to back.",
+  "description": "Rondo Highlights: European football highlights, back to back.",
   "engines": {
     "node": ">=18.18"
   },

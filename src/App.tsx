@@ -300,7 +300,7 @@ export default function App() {
       </div>
 
       <footer className="foot muted">
-        Videos are embedded from their official YouTube channels; Rondo hosts no video.
+        Videos are embedded from their official YouTube channels; Rondo Highlights hosts no video. Football data provided by the Football-Data.org API.
         {index && ` Data updated ${new Date(index.generatedAt).toLocaleString()}.`}
       </footer>
 

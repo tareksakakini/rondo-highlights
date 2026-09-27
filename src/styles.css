@@ -41,7 +41,8 @@ svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
 }
 .logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
 .logo svg { width: 32px; height: 32px; }
-.wordmark { font-weight: 850; font-stretch: 125%; font-size: 24px; letter-spacing: -0.02em; line-height: 1; }
+.wordmark { display: flex; align-items: baseline; gap: 7px; font-weight: 850; font-stretch: 125%; font-size: 24px; letter-spacing: -0.02em; line-height: 1; }
+.wordmark-sub { font-weight: 600; font-stretch: 100%; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
 .tagline { color: var(--muted); font-size: 13px; }
 .prefs { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 
@@ -257,9 +258,17 @@ main { display: contents; }
   .topbar { gap: 10px; }
   .toggle span { display: none; }
   .seg button { padding: 6px 10px; }
-  .wordmark { font-size: 21px; }
+  .wordmark { font-size: 20px; flex-direction: column; align-items: flex-start; gap: 3px; }
+  .wordmark-sub { font-size: 8.5px; letter-spacing: 0.22em; }
+  .logo svg { width: 28px; height: 28px; }
   .round-bar { align-items: flex-start; }
   .grid { grid-template-columns: 1fr; }
   .transport { width: 100%; }
+}
+@media (max-width: 359px) {
+  .topbar { padding-left: 10px; padding-right: 10px; }
+  .prefs { gap: 6px; }
+  .seg button { padding: 6px 8px; font-size: 12px; }
+  .toggle { padding: 7px 9px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

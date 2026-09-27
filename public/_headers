@@ -1,0 +1,13 @@
+# Cloudflare Pages response headers
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Data changes every few hours: always revalidate.
+/data/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Hashed build assets never change.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
