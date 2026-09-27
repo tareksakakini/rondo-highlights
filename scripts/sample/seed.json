@@ -1,0 +1,1533 @@
+{
+ "_about": "Offline snapshot of real fixtures + YouTube uploads (captured 2026-09-27, embeddability checked). Scores/kick-off times approximate where unknown. Replaced by `npm run ingest`.",
+ "season": 2026,
+ "competitions": {
+  "PL": [
+   {
+    "id": 1001,
+    "utcDate": "2026-09-18T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 5,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Brentford FC",
+     "shortName": "Brentford",
+     "tla": "BRE",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Chelsea FC",
+     "shortName": "Chelsea",
+     "tla": "CHE",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": 3,
+      "away": 0
+     }
+    }
+   },
+   {
+    "id": 1002,
+    "utcDate": "2026-09-19T11:30:00Z",
+    "status": "FINISHED",
+    "matchday": 5,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Tottenham Hotspur FC",
+     "shortName": "Tottenham",
+     "tla": "TOT",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Aston Villa FC",
+     "shortName": "Aston Villa",
+     "tla": "AVL",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": 2,
+      "away": 3
+     }
+    }
+   },
+   {
+    "id": 1003,
+    "utcDate": "2026-09-19T14:00:00Z",
+    "status": "FINISHED",
+    "matchday": 5,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Brighton & Hove Albion FC",
+     "shortName": "Brighton Hove",
+     "tla": "BHA",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Arsenal FC",
+     "shortName": "Arsenal",
+     "tla": "ARS",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": 3,
+      "away": 0
+     }
+    }
+   },
+   {
+    "id": 1004,
+    "utcDate": "2026-09-19T14:00:00Z",
+    "status": "FINISHED",
+    "matchday": 5,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Newcastle United FC",
+     "shortName": "Newcastle",
+     "tla": "NEW",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Hull City AFC",
+     "shortName": "Hull",
+     "tla": "HUL",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": 2,
+      "away": 1
+     }
+    }
+   },
+   {
+    "id": 1005,
+    "utcDate": "2026-09-19T14:00:00Z",
+    "status": "FINISHED",
+    "matchday": 5,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Everton FC",
+     "shortName": "Everton",
+     "tla": "EVE",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Ipswich Town FC",
+     "shortName": "Ipswich Town",
+     "tla": "IPS",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": 1,
+      "away": 0
+     }
+    }
+   },
+   {
+    "id": 1006,
+    "utcDate": "2026-09-19T16:30:00Z",
+    "status": "FINISHED",
+    "matchday": 5,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Nottingham Forest FC",
+     "shortName": "Nottingham",
+     "tla": "NOT",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Coventry City FC",
+     "shortName": "Coventry",
+     "tla": "COV",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": 0,
+      "away": 1
+     }
+    }
+   },
+   {
+    "id": 1007,
+    "utcDate": "2026-09-20T13:00:00Z",
+    "status": "FINISHED",
+    "matchday": 5,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "AFC Bournemouth",
+     "shortName": "Bournemouth",
+     "tla": "BOU",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Liverpool FC",
+     "shortName": "Liverpool",
+     "tla": "LIV",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": 0,
+      "away": 1
+     }
+    }
+   },
+   {
+    "id": 1008,
+    "utcDate": "2026-09-20T13:00:00Z",
+    "status": "FINISHED",
+    "matchday": 5,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Leeds United FC",
+     "shortName": "Leeds United",
+     "tla": "LEE",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Crystal Palace FC",
+     "shortName": "Crystal Palace",
+     "tla": "CRY",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1009,
+    "utcDate": "2026-09-20T13:00:00Z",
+    "status": "FINISHED",
+    "matchday": 5,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Manchester City FC",
+     "shortName": "Man City",
+     "tla": "MCI",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Sunderland AFC",
+     "shortName": "Sunderland",
+     "tla": "SUN",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": 5,
+      "away": 3
+     }
+    }
+   },
+   {
+    "id": 1010,
+    "utcDate": "2026-09-20T15:30:00Z",
+    "status": "FINISHED",
+    "matchday": 5,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Fulham FC",
+     "shortName": "Fulham",
+     "tla": "FUL",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Manchester United FC",
+     "shortName": "Man United",
+     "tla": "MUN",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": 1,
+      "away": 1
+     }
+    }
+   }
+  ],
+  "BL1": [
+   {
+    "id": 1011,
+    "utcDate": "2026-09-18T18:30:00Z",
+    "status": "FINISHED",
+    "matchday": 4,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "FC Bayern München",
+     "shortName": "Bayern",
+     "tla": "FCB",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "1. FC Union Berlin",
+     "shortName": "Union Berlin",
+     "tla": "FCU",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1012,
+    "utcDate": "2026-09-19T13:30:00Z",
+    "status": "FINISHED",
+    "matchday": 4,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "SV Werder Bremen",
+     "shortName": "Bremen",
+     "tla": "SVW",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "FC Augsburg",
+     "shortName": "Augsburg",
+     "tla": "FCA",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1013,
+    "utcDate": "2026-09-19T13:30:00Z",
+    "status": "FINISHED",
+    "matchday": 4,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Borussia Mönchengladbach",
+     "shortName": "M'gladbach",
+     "tla": "BMG",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "1. FSV Mainz 05",
+     "shortName": "Mainz",
+     "tla": "M05",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1014,
+    "utcDate": "2026-09-19T13:30:00Z",
+    "status": "FINISHED",
+    "matchday": 4,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Eintracht Frankfurt",
+     "shortName": "Frankfurt",
+     "tla": "SGE",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "SC Freiburg",
+     "shortName": "Freiburg",
+     "tla": "SCF",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1015,
+    "utcDate": "2026-09-19T13:30:00Z",
+    "status": "FINISHED",
+    "matchday": 4,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Hamburger SV",
+     "shortName": "HSV",
+     "tla": "HSV",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "1. FC Köln",
+     "shortName": "1. FC Köln",
+     "tla": "KOE",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1016,
+    "utcDate": "2026-09-19T16:30:00Z",
+    "status": "FINISHED",
+    "matchday": 4,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "VfB Stuttgart",
+     "shortName": "Stuttgart",
+     "tla": "VFB",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Borussia Dortmund",
+     "shortName": "Dortmund",
+     "tla": "BVB",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1017,
+    "utcDate": "2026-09-20T13:30:00Z",
+    "status": "FINISHED",
+    "matchday": 4,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "Bayer 04 Leverkusen",
+     "shortName": "Leverkusen",
+     "tla": "B04",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "RB Leipzig",
+     "shortName": "RB Leipzig",
+     "tla": "RBL",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1018,
+    "utcDate": "2026-09-20T15:30:00Z",
+    "status": "FINISHED",
+    "matchday": 4,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "FC Schalke 04",
+     "shortName": "Schalke",
+     "tla": "S04",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "SV 07 Elversberg",
+     "shortName": "Elversberg",
+     "tla": "SVE",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1019,
+    "utcDate": "2026-09-20T17:30:00Z",
+    "status": "FINISHED",
+    "matchday": 4,
+    "stage": "REGULAR_SEASON",
+    "homeTeam": {
+     "name": "SC Paderborn 07",
+     "shortName": "Paderborn",
+     "tla": "SCP",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "TSG 1899 Hoffenheim",
+     "shortName": "Hoffenheim",
+     "tla": "TSG",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   }
+  ],
+  "CL": [
+   {
+    "id": 1020,
+    "utcDate": "2026-09-08T16:45:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "Club Brugge KV",
+     "shortName": "Club Brugge",
+     "tla": "BRU",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Aston Villa FC",
+     "shortName": "Aston Villa",
+     "tla": "AVL",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1021,
+    "utcDate": "2026-09-08T16:45:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "AEK Athens FC",
+     "shortName": "AEK Athens",
+     "tla": "AEK",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "LASK",
+     "shortName": "LASK",
+     "tla": "LAS",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1022,
+    "utcDate": "2026-09-08T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "FC Porto",
+     "shortName": "Porto",
+     "tla": "POR",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Manchester City FC",
+     "shortName": "Man City",
+     "tla": "MCI",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1023,
+    "utcDate": "2026-09-08T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "Real Madrid CF",
+     "shortName": "Real Madrid",
+     "tla": "RMA",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "FC Internazionale Milano",
+     "shortName": "Inter",
+     "tla": "INT",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1024,
+    "utcDate": "2026-09-08T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "Borussia Dortmund",
+     "shortName": "Dortmund",
+     "tla": "BVB",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Villarreal CF",
+     "shortName": "Villarreal",
+     "tla": "VIL",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1025,
+    "utcDate": "2026-09-08T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "Lille OSC",
+     "shortName": "Lille",
+     "tla": "LIL",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Real Betis Balompié",
+     "shortName": "Real Betis",
+     "tla": "BET",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1026,
+    "utcDate": "2026-09-09T16:45:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "VfB Stuttgart",
+     "shortName": "Stuttgart",
+     "tla": "VFB",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Viking FK",
+     "shortName": "Viking",
+     "tla": "VIK",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1027,
+    "utcDate": "2026-09-09T16:45:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "FC Barcelona",
+     "shortName": "Barça",
+     "tla": "BAR",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Feyenoord Rotterdam",
+     "shortName": "Feyenoord",
+     "tla": "FEY",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1028,
+    "utcDate": "2026-09-09T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "SSC Napoli",
+     "shortName": "Napoli",
+     "tla": "NAP",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Arsenal FC",
+     "shortName": "Arsenal",
+     "tla": "ARS",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1029,
+    "utcDate": "2026-09-09T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "Paris Saint-Germain FC",
+     "shortName": "PSG",
+     "tla": "PSG",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "ŠK Slovan Bratislava",
+     "shortName": "Slovan Bratislava",
+     "tla": "SLO",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1030,
+    "utcDate": "2026-09-09T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "Sporting Clube de Portugal",
+     "shortName": "Sporting CP",
+     "tla": "SCP",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Galatasaray SK",
+     "shortName": "Galatasaray",
+     "tla": "GAL",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1031,
+    "utcDate": "2026-09-09T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "Liverpool FC",
+     "shortName": "Liverpool",
+     "tla": "LIV",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Club Atlético de Madrid",
+     "shortName": "Atleti",
+     "tla": "ATM",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1032,
+    "utcDate": "2026-09-10T16:45:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "PSV",
+     "shortName": "PSV",
+     "tla": "PSV",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "FC Shakhtar Donetsk",
+     "shortName": "Shakhtar Donetsk",
+     "tla": "SHA",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1033,
+    "utcDate": "2026-09-10T16:45:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "Fenerbahçe SK",
+     "shortName": "Fenerbahçe",
+     "tla": "FEN",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "AS Roma",
+     "shortName": "Roma",
+     "tla": "ROM",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1034,
+    "utcDate": "2026-09-10T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "FC Bayern München",
+     "shortName": "Bayern",
+     "tla": "FCB",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "FK Bodø/Glimt",
+     "shortName": "Bodø/Glimt",
+     "tla": "BOD",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1035,
+    "utcDate": "2026-09-10T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "SK Slavia Praha",
+     "shortName": "Slavia Praha",
+     "tla": "SLA",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Racing Club de Lens",
+     "shortName": "RC Lens",
+     "tla": "RCL",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1036,
+    "utcDate": "2026-09-10T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "Como 1907",
+     "shortName": "Como",
+     "tla": "COM",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "RB Leipzig",
+     "shortName": "RB Leipzig",
+     "tla": "RBL",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   },
+   {
+    "id": 1037,
+    "utcDate": "2026-09-10T19:00:00Z",
+    "status": "FINISHED",
+    "matchday": 1,
+    "stage": "LEAGUE_STAGE",
+    "homeTeam": {
+     "name": "Manchester United FC",
+     "shortName": "Man United",
+     "tla": "MUN",
+     "crest": null
+    },
+    "awayTeam": {
+     "name": "Sabah FK",
+     "shortName": "Sabah",
+     "tla": "SAB",
+     "crest": null
+    },
+    "score": {
+     "fullTime": {
+      "home": null,
+      "away": null
+     }
+    }
+   }
+  ]
+ },
+ "videos": [
+  {
+   "videoId": "DGRzyNh7mFQ",
+   "title": "Brentford v. Chelsea | PREMIER LEAGUE HIGHLIGHTS | 9/18/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 670,
+   "publishedAt": "2026-09-18T15:06:46-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "_dfxDY74ChQ",
+   "title": "Brighton v. Arsenal | PREMIER LEAGUE HIGHLIGHTS | 9/19/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 824,
+   "publishedAt": "2026-09-19T10:00:36-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "DjQjGiUZ4_U",
+   "title": "Newcastle v. Hull City | PREMIER LEAGUE HIGHLIGHTS | 9/19/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 735,
+   "publishedAt": "2026-09-19T09:52:28-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "Yo2o43dM_VM",
+   "title": "Tottenham Hotspur v. Aston Villa | PREMIER LEAGUE HIGHLIGHTS | 9/19/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 922,
+   "publishedAt": "2026-09-19T07:40:54-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "HOyQlCRPcEo",
+   "title": "Nottingham Forest v. Coventry City | PREMIER LEAGUE HIGHLIGHTS | 9/19/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 772,
+   "publishedAt": "2026-09-19T12:21:11-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "k_LmgAJILnQ",
+   "title": "Everton v. Ipswich Town | PREMIER LEAGUE HIGHLIGHTS | 9/19/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 671,
+   "publishedAt": "2026-09-19T09:46:27-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "Crem8PmPDBw",
+   "title": "Fulham v. Manchester United | PREMIER LEAGUE HIGHLIGHTS | 9/20/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 630,
+   "publishedAt": "2026-09-20T11:03:37-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "YwD-tz-28tM",
+   "title": "Leeds v. Crystal Palace | PREMIER LEAGUE HIGHLIGHTS | 9/20/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 505,
+   "publishedAt": "2026-09-20T08:52:18-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "JXdEMD3NOOY",
+   "title": "Manchester City v. Sunderland | PREMIER LEAGUE HIGHLIGHTS | 9/20/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 831,
+   "publishedAt": "2026-09-20T09:00:07-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "IrhYeweiX2c",
+   "title": "Bournemouth v. Liverpool | PREMIER LEAGUE HIGHLIGHTS | 9/20/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 481,
+   "publishedAt": "2026-09-20T08:36:31-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "gwrydB4FO_Y",
+   "title": "Brentford 3-0 Chelsea | HIGHLIGHTS | Premier League 2026/27",
+   "channel": "Chelsea Football Club",
+   "handle": "@chelseafc",
+   "durationSec": 124,
+   "publishedAt": "2026-09-18T16:01:08-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "2kAl18Q69E8",
+   "title": "Brentford 3-0 Chelsea | HIGHLIGHTS - Extended | Premier League 2026/27",
+   "channel": "Chelsea Football Club",
+   "handle": "@chelseafc",
+   "durationSec": 468,
+   "publishedAt": "2026-09-19T16:01:40-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "_f5-6jdNP58",
+   "title": "HIGHLIGHTS | Brighton 3-0 Arsenal | Premier League",
+   "channel": "Arsenal",
+   "handle": "@arsenal",
+   "durationSec": 120,
+   "publishedAt": "2026-09-19T14:00:37-07:00",
+   "embeddable": false
+  },
+  {
+   "videoId": "JUQnxPy1r84",
+   "title": "Newcastle United 2 Hull City 1 | Premier League Highlights",
+   "channel": "Newcastle United",
+   "handle": "@NUFC",
+   "durationSec": 140,
+   "publishedAt": "2026-09-19T14:00:10-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "_PE26PHNNTU",
+   "title": "Newcastle United 2 Hull City 1 | EXTENDED Premier League Highlights",
+   "channel": "Newcastle United",
+   "handle": "@NUFC",
+   "durationSec": 666,
+   "publishedAt": "2026-09-20T16:00:15-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "RjT2bUORnfc",
+   "title": "Spurs 2-3 Aston Villa | Premier League Highlights",
+   "channel": "Tottenham Hotspur",
+   "handle": "@TottenhamHotspur",
+   "durationSec": 138,
+   "publishedAt": "2026-09-19T14:00:37-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "AgVaYZbzkpE",
+   "title": "MANZAMBI, JACKSON & BUENDÍA ON TARGET | Tottenham Hotspur 2-3 Villa | Premier League Highlights",
+   "channel": "Aston Villa Football Club",
+   "handle": "@avfcofficial",
+   "durationSec": 249,
+   "publishedAt": "2026-09-19T14:00:34-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "r4GJDImO_8Y",
+   "title": "Nottingham Forest 0-1 Coventry City | Premier League Highlights",
+   "channel": "Coventry City FC",
+   "handle": "@CoventryCityFC",
+   "durationSec": 151,
+   "publishedAt": "2026-09-19T15:25:25-07:00",
+   "embeddable": false
+  },
+  {
+   "videoId": "S5IB_FvVOU0",
+   "title": "Nottingham Forest 0-1 Coventry City | Extended Premier League Highlights",
+   "channel": "Coventry City FC",
+   "handle": "@CoventryCityFC",
+   "durationSec": 316,
+   "publishedAt": "2026-09-20T16:01:30-07:00",
+   "embeddable": false
+  },
+  {
+   "videoId": "4xiaCi2rf78",
+   "title": "EVERTON v IPSWICH TOWN | Premier League highlights",
+   "channel": "Everton Football Club",
+   "handle": "@Everton",
+   "durationSec": 123,
+   "publishedAt": "2026-09-19T14:00:29-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "964lPbGqzpY",
+   "title": "Everton 1-0 Ipswich Town | EXTENDED Premier League highlights",
+   "channel": "Everton Football Club",
+   "handle": "@Everton",
+   "durationSec": 606,
+   "publishedAt": "2026-09-21T00:00:06-07:00",
+   "embeddable": false
+  },
+  {
+   "videoId": "NADibhzO32Y",
+   "title": "Fulham 1-1 Man Utd | Extended Highlights",
+   "channel": "Manchester United",
+   "handle": "@manutd",
+   "durationSec": 603,
+   "publishedAt": "2026-09-21T16:00:18-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "hgIaOCoVsDQ",
+   "title": "HIGHLIGHTS | Man City 5-3 Sunderland | A sensational game at the Etihad!",
+   "channel": "Man City",
+   "handle": "@mancity",
+   "durationSec": 138,
+   "publishedAt": "2026-09-20T14:00:08-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "dVFiXhUKXmI",
+   "title": "EXTENDED HIGHLIGHTS | Man City 5-3 Sunderland | A Premier League Classic at the Etihad!",
+   "channel": "Man City",
+   "handle": "@mancity",
+   "durationSec": 520,
+   "publishedAt": "2026-09-21T16:00:07-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "KC69O-OuW18",
+   "title": "Highlights: Bournemouth 0-1 Liverpool",
+   "channel": "Liverpool FC",
+   "handle": "@LiverpoolFC",
+   "durationSec": 118,
+   "publishedAt": "2026-09-20T14:00:21-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "AbZx9tk9Ilk",
+   "title": "Extended Highlights: Bournemouth 0-1 Liverpool | Isak scores the winner!",
+   "channel": "Liverpool FC",
+   "handle": "@LiverpoolFC",
+   "durationSec": 596,
+   "publishedAt": "2026-09-21T16:00:15-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "03I3Hwu-KQM",
+   "title": "Every Premier League goal from Matchweek 5 (2026-27) | Premier League | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 760,
+   "publishedAt": "2026-09-21T10:00:00-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "BFYTsv_UxH8",
+   "title": "Premier League Review: Matchweek 5 (2026-27) | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 3109,
+   "publishedAt": "2026-09-23T10:00:00-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "1u-v_MfP6fE",
+   "title": "Highlights: Man City 4-2 Liverpool FC Women | Late goals send Reds to WSL defeat",
+   "channel": "Liverpool FC",
+   "handle": "@LiverpoolFC",
+   "durationSec": 662,
+   "publishedAt": "2026-09-21T10:00:00-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "KUWMhsCQWmE",
+   "title": "Michigan State vs. No. 3 Notre Dame | COLLEGE FOOTBALL HIGHLIGHTS | 9/19/2026 | NBC Sports",
+   "channel": "NBC Sports",
+   "handle": "@NBCSports",
+   "durationSec": 488,
+   "publishedAt": "2026-09-19T20:00:00-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "YyRS82WiIog",
+   "title": "OLISE is Unstoppable 🔥 Hattrick & Assist | FC BAYERN - UNION BERLIN | Highlights | MD 4 - Bundesliga",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 66,
+   "publishedAt": "2026-09-18T14:06:22-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "v_7N6u8DvtU",
+   "title": "The Kane and Olise Late Night Show 🔥  | FC BAYERN - UNION BERLIN | Highlights | MD 4 – Bundesliga",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 244,
+   "publishedAt": "2026-09-20T15:00:05-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "IP2yua_ilfQ",
+   "title": "Füllkrug & The Late Turnaround! | WERDER BREMEN - FC AUGSBURG | Highlights | Matchday 4 – Bundesliga",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 60,
+   "publishedAt": "2026-09-19T09:04:55-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "2dQlyDgvTFY",
+   "title": "BEAUTIFUL Comeback! | WERDER BREMEN - FC AUGSBURG | Highlights | Matchday 4 – Bundesliga 2026/27",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 241,
+   "publishedAt": "2026-09-20T15:00:26-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "AYZojA8qXYw",
+   "title": "Spectacular Goal Festival! | BORUSSIA M'GLADBACH - MAINZ 05 | Highlights | Matchday 4 – Bundesliga",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 178,
+   "publishedAt": "2026-09-20T15:00:16-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "WbiJbk0MJX4",
+   "title": "Ebnoutalib Scores Again! | EINTRACHT FRANKFURT - SC FREIBURG | Highlights | Matchday 4 – Bundesliga",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 187,
+   "publishedAt": "2026-09-20T15:00:31-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "AzNA2UteAEo",
+   "title": "The Wait For A Win Is Over! | HAMBURGER SV - 1. FC KÖLN | Highlights | Matchday 4 – Bundesliga",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 181,
+   "publishedAt": "2026-09-20T15:00:15-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "dmE_gTw-Ukc",
+   "title": "Top Of The Table! | VFB STUTTGART - BORUSSIA DORTMUND | Highlights | Matchday 4 – Bundesliga 2026/27",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 66,
+   "publishedAt": "2026-09-19T11:44:29-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "ofUcybZlWBE",
+   "title": "Beier Fires BVB To The Top! | VFB STUTTGART - BORUSSIA DORTMUND | Highlights | MD 4 – Bundesliga",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 243,
+   "publishedAt": "2026-09-20T15:00:37-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "G0Ax1HeP9EY",
+   "title": "Crucial Win In Top-Match! | BAYER 04 LEVERKUSEN - RB LEIPZIG | Highlights | Matchday 4 – Bundesliga",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 61,
+   "publishedAt": "2026-09-20T08:32:33-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "Yh8an_9wou8",
+   "title": "Schick Leads Bayer To Glory! | BAYER 04 LEVERKUSEN - RB LEIPZIG | Highlights | MD 4 – Bundesliga",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 240,
+   "publishedAt": "2026-09-20T15:00:19-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "3oBANtmWr7M",
+   "title": "SCHALKE 04 - SV ELVERSBERG | Highlights | Matchday 4 – Bundesliga 2026/27",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 62,
+   "publishedAt": "2026-09-20T10:31:15-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "cr-iFkgzX9Q",
+   "title": "SCHALKE 04 - SV ELVERSBERG | Highlights | Matchday 4 – Bundesliga 2026/27",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 237,
+   "publishedAt": "2026-09-20T15:00:02-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "geNPXDBioSI",
+   "title": "First Goals Of The Season | SC PADERBORN - HOFFENHEIM | Highlights | Matchday 4 – Bundesliga 2026/27",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 61,
+   "publishedAt": "2026-09-20T12:41:52-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "PacVy1uW1C4",
+   "title": "Three-Goal Lead Gone! | VFL WOLFSBURG - ENERGIE COTTBUS | Highlights | Matchday 4 – Bundesliga 2",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 581,
+   "publishedAt": "2026-09-06T10:00:00-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "pylM06MXxRw",
+   "title": "ALL HIGHLIGHTS | BUNDESLIGA | MATCHDAY 04",
+   "channel": "Bundesliga",
+   "handle": "@bundesliga",
+   "durationSec": 1997,
+   "publishedAt": "2026-09-21T10:00:00-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "XgqVXSOGtCw",
+   "title": "Club Brugge vs. Aston Villa: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 506,
+   "publishedAt": "2026-09-08T11:56:25-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "is5uZYIIHSA",
+   "title": "AEK Athens vs. LASK: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 551,
+   "publishedAt": "2026-09-08T11:56:56-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "mXNFbZJdcqY",
+   "title": "Porto vs. Man. City: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 565,
+   "publishedAt": "2026-09-08T14:13:47-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "m-Er4N3eVpE",
+   "title": "Real Madrid vs. Inter: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 632,
+   "publishedAt": "2026-09-08T14:17:06-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "d6yIgsNGZ5Y",
+   "title": "Dortmund vs. Villarreal: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 612,
+   "publishedAt": "2026-09-08T14:15:58-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "klu6Xk-DL-4",
+   "title": "Lille vs. Real Betis: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 603,
+   "publishedAt": "2026-09-08T14:15:37-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "oc0Su0XNufI",
+   "title": "Stuttgart vs. Viking: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 583,
+   "publishedAt": "2026-09-09T11:52:37-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "kPdMCaxCNJQ",
+   "title": "Barcelona vs. Feyenoord: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 770,
+   "publishedAt": "2026-09-09T11:56:31-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "7HFHdzIMgZ8",
+   "title": "Napoli vs. Arsenal: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 571,
+   "publishedAt": "2026-09-09T14:12:57-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "WFvEejQvVlk",
+   "title": "PSG vs. Slovan Bratislava: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 588,
+   "publishedAt": "2026-09-09T14:12:14-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "BtFR9xVI9aw",
+   "title": "Sporting CP vs. Galatasaray: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 602,
+   "publishedAt": "2026-09-09T14:14:01-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "GRp9iiO-I3k",
+   "title": "Liverpool vs. Atlético Madrid: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 609,
+   "publishedAt": "2026-09-09T14:19:27-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "glFWbS_yJ1Q",
+   "title": "PSV vs. Shakhtar Donetsk: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 526,
+   "publishedAt": "2026-09-10T11:58:34-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "O83kM__1F5Q",
+   "title": "Fenerbahçe vs. Roma: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 641,
+   "publishedAt": "2026-09-10T11:56:52-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "DW68WzlQ2l4",
+   "title": "Bayern vs. Bodø/Glimt: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 585,
+   "publishedAt": "2026-09-10T14:27:07-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "oC5pM4Z4jDI",
+   "title": "Slavia Praha vs. Lens: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 623,
+   "publishedAt": "2026-09-10T14:28:24-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "CPE5kdgkOA4",
+   "title": "Como vs. RB Leipzig: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 607,
+   "publishedAt": "2026-09-10T14:16:04-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "AytJ8mEWwSA",
+   "title": "Man. United vs. Sabah: Extended Highlights | UCL League Phase MD 1 | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 565,
+   "publishedAt": "2026-09-10T14:19:31-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "3R39ogBkDDk",
+   "title": "Roma vs. Inter: Extended Highlights | Serie A | CBS Sports Golazo",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 615,
+   "publishedAt": "2026-09-19T14:00:00-07:00",
+   "embeddable": true
+  },
+  {
+   "videoId": "XqJzcGKuVhQ",
+   "title": "ALL GOALS in MD1 of the UEFA Champions League",
+   "channel": "CBS Sports Golazo",
+   "handle": "@CBSSportsGolazo",
+   "durationSec": 2702,
+   "publishedAt": "2026-09-11T10:00:00-07:00",
+   "embeddable": true
+  }
+ ]
+}
