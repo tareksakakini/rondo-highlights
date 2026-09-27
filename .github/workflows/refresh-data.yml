@@ -1,0 +1,74 @@
+name: Refresh data
+
+# Every 2 hours: fetch fixtures + highlights and commit any changes to the
+# `data` branch. The live site reads that branch through jsDelivr's CDN, so
+# nothing is redeployed and Netlify isn't involved. Code changes on `main`
+# are built and deployed by Netlify as usual.
+
+on:
+  schedule:
+    - cron: '17 */2 * * *'   # every 2 hours (UTC); GitHub may delay scheduled runs
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'Backfill uploads from this date (YYYY-MM-DD). Blank = last 10 days.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out the data branch into public/data
+        run: |
+          if git ls-remote --exit-code --heads origin data >/dev/null; then
+            git fetch --depth=1 origin data
+            git worktree add public/data FETCH_HEAD
+          else
+            git worktree add --orphan -b data public/data
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      - name: Fetch fixtures + highlights
+        env:
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          SINCE: ${{ inputs.since }}
+        run: |
+          if [ -n "$SINCE" ]; then npm run ingest -- --since="$SINCE"; else npm run ingest; fi
+
+      - name: Commit to the data branch and refresh the CDN
+        working-directory: public/data
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No new highlights."
+            exit 0
+          fi
+          changed=$(git diff --cached --name-only)
+          git -c user.name="rondo-bot" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "data: refresh highlights $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push origin HEAD:data
+          # jsDelivr caches branch files for up to 12 h; purge what changed so visitors see it now.
+          for f in $changed; do
+            curl -fsS -o /dev/null "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@data/${f}" \
+              && echo "purged $f" || echo "purge failed for $f (will expire on its own)"
+          done

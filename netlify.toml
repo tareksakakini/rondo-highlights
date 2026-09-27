@@ -1,0 +1,11 @@
+# Netlify builds the site from `main` only. Highlight data is NOT part of the
+# build: the site fetches it at runtime from the repo's `data` branch (see
+# vite.config.ts and .github/workflows/refresh-data.yml), so data refreshes cost
+# no deploys. Response headers are in public/_headers.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"

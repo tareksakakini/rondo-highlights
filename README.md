@@ -60,13 +60,17 @@ docs/           landscape.md (competitor comparison)
 
 ## Deployment
 
+The only cost is the domain.
+
 ```
-GitHub (private repo) ── GitHub Actions ──▶ Cloudflare Pages ──▶ rondohighlights.com
-   every 2 h: npm run ingest → commit data if changed → build → wrangler pages deploy
-   every push to main: build → deploy
+main branch ──(push)──▶ Netlify build ──▶ rondohighlights.com       (code: a few deploys a month)
+data branch ◀──(every 2 h)── GitHub Actions: npm run ingest            (data: no deploys)
+     └──▶ jsDelivr CDN ──▶ fetched by the site at runtime
 ```
 
-- **Hosting:** Cloudflare Pages on the free plan. Commercial use (ads) is fine, and bandwidth is unmetered for static sites. Response headers live in `public/_headers`.
-- **Workflow:** `.github/workflows/deploy.yml`. It deploys only when highlights actually changed, or on a code push or manual run. To backfill, open Actions → *Refresh & deploy* → *Run workflow* and set a `since` date.
-- **Repo secrets:** `FOOTBALL_DATA_KEY`, `YOUTUBE_API_KEY`, `CLOUDFLARE_API_TOKEN` (permission: *Cloudflare Pages: Edit*) and `CLOUDFLARE_ACCOUNT_ID`. Keys never reach the browser.
+- **Code** lives on `main`. Netlify builds it with `netlify.toml`, only when code changes.
+- **Data** lives on the public `data` branch. `.github/workflows/refresh-data.yml` runs the ingest every 2 hours, commits only when something changed, and purges jsDelivr's cache for the changed files. The site reads `https://cdn.jsdelivr.net/gh/<owner>/<repo>@data/…` and falls back to `raw.githubusercontent.com`. `vite.config.ts` works out the repo from Netlify's `REPOSITORY_URL`, or you can set `VITE_DATA_BASE` to override it.
+- **Repo secrets:** `FOOTBALL_DATA_KEY` and `YOUTUBE_API_KEY`. The repo must be public so the CDN can read the `data` branch; the secrets stay private.
+- To backfill, open Actions → *Refresh data* → *Run workflow* and set a `since` date.
+- For local development, `npm run ingest` or `npm run sample` writes `public/data/`, which is gitignored on `main`.
 - **Attribution:** football-data.org requires "Football data provided by the Football-Data.org API" to be shown on the site. It's in the footer.
