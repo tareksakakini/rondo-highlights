@@ -5,6 +5,7 @@
 //   npm run ingest -- --only=PL,CL         # subset (also forces archive competitions like WC)
 //   npm run ingest -- --since=2026-08-15   # backfill further back (reads up to 60 pages per channel)
 //   npm run ingest -- --pages=20           # override how many upload pages to read per channel
+//   npm run ingest -- --fresh=EL,UNL       # rebuild title-discovered competitions from scratch
 //   npm run ingest -- --dry                # print a summary, write nothing
 //
 // Reads FOOTBALL_DATA_KEY and YOUTUBE_API_KEY from .env (or the environment).
@@ -275,7 +276,9 @@ async function main() {
     log(`\n▸ ${comp.name} (${comp.code}) ${season} · discovered from highlight titles`);
     const sinceMs = comp.since ? Math.min(Date.parse(comp.since), globalSince) : globalSince;
     const videos = await collectCandidates(comp, sinceMs, YT, pagesFor(comp));
-    const previous = await readPrevious(ROOT, comp.code, season);
+    // --fresh=EL,UNL rebuilds discovered competitions from scratch (after matching fixes).
+    const fresh = String(args.fresh ?? '').toUpperCase().split(',').includes(comp.code);
+    const previous = fresh ? new Map() : await readPrevious(ROOT, comp.code, season);
     const built = await refreshStored(comp, buildFromVideos(comp, season, videos, canonical, previous), YT);
     const n = built.files.reduce((a, f) => a + f.matches.length, 0);
     log(`  ${n} matches in ${built.files.length} rounds`);

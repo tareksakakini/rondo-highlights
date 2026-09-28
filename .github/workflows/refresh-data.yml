@@ -14,6 +14,10 @@ on:
         description: 'Backfill uploads from this date (YYYY-MM-DD). Blank = last 10 days.'
         required: false
         default: ''
+      fresh:
+        description: 'Rebuild these title-discovered competitions from scratch, e.g. EL,UNL. Blank = keep.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -52,8 +56,12 @@ jobs:
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           SINCE: ${{ inputs.since }}
+          FRESH: ${{ inputs.fresh }}
         run: |
-          if [ -n "$SINCE" ]; then npm run ingest -- --since="$SINCE"; else npm run ingest; fi
+          ARGS=""
+          if [ -n "$SINCE" ]; then ARGS="$ARGS --since=$SINCE"; fi
+          if [ -n "$FRESH" ]; then ARGS="$ARGS --fresh=$FRESH"; fi
+          npm run ingest -- $ARGS
 
       - name: Commit to the data branch and refresh the CDN
         working-directory: public/data
