@@ -97,7 +97,9 @@ export const COMPETITIONS = [
     code: 'WC', name: 'FIFA World Cup', short: 'World Cup', country: 'World', color: '#E11D48',
     group: 'national', roundLabel: 'Matchday', source: 'fixtures', season: 2026,
     archive: true, since: '2026-06-01', maxPages: 80,
-    channels: [ch('@FOXSoccer', { mustMatch: 'world cup' }), ch('@FIFA', { mustMatch: 'world cup' }), ...NATIONS],
+    // FOX held the US rights and posted highlights on @FOXSports; FIFA's own uploads refuse
+    // embeds in the US even though the Data API reports them as playable everywhere.
+    channels: [ch('@FOXSports', { mustMatch: 'world cup' }), ch('@FOXSoccer', { mustMatch: 'world cup' }), ch('@FIFA', { mustMatch: 'world cup' }), ...NATIONS],
   },
   {
     code: 'EC', name: 'UEFA European Championship', short: 'Euros', country: 'Europe', color: '#6366F1',
@@ -114,3 +116,12 @@ export const DEFAULT_LOOKBACK_DAYS = 10;
 
 // Safety cap on pages (50 videos each) read per channel per run.
 export const MAX_PAGES_PER_CHANNEL = 12;
+
+/**
+ * Countries where a channel's uploads refuse to play in embeds (player error 150) even
+ * though the Data API reports no restriction. Found by testing on the live site; merged
+ * into each video's allow/block lists at ingest. Keyed by channel id.
+ */
+export const EMBED_BLOCKED = {
+  UCpcTrCXblq78GZrTUTLWeBw: ['US'], // FIFA: World Cup 2026 highlights (checked 2026-09-28)
+};

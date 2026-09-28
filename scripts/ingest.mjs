@@ -22,7 +22,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { COMPETITIONS, MATCH_WINDOW_HOURS, DEFAULT_LOOKBACK_DAYS, MAX_PAGES_PER_CHANNEL } from './config.mjs';
-import { looksLikeMatchHighlight, matchVideosToFixtures, buildCompetition, detectComps, indexFor } from './lib/match.mjs';
+import { withEmbedBlocks, looksLikeMatchHighlight, matchVideosToFixtures, buildCompetition, detectComps, indexFor } from './lib/match.mjs';
 import { makeRegistry, buildFromVideos } from './lib/videos.mjs';
 import { writeDataset, readPrevious, readIndex } from './lib/output.mjs';
 
@@ -173,7 +173,7 @@ async function collectCandidates(comp, sinceMs, YT, maxPages) {
   const details = await videoDetails(ids, YT);
   const byId = new Map(ids.map((id, k) => [id, details[k]]));
   const videos = candidates
-    .map((c) => ({ ...c, ...(byId.get(c.videoId) ?? { durationSec: 0, embeddable: false }) }))
+    .map((c) => withEmbedBlocks({ ...c, ...(byId.get(c.videoId) ?? { durationSec: 0, embeddable: false }) }, c.channelId))
     .filter((v) => !v.live);
   const blocked = videos.filter((v) => !v.embeddable).length;
   if (blocked) log(`  ${blocked} candidate(s) skipped: embedding disabled by the channel`);
@@ -199,8 +199,9 @@ async function refreshStored(comp, built, YT) {
         const d = byId.get(h.videoId);
         if (!d || !d.embeddable) { dropped++; return false; }
         delete h.allow; delete h.block;
-        if (d.allow) h.allow = d.allow;
-        if (d.block) h.block = d.block;
+        const r = withEmbedBlocks({ allow: d.allow, block: d.block }, h.channelId);
+        if (r.allow) h.allow = r.allow;
+        if (r.block) h.block = r.block;
         return true;
       });
     }
@@ -227,7 +228,7 @@ async function main() {
   const only = args.only ? String(args.only).split(',').map((s) => s.trim().toUpperCase()) : null;
   const globalSince = args.since ? Date.parse(String(args.since)) : Date.now() - DEFAULT_LOOKBACK_DAYS * 86400e3;
   // Backfills (--since) may need to page further back through busy channels.
-  const pagesFor = (comp) => Number(args.pages ?? (args.since ? 60 : comp.maxPages ?? MAX_PAGES_PER_CHANNEL));
+  const pagesFor = (comp) => Number(args.pages ?? Math.max(args.since ? 60 : 0, comp.maxPages ?? MAX_PAGES_PER_CHANNEL));
   const published = await readIndex(ROOT);
   const has = (code) => published?.competitions?.some((c) => c.code === code && c.source === 'live');
 

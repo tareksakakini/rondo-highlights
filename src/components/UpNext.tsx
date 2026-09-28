@@ -8,11 +8,12 @@ interface Props {
   state: PlaybackState;
   pref: Kind;
   region: string | null;
+  avoid?: string[];
   dispatch: Dispatch<Action>;
 }
 
-function Row({ item, pref, region, onPlay, children }: { item: PlayItem; pref: Kind; region: string | null; onPlay: () => void; children?: React.ReactNode }) {
-  const hl = resolveItem(item, pref, [], region);
+function Row({ item, pref, region, avoid, onPlay, children }: { item: PlayItem; pref: Kind; region: string | null; avoid: string[]; onPlay: () => void; children?: React.ReactNode }) {
+  const hl = resolveItem(item, pref, [], region, avoid);
   const { home, away } = item.match;
   return (
     <li className="row">
@@ -35,11 +36,11 @@ function Row({ item, pref, region, onPlay, children }: { item: PlayItem; pref: K
 
 const wide = () => typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1100px)').matches;
 
-export function UpNext({ state, pref, region, dispatch }: Props) {
+export function UpNext({ state, pref, region, avoid = [], dispatch }: Props) {
   const [open, setOpen] = useState(wide);
   const rest = contextRemaining(state);
   const upcoming = [...state.queue, ...rest.map((r) => r.item)];
-  const total = upcoming.reduce((t, it) => t + (resolveItem(it, pref, [], region)?.durationSec ?? 0), 0);
+  const total = upcoming.reduce((t, it) => t + (resolveItem(it, pref, [], region, avoid)?.durationSec ?? 0), 0);
   const next = upcoming[0];
 
   return (
@@ -71,7 +72,7 @@ export function UpNext({ state, pref, region, dispatch }: Props) {
           ) : (
             <ol className="rows">
               {state.queue.map((item, i) => (
-                <Row key={item.uid} item={item} pref={pref} region={region} onPlay={() => dispatch({ type: 'playQueued', uid: item.uid })}>
+                <Row key={item.uid} item={item} pref={pref} region={region} avoid={avoid} onPlay={() => dispatch({ type: 'playQueued', uid: item.uid })}>
                   <button className="btn-icon sm" aria-label="Move up" disabled={i === 0}
                     onClick={() => dispatch({ type: 'move', uid: item.uid, dir: -1 })}>
                     <svg viewBox="0 0 24 24"><path d="m7 14 5-5 5 5z" /></svg>
@@ -100,7 +101,7 @@ export function UpNext({ state, pref, region, dispatch }: Props) {
             ) : (
               <ol className="rows">
                 {rest.map(({ item, pos }) => (
-                  <Row key={item.uid} item={item} pref={pref} region={region} onPlay={() => dispatch({ type: 'jumpContext', pos })} />
+                  <Row key={item.uid} item={item} pref={pref} region={region} avoid={avoid} onPlay={() => dispatch({ type: 'jumpContext', pos })} />
                 ))}
               </ol>
             )}

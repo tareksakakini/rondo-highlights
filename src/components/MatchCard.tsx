@@ -7,6 +7,7 @@ interface Props {
   match: Match;
   pref: Kind;
   region: string | null;
+  avoid?: string[];
   spoilerFree: boolean;
   playing: boolean;
   queued: boolean;
@@ -18,8 +19,8 @@ interface Props {
 
 const KINDS: Kind[] = ['short', 'extended'];
 
-export function MatchCard({ match, pref, region, spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue }: Props) {
-  const hl = pickHighlight(match, pinned ?? pref, [], region);
+export function MatchCard({ match, pref, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue }: Props) {
+  const hl = pickHighlight(match, pinned ?? pref, [], region, avoid);
   const cut = (k: Kind) => match.highlights.find((h) => h.kind === k && availableIn(h, region));
   const fallback = hl && hl.kind !== (pinned ?? pref);
   const blocked = !hl && match.highlights.length > 0;

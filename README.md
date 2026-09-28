@@ -44,7 +44,8 @@ Highlight rights are sold country by country. US broadcasters, for example, limi
 - The ingest keeps **every** embeddable video along with its YouTube country restrictions, stored as `allow`/`block` lists.
 - The site works out the visitor's country the way YouTube does, from their internet connection. A Netlify GeoIP redirect sends `/geo.json` to `/geo/<CC>.json`; `scripts/gen-geo.mjs` generates those files and `public/_redirects` at build time. No function or third-party lookup is involved.
 - If that's unavailable (for example in local dev), it falls back to the browser's time zone. Visitors can always override the country in Settings.
-- After repeated embed errors, the site suggests checking the country setting.
+- Some channels refuse embeds in a country even though the API lists no restriction (FIFA's World Cup uploads in the US). Known cases go in `EMBED_BLOCKED` in `scripts/config.mjs` and are merged into the `block` lists at ingest.
+- When a video fails with an embed error anyway, the site avoids that channel for the viewer's country for a week and picks another cut. After repeated errors from different channels, it suggests checking the country setting.
 - It then only offers cuts that play there. Matches with no playable cut are grouped under "Not available in …".
 
 ## How highlights are found

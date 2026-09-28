@@ -18,6 +18,10 @@ on:
         description: 'Rebuild these title-discovered competitions from scratch, e.g. EL,UNL. Blank = keep.'
         required: false
         default: ''
+      only:
+        description: 'Only these competitions, e.g. WC (also re-ingests finished tournaments). Blank = all.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -57,10 +61,12 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           SINCE: ${{ inputs.since }}
           FRESH: ${{ inputs.fresh }}
+          ONLY: ${{ inputs.only }}
         run: |
           ARGS=""
           if [ -n "$SINCE" ]; then ARGS="$ARGS --since=$SINCE"; fi
           if [ -n "$FRESH" ]; then ARGS="$ARGS --fresh=$FRESH"; fi
+          if [ -n "$ONLY" ]; then ARGS="$ARGS --only=$ONLY"; fi
           npm run ingest -- $ARGS
 
       - name: Commit to the data branch and refresh the CDN

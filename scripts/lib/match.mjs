@@ -3,6 +3,7 @@
 // and covered by tests/match.test.mjs.
 
 import { NATIONS } from './teams.mjs';
+import { EMBED_BLOCKED } from '../config.mjs';
 
 /** Lowercase, strip accents/punctuation, collapse whitespace. */
 export function normalize(s) {
@@ -356,4 +357,15 @@ export function indexFor(comp, season, files) {
       withHighlights: f.matches.filter((m) => m.highlights.length).length,
     })),
   };
+}
+
+/** Merge EMBED_BLOCKED countries into a video's allow/block lists. */
+export function withEmbedBlocks(v, channelId, table = EMBED_BLOCKED) {
+  const extra = table[channelId];
+  if (!extra) return v;
+  if (v.allow) {
+    const allow = v.allow.filter((c) => !extra.includes(c));
+    return { ...v, allow: allow.length ? allow : ['ZZ'] }; // ZZ: nowhere
+  }
+  return { ...v, block: [...new Set([...(v.block ?? []), ...extra])].sort() };
 }

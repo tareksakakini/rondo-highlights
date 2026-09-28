@@ -41,6 +41,12 @@ export default function App() {
   const [regionOverride, setRegionOverride] = usePersistentState('region', '');
   const region = regionOverride || detected;
   const [embedErrors, setEmbedErrors] = useState(0);
+  // Channels whose embeds failed with 101/150, per country, remembered for a week.
+  const [embedBlocked, setEmbedBlocked] = usePersistentState<Record<string, Record<string, number>>>('embedBlocked', {});
+  const avoid = useMemo(() => {
+    const week = Date.now() - 7 * 864e5;
+    return Object.entries(embedBlocked[region ?? '??'] ?? {}).filter(([, t]) => t > week).map(([id]) => id);
+  }, [embedBlocked, region]);
 
   useEffect(() => {
     let alive = true;
@@ -101,7 +107,7 @@ export default function App() {
   const withAny = round?.matches.filter((m) => m.highlights.length).length ?? 0;
   const blockedHere = useMemo(() => round?.matches.filter((m) => m.highlights.length && !pickHighlight(m, pref, [], region)) ?? [], [round, pref, region]);
   const notYet = useMemo(() => round?.matches.filter((m) => !m.highlights.length) ?? [], [round]);
-  const roundTotal = playable.reduce((t, m) => t + (pickHighlight(m, pins[m.id] ?? pref, [], region)?.durationSec ?? 0), 0);
+  const roundTotal = playable.reduce((t, m) => t + (pickHighlight(m, pins[m.id] ?? pref, [], region, avoid)?.durationSec ?? 0), 0);
 
   const playFrom = (matchId: number | string, kind?: Kind) => {
     const start = playable.findIndex((m) => m.id === matchId);
@@ -120,7 +126,7 @@ export default function App() {
 
   // ---- current video ----
   const current = pb.current;
-  const video = current ? resolveItem(current, pref, pb.failed[current.uid], region) : null;
+  const video = current ? resolveItem(current, pref, pb.failed[current.uid], region, avoid) : null;
 
   useEffect(() => {
     if (current && !video) {
@@ -138,10 +144,17 @@ export default function App() {
       setToast(`${video.channel}: ${describeYtError(code)}. Trying another cut`);
       // 101/150 also show up when a video is blocked in the viewer's country: after a
       // couple of those, suggest checking the country setting (VPNs, travel).
-      if (code === 101 || code === 150) setEmbedErrors((n) => n + 1);
+      if (code === 101 || code === 150) {
+        setEmbedErrors((n) => n + 1);
+        const ch = video.channelId;
+        if (ch) {
+          const key = region ?? '??';
+          setEmbedBlocked((b) => ({ ...b, [key]: { ...b[key], [ch]: Date.now() } }));
+        }
+      }
       dispatch({ type: 'failed', videoId: video.videoId });
     },
-    [video],
+    [video, region, setEmbedBlocked],
   );
 
   // Keyboard: Shift+N next, Shift+P previous
@@ -162,6 +175,7 @@ export default function App() {
       match={m}
       pref={pref}
       region={region}
+      avoid={avoid}
       spoilerFree={spoilerFree}
       playing={current?.match.id === m.id}
       queued={queuedIds.has(m.id)}
@@ -355,7 +369,7 @@ export default function App() {
 
         {(current || hasUpNext) && (
           <aside className="aside">
-            <UpNext state={pb} pref={pref} region={region} dispatch={dispatch} />
+            <UpNext state={pb} pref={pref} region={region} avoid={avoid} dispatch={dispatch} />
           </aside>
         )}
       </div>

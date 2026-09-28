@@ -86,3 +86,13 @@ test('seed: all 9 Bundesliga and 18 UCL fixtures matched, no cross-talk', () => 
   const { res } = runSeed('CL');
   assert.ok(![...res.values()].flat().some((h) => h.videoId === '3R39ogBkDDk'), 'Serie A video leaked into UCL');
 });
+
+test('embed blocks merge into country lists', async () => {
+  const { withEmbedBlocks } = await import('../scripts/lib/match.mjs');
+  const t = { F: ['US'] };
+  assert.deepEqual(withEmbedBlocks({ videoId: 'a' }, 'F', t).block, ['US']);
+  assert.deepEqual(withEmbedBlocks({ block: ['DE'] }, 'F', t).block, ['DE', 'US']);
+  assert.deepEqual(withEmbedBlocks({ allow: ['CA', 'US'] }, 'F', t).allow, ['CA']);
+  assert.deepEqual(withEmbedBlocks({ allow: ['US'] }, 'F', t).allow, ['ZZ']);
+  assert.equal(withEmbedBlocks({ videoId: 'a' }, 'other', t).block, undefined);
+});
