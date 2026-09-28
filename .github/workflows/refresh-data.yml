@@ -15,7 +15,7 @@ on:
         required: false
         default: ''
       fresh:
-        description: 'Rebuild these title-discovered competitions from scratch, e.g. EL,UNL. Blank = keep.'
+        description: 'Rebuild title-discovered competitions from scratch (none use title discovery now). Blank = keep.'
         required: false
         default: ''
       only:
@@ -59,6 +59,7 @@ jobs:
         env:
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          HIGHLIGHTLY_API_KEY: ${{ secrets.HIGHLIGHTLY_API_KEY }}
           SINCE: ${{ inputs.since }}
           FRESH: ${{ inputs.fresh }}
           ONLY: ${{ inputs.only }}
@@ -83,6 +84,7 @@ jobs:
           git push origin HEAD:data
           # jsDelivr caches branch files for up to 12 h; purge what changed so visitors see it now.
           for f in $changed; do
+            case "$f" in cache/*) continue ;; esac   # internal files, not read by the site
             curl -fsS -o /dev/null "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@data/${f}" \
               && echo "purged $f" || echo "purge failed for $f (will expire on its own)"
           done

@@ -1,5 +1,6 @@
-// "Video-first" competitions: there is no free fixture feed for the Europa League
-// or the Nations League, so matches are discovered from highlight titles instead.
+// "Video-first" competitions: for a competition with no fixture feed, matches are
+// discovered from highlight titles instead. (Europa League and Nations League used this
+// until they moved to Highlightly fixtures; no competition uses it at the moment.)
 //
 //   1. parseTeams()   pulls "Team A" and "Team B" out of a title
 //   2. canonical()    maps each side to a known team (clubs seen in the free

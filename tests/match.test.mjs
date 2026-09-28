@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  normalize, teamAliases, mentions, looksLikeMatchHighlight, classify, matchVideosToFixtures, roundOf,
+  normalize, teamAliases, mentions, fuzzyMentions, looksLikeMatchHighlight, classify, matchVideosToFixtures, roundOf,
 } from '../scripts/lib/match.mjs';
 import { COMPETITIONS } from '../scripts/config.mjs';
 
@@ -26,6 +26,13 @@ test('aliases derived from football-data names', () => {
 test('whole-word matching: "villa" does not match Villarreal', () => {
   const villa = teamAliases({ name: 'Aston Villa FC', shortName: 'Aston Villa', tla: 'AVL' });
   assert.equal(mentions(normalize('Dortmund vs. Villarreal: Extended Highlights'), villa), '');
+});
+
+test('typo-tolerant fallback: one letter off in long words only', () => {
+  assert.equal(fuzzyMentions(normalize('Olympiacos vs. Jagiellonia: Extended Highlights'), ['olympiakos piraeus', 'olympiakos']), 'olympiakos');
+  assert.equal(fuzzyMentions(normalize('Celtic vs. Ferencváros: Highlights'), ['ferencvarosi tc', 'ferencvarosi']), 'ferencvarosi');
+  assert.equal(fuzzyMentions(normalize('Lens vs Lyon highlights'), ['leon']), ''); // short words stay exact
+  assert.equal(fuzzyMentions(normalize('Braga vs Brage'), ['sporting braga']), '');
 });
 
 test('title filter keeps match highlights, drops compilations, women, cups', () => {

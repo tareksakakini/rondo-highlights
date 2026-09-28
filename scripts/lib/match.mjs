@@ -125,6 +125,46 @@ export function mentions(normTitle, aliases) {
   return best;
 }
 
+/** Levenshtein distance, capped: returns max+1 as soon as it's certain to exceed `max`. */
+function editDistance(a, b, max = 1) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      rowMin = Math.min(rowMin, cur[j]);
+    }
+    if (rowMin > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+// Words of 6+ letters one typo apart count as the same ("olympiacos"/"olympiakos",
+// "ferencvaros"/"ferencvarosi"); shorter words must match exactly.
+const sameWord = (a, b) => a === b || (Math.min(a.length, b.length) >= 6 && editDistance(a, b) <= 1);
+
+/**
+ * Fallback for mentions(): the same whole-word test, but tolerating one spelling
+ * difference per long word, for fixture feeds and broadcasters that transliterate
+ * names differently. Returns the alias matched, or ''.
+ */
+export function fuzzyMentions(normTitle, aliases) {
+  const tw = normTitle.trim().split(' ');
+  let best = '';
+  for (const alias of aliases) {
+    if (alias.length <= best.length) continue;
+    const aw = alias.split(' ');
+    if (!aw.some((w) => w.length >= 6)) continue; // nothing long enough to be fuzzy about
+    for (let i = 0; i + aw.length <= tw.length; i++) {
+      if (aw.every((w, k) => sameWord(w, tw[i + k]))) { best = alias; break; }
+    }
+  }
+  return best;
+}
+
 const HIGHLIGHT_RE = /highlight|resumen|extended|sintesi|melhores momentos|samenvatting|zusammenfassung/i;
 const EXCLUDE_RE =
   /\b(women|womens|femenino|femenina|femminile|frauen|feminine|wsl|u-?1[5-9]|u-?2[0-3]|sub-?1[5-9]|sub-?2[0-3]|under-?\d\d|academy|youth|press conference|preview|reaction|interview|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|all highlights|top \d+|review|full match|legends|alt angle|behind the scenes|behind the tigers|in hd|cinematic|inside the match|members only|on the road|match cut|post-?match|pre-?match|watchalong|reacts?|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|esports|efootball|fc 2[5-9]|#shorts)\b/i;
@@ -226,11 +266,15 @@ export function matchVideosToFixtures(fixtures, videos, { windowHours = 120 } = 
     for (const f of fixtures) {
       const kickoff = Date.parse(f.utcDate);
       if (!(published >= kickoff && published <= kickoff + windowHours * 3600e3)) continue;
-      const h = mentions(t, aliasesOf(f.homeTeam));
-      const a = mentions(t, aliasesOf(f.awayTeam));
+      let h = mentions(t, aliasesOf(f.homeTeam));
+      let a = mentions(t, aliasesOf(f.awayTeam));
+      let fuzzy = false;
+      if (!h) { h = fuzzyMentions(t, aliasesOf(f.homeTeam)); fuzzy = true; }
+      if (h && !a) { a = fuzzyMentions(t, aliasesOf(f.awayTeam)); fuzzy = true; }
       if (!h || !a || h === a) continue;
-      // Prefer the fixture whose names matched most specifically, then the closest kick-off.
-      const score = h.length + a.length - (published - kickoff) / 3.6e9;
+      // Prefer exact name matches over typo-tolerant ones, then the fixture whose names
+      // matched most specifically, then the closest kick-off.
+      const score = (fuzzy ? -1000 : 0) + h.length + a.length - (published - kickoff) / 3.6e9;
       if (!best || score > best.score) best = { f, score };
     }
     if (!best) continue;
@@ -268,6 +312,7 @@ export const STAGE_LABELS = {
   LEAGUE_STAGE: 'League phase',
   GROUP_STAGE: 'Group stage',
   PLAYOFFS: 'Knockout play-offs',
+  PROMOTION_RELEGATION: 'Promotion/relegation play-offs',
   PLAYOFF_ROUND: 'Play-off round',
   LAST_32: 'Round of 32',
   LAST_16: 'Round of 16',

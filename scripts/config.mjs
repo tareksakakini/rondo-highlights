@@ -48,7 +48,10 @@ export const NATIONS = [
 
 // ---------------------------------------------------------------- competitions
 // source: 'fixtures' → fixtures from football-data.org (free tier), videos matched to them
-//         'videos'   → no free fixture feed: matches are discovered from highlight titles
+//         'videos'   → no fixture feed: matches are discovered from highlight titles
+//                      (lib/videos.mjs; no competition uses this at the moment)
+// highlightly: league id on Highlightly (free plan): fixtures come from there instead of
+//              football-data.org, which has no Europa League or Nations League for free
 // archive: finished tournament; only ingested when missing or requested (--only=WC)
 // optional: skipped quietly if football-data.org says the plan doesn't include it
 
@@ -85,12 +88,12 @@ export const COMPETITIONS = [
   },
   {
     code: 'EL', name: 'Europa League', short: 'Europa League', country: 'Europe', color: '#F59E0B',
-    group: 'europe', roundLabel: 'Matchday', source: 'videos',
+    group: 'europe', roundLabel: 'Matchday', source: 'fixtures', highlightly: 3337,
     channels: [ch('@CBSSportsGolazoEurope', { mustMatch: '\\buel\\b|europa league' }), ch('@TNTSportsFootball', { mustMatch: 'europa league' }), ...PL_CLUBS, ...EURO_CLUBS],
   },
   {
     code: 'UNL', name: 'UEFA Nations League', short: 'Nations League', country: 'Europe', color: '#14B8A6',
-    group: 'national', roundLabel: 'Matchday', source: 'videos',
+    group: 'national', roundLabel: 'Matchday', source: 'fixtures', highlightly: 5039,
     channels: [ch('@FOXSports', { mustMatch: 'nations league' }), ch('@FOXSoccer', { mustMatch: 'nations league' }), ...NATIONS],
   },
   {

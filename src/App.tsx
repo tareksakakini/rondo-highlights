@@ -380,7 +380,7 @@ export default function App() {
           <button className="linkish inline" onClick={() => setSettingsOpen(true)}>Change</button>
         </p>
         <p>
-          Videos are embedded from official YouTube channels; Rondo Highlights hosts no video. Football data provided by the Football-Data.org API.
+          Videos are embedded from official YouTube channels; Rondo Highlights hosts no video. Football data provided by the Football-Data.org API; Europa League and Nations League fixtures by Highlightly.
           {index && ` Updated ${new Date(index.generatedAt).toLocaleString()}.`}
         </p>
       </footer>

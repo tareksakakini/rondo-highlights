@@ -10,6 +10,7 @@ import { COMPETITIONS, MATCH_WINDOW_HOURS } from './config.mjs';
 import { matchVideosToFixtures, buildCompetition, looksLikeMatchHighlight, detectComps } from './lib/match.mjs';
 import { makeRegistry, buildFromVideos } from './lib/videos.mjs';
 import { writeDataset } from './lib/output.mjs';
+import { toFixtures } from './lib/highlightly.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const seed = JSON.parse(await fs.readFile(path.join(ROOT, 'scripts/sample/seed.json'), 'utf8'));
@@ -33,7 +34,9 @@ export function candidatesFor(comp, videos) {
 const results = [];
 const known = [];
 for (const comp of COMPETITIONS.filter((c) => c.source === 'fixtures')) {
-  const fixtures = seed.competitions[comp.code];
+  const fixtures = comp.highlightly
+    ? seed.highlightly?.[comp.code] && toFixtures(seed.highlightly[comp.code], { season: seed.season, national: comp.group === 'national', knownTeams: known })
+    : seed.competitions[comp.code];
   if (!fixtures) continue;
   for (const f of fixtures) known.push(f.homeTeam, f.awayTeam);
   const highlights = matchVideosToFixtures(fixtures, candidatesFor(comp, seed.videos), { windowHours: MATCH_WINDOW_HOURS });

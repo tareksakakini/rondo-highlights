@@ -1,5 +1,5 @@
-// End-to-end check of scripts/ingest.mjs against mocked football-data.org and
-// YouTube APIs built from scripts/sample/seed.json. Run: node tests/ingest.mock.mjs <tmpdir>
+// End-to-end check of scripts/ingest.mjs against mocked football-data.org, Highlightly
+// and YouTube APIs built from scripts/sample/seed.json. Run: node tests/ingest.mock.mjs <tmpdir>
 // (copies the scripts into <tmpdir> so it never touches your real public/data).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,7 +23,8 @@ for (const v of seed.videos) {
 const videosById = new Map(seed.videos.map((v) => [v.videoId, v]));
 const iso = (s) => `PT${Math.floor(s / 60)}M${s % 60}S`;
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
-const calls = { fd: 0, yt: 0 };
+const calls = { fd: 0, yt: 0, hl: 0 };
+const HL_LEAGUES = { 3337: 'EL', 5039: 'UNL' };
 
 globalThis.fetch = async (input, init) => {
   const u = new URL(typeof input === 'string' || input instanceof URL ? String(input) : input.url);
@@ -32,6 +33,16 @@ globalThis.fetch = async (input, init) => {
     const code = u.pathname.split('/')[3];
     if (code === 'EC') return json({ message: 'restricted' }, 403);
     return json({ matches: seed.competitions[code] ?? [] });
+  }
+  if (u.hostname === 'soccer.highlightly.net') {
+    calls.hl++;
+    if (process.env.HL_DOWN) return json({ message: 'down' }, 503);
+    const all = seed.highlightly[HL_LEAGUES[u.searchParams.get('leagueId')]] ?? [];
+    const date = u.searchParams.get('date');
+    const rows = date ? all.filter((m) => m.date.startsWith(date)) : all;
+    const limit = Number(u.searchParams.get('limit') ?? 100);
+    const offset = Number(u.searchParams.get('offset') ?? 0);
+    return json({ data: rows.slice(offset, offset + limit), pagination: { totalCount: rows.length, offset, limit } });
   }
   if (u.hostname === 'www.googleapis.com') {
     calls.yt++;
@@ -65,6 +76,7 @@ globalThis.setTimeout = (fn, ms, ...a) => realSetTimeout(fn, Math.min(ms, 5), ..
 
 process.env.FOOTBALL_DATA_KEY = 'x';
 process.env.YOUTUBE_API_KEY = 'y';
+process.env.HIGHLIGHTLY_API_KEY = 'z';
 process.argv = [process.argv[0], 'ingest', '--since=2026-09-01'];
 await import(path.join(tmp, 'scripts/ingest.mjs'));
 await new Promise((r) => realSetTimeout(r, 500));
