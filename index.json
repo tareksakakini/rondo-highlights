@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-09-28T00:37:45.863Z",
+ "generatedAt": "2026-09-28T01:08:36.903Z",
  "source": "live",
  "competitions": [
   {
@@ -1110,35 +1110,35 @@
      "label": "Matchweek 1",
      "firstDate": "2026-08-21T18:45:00Z",
      "matches": 9,
-     "withHighlights": 6
+     "withHighlights": 9
     },
     {
      "key": "md-2",
      "label": "Matchweek 2",
      "firstDate": "2026-08-28T18:45:00Z",
      "matches": 9,
-     "withHighlights": 7
+     "withHighlights": 9
     },
     {
      "key": "md-3",
      "label": "Matchweek 3",
      "firstDate": "2026-09-03T18:45:00Z",
      "matches": 9,
-     "withHighlights": 7
+     "withHighlights": 9
     },
     {
      "key": "md-4",
      "label": "Matchweek 4",
      "firstDate": "2026-09-11T18:45:00Z",
      "matches": 9,
-     "withHighlights": 6
+     "withHighlights": 9
     },
     {
      "key": "md-5",
      "label": "Matchweek 5",
      "firstDate": "2026-09-18T18:45:00Z",
      "matches": 9,
-     "withHighlights": 7
+     "withHighlights": 9
     },
     {
      "key": "md-6",
@@ -1431,8 +1431,8 @@
      "key": "md-1",
      "label": "League phase · MD 1",
      "firstDate": "2026-09-16T15:52:27.000Z",
-     "matches": 18,
-     "withHighlights": 18
+     "matches": 20,
+     "withHighlights": 20
     }
    ],
    "source": "live"
@@ -1452,8 +1452,8 @@
      "key": "w-2026-09-24",
      "label": "League phase · Sep 24–27",
      "firstDate": "2026-09-24T18:10:50.000Z",
-     "matches": 6,
-     "withHighlights": 6
+     "matches": 11,
+     "withHighlights": 11
     }
    ],
    "source": "live"
