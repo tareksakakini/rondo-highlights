@@ -1,10 +1,12 @@
 {
- "generatedAt": "2026-09-27T19:43:17.684Z",
+ "generatedAt": "2026-09-28T00:18:07.253Z",
  "source": "live",
  "competitions": [
   {
    "code": "PL",
    "name": "Premier League",
+   "short": "Premier League",
+   "group": "league",
    "country": "England",
    "color": "#8B5CF6",
    "season": 2026,
@@ -16,14 +18,14 @@
      "label": "Matchweek 1",
      "firstDate": "2026-08-21T19:00:00Z",
      "matches": 10,
-     "withHighlights": 4
+     "withHighlights": 10
     },
     {
      "key": "md-2",
      "label": "Matchweek 2",
      "firstDate": "2026-08-28T19:00:00Z",
      "matches": 10,
-     "withHighlights": 6
+     "withHighlights": 10
     },
     {
      "key": "md-3",
@@ -283,6 +285,8 @@
   {
    "code": "PD",
    "name": "La Liga",
+   "short": "La Liga",
+   "group": "league",
    "country": "Spain",
    "color": "#F97316",
    "season": 2026,
@@ -294,14 +298,14 @@
      "label": "Matchweek 1",
      "firstDate": "2026-08-15T17:30:00Z",
      "matches": 10,
-     "withHighlights": 7
+     "withHighlights": 9
     },
     {
      "key": "md-2",
      "label": "Matchweek 2",
      "firstDate": "2026-08-20T19:00:00Z",
      "matches": 10,
-     "withHighlights": 8
+     "withHighlights": 9
     },
     {
      "key": "md-3",
@@ -561,6 +565,8 @@
   {
    "code": "SA",
    "name": "Serie A",
+   "short": "Serie A",
+   "group": "league",
    "country": "Italy",
    "color": "#0EA5E9",
    "season": 2026,
@@ -839,6 +845,8 @@
   {
    "code": "BL1",
    "name": "Bundesliga",
+   "short": "Bundesliga",
+   "group": "league",
    "country": "Germany",
    "color": "#EF4444",
    "season": 2026,
@@ -1089,6 +1097,8 @@
   {
    "code": "FL1",
    "name": "Ligue 1",
+   "short": "Ligue 1",
+   "group": "league",
    "country": "France",
    "color": "#22C55E",
    "season": 2026,
@@ -1339,6 +1349,8 @@
   {
    "code": "CL",
    "name": "Champions League",
+   "short": "Champions League",
+   "group": "europe",
    "country": "Europe",
    "color": "#3B82F6",
    "season": 2026,
@@ -1400,6 +1412,48 @@
      "firstDate": "2027-01-27T20:00:00Z",
      "matches": 18,
      "withHighlights": 0
+    }
+   ],
+   "source": "live"
+  },
+  {
+   "code": "EL",
+   "name": "Europa League",
+   "short": "Europa League",
+   "group": "europe",
+   "country": "Europe",
+   "color": "#F59E0B",
+   "season": 2026,
+   "seasonLabel": "2026/27",
+   "currentRound": "md-1",
+   "rounds": [
+    {
+     "key": "md-1",
+     "label": "League phase · MD 1",
+     "firstDate": "2026-09-16T15:52:27.000Z",
+     "matches": 20,
+     "withHighlights": 20
+    }
+   ],
+   "source": "live"
+  },
+  {
+   "code": "UNL",
+   "name": "UEFA Nations League",
+   "short": "Nations League",
+   "group": "national",
+   "country": "Europe",
+   "color": "#14B8A6",
+   "season": 2026,
+   "seasonLabel": "2026/27",
+   "currentRound": "w-2026-09-24",
+   "rounds": [
+    {
+     "key": "w-2026-09-24",
+     "label": "League phase · Sep 24–26",
+     "firstDate": "2026-09-24T18:10:50.000Z",
+     "matches": 4,
+     "withHighlights": 4
     }
    ],
    "source": "live"
