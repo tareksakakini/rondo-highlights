@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
 import { fetchIndex, fetchRound } from './lib/data';
 import { fmtDay, fmtDuration, fmtTotal, kindLabel, matchTitle, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
+import { countryName, detectRegion, flag } from './lib/region';
 import { initialPlayback, playbackReducer } from './lib/playback';
 import { usePersistentState } from './lib/storage';
 import { describeYtError } from './lib/youtube';
@@ -9,6 +10,7 @@ import { Logo } from './components/Logo';
 import { MatchCard } from './components/MatchCard';
 import { Player } from './components/Player';
 import { UpNext } from './components/UpNext';
+import { Settings } from './components/Settings';
 
 function readQueue(): PlayItem[] {
   try { return JSON.parse(localStorage.getItem('rondo:queue') ?? '[]'); } catch { return []; }
@@ -29,7 +31,11 @@ export default function App() {
   const [spoilerFree, setSpoilerFree] = usePersistentState('spoilerFree', false);
   const [autoplay, setAutoplay] = usePersistentState('autoplay', true);
   const [revealTitle, setRevealTitle] = useState(false);
-  const [pins, setPins] = useState<Record<number, Kind>>({});
+  const [pins, setPins] = useState<Record<string, Kind>>({});
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const detected = useMemo(detectRegion, []);
+  const [regionOverride, setRegionOverride] = usePersistentState('region', '');
+  const region = regionOverride || detected;
   const [toast, setToast] = useState<string | null>(null);
   const [pb, dispatch] = useReducer(playbackReducer, undefined, () => initialPlayback(readQueue()));
   const stageRef = useRef<HTMLDivElement>(null);
@@ -80,10 +86,13 @@ export default function App() {
     }),
     [comp, round],
   );
-  const playable = useMemo(() => round?.matches.filter((m) => m.highlights.length) ?? [], [round]);
-  const roundTotal = playable.reduce((t, m) => t + (pickHighlight(m, pref)?.durationSec ?? 0), 0);
+  const playable = useMemo(() => round?.matches.filter((m) => pickHighlight(m, pref, [], region)) ?? [], [round, pref, region]);
+  const withAny = round?.matches.filter((m) => m.highlights.length).length ?? 0;
+  const blockedHere = useMemo(() => round?.matches.filter((m) => m.highlights.length && !pickHighlight(m, pref, [], region)) ?? [], [round, pref, region]);
+  const notYet = useMemo(() => round?.matches.filter((m) => !m.highlights.length) ?? [], [round]);
+  const roundTotal = playable.reduce((t, m) => t + (pickHighlight(m, pins[m.id] ?? pref, [], region)?.durationSec ?? 0), 0);
 
-  const playFrom = (matchId: number, kind?: Kind) => {
+  const playFrom = (matchId: number | string, kind?: Kind) => {
     const start = playable.findIndex((m) => m.id === matchId);
     const items = playable.map((m) => toItem(m, m.id === matchId ? kind ?? pins[m.id] : pins[m.id]));
     dispatch({ type: 'playContext', label: `${comp!.name} · ${round!.round.label}`, items, start: Math.max(0, start) });
@@ -100,11 +109,11 @@ export default function App() {
 
   // ---- current video ----
   const current = pb.current;
-  const video = current ? resolveItem(current, pref, pb.failed[current.uid]) : null;
+  const video = current ? resolveItem(current, pref, pb.failed[current.uid], region) : null;
 
   useEffect(() => {
     if (current && !video) {
-      setToast(`Skipped ${matchTitle(current.match)} — no playable video`);
+      setToast(`Skipped ${matchTitle(current.match)}: no video plays in ${region ? countryName(region) : 'your country'}`);
       dispatch({ type: 'next' });
     }
   }, [current, video]);
@@ -115,7 +124,7 @@ export default function App() {
   const onError = useCallback(
     (code: number) => {
       if (!video) return;
-      setToast(`${video.channel}: ${describeYtError(code)} — trying another cut`);
+      setToast(`${video.channel}: ${describeYtError(code)}. Trying another cut`);
       dispatch({ type: 'failed', videoId: video.videoId });
     },
     [video],
@@ -132,15 +141,31 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const roundIdx = comp?.rounds.findIndex((r) => r.key === roundKey) ?? -1;
   const queuedIds = new Set(pb.queue.map((q) => q.match.id));
+  const renderCard = (m: Match) => (
+    <MatchCard
+      key={m.id}
+      match={m}
+      pref={pref}
+      region={region}
+      spoilerFree={spoilerFree}
+      playing={current?.match.id === m.id}
+      queued={queuedIds.has(m.id)}
+      pinned={pins[m.id]}
+      onPin={(k) => setPins((p) => ({ ...p, [m.id]: k }))}
+      onPlay={(k) => playFrom(m.id, k)}
+      onQueue={(k) => queueMatch(m, k)}
+    />
+  );
+
+  const roundIdx = comp?.rounds.findIndex((r) => r.key === roundKey) ?? -1;
   const hasUpNext = pb.queue.length > 0 || !!pb.context;
 
   return (
     <div className="app">
       <header className="topbar">
         <Logo />
-        <span className="tagline">European football highlights, back to back</span>
+        <span className="tagline">Football highlights, back to back</span>
         <div className="prefs">
           <div className="seg" role="radiogroup" aria-label="Preferred highlight length">
             {(['short', 'extended'] as Kind[]).map((k) => (
@@ -149,7 +174,7 @@ export default function App() {
               </button>
             ))}
           </div>
-          <button className={`toggle${spoilerFree ? ' on' : ''}`} aria-pressed={spoilerFree} onClick={() => setSpoilerFree(!spoilerFree)}
+          <button className={`toggle desktop-only${spoilerFree ? ' on' : ''}`} aria-pressed={spoilerFree} onClick={() => setSpoilerFree(!spoilerFree)}
             title="Hide scores and thumbnails">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               {spoilerFree
@@ -158,12 +183,16 @@ export default function App() {
             </svg>
             <span>Spoiler-free</span>
           </button>
+          <button className="toggle settings-btn" onClick={() => setSettingsOpen(true)} aria-label={`Settings (country: ${region ? countryName(region) : 'unknown'})`} title="Settings">
+            <span className="flag" aria-hidden="true">{region ? flag(region) : '🌐'}</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.4 7.4 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7 7 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7 7 0 0 0-1.7 1l-2.5-1-2 3.5L6.5 11a7.4 7.4 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7" /></svg>
+          </button>
         </div>
       </header>
 
       {index?.source === 'sample' && (
         <div className="notice">
-          Showing a sample snapshot. Run <code>npm run ingest</code> with your API keys to load live fixtures and highlights for all six competitions.
+          Showing a sample snapshot. Run <code>npm run ingest</code> with your API keys to load live fixtures and highlights for every competition.
         </div>
       )}
 
@@ -225,11 +254,15 @@ export default function App() {
           {index && (
             <section className="browse" aria-label="Browse">
               <nav className="comps" aria-label="Competitions">
-                {index.competitions.map((c) => (
-                  <button key={c.code} className={`comp${c.code === compCode ? ' on' : ''}`} style={{ '--c': c.color } as React.CSSProperties}
-                    onClick={() => { setCompCode(c.code); setRoundKey(c.currentRound); }}>
-                    <i className="comp-dot" />{c.name}
-                  </button>
+                {index.competitions.map((c, i) => (
+                  <span key={c.code} className="comp-wrap">
+                    {i > 0 && (c.group ?? 'league') !== (index.competitions[i - 1].group ?? 'league') && <span className="comp-sep" aria-hidden="true" />}
+                    <button className={`comp${c.code === compCode ? ' on' : ''}`} style={{ '--c': c.color } as React.CSSProperties}
+                      aria-pressed={c.code === compCode}
+                      onClick={() => { setCompCode(c.code); setRoundKey(c.currentRound); }}>
+                      <i className="comp-dot" />{c.short ?? c.name}
+                    </button>
+                  </span>
                 ))}
               </nav>
 
@@ -254,14 +287,18 @@ export default function App() {
                       onClick={() => setRoundKey(comp.rounds[roundIdx + 1].key)}>
                       <svg viewBox="0 0 24 24"><path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" /></svg>
                     </button>
-                    {round && round.matches.length > 0 && (
-                      <span className="round-dates muted">
-                        {fmtDay(round.matches[0].utcDate)} – {fmtDay(round.matches[round.matches.length - 1].utcDate)}
-                      </span>
-                    )}
                   </div>
+                  {round && round.matches.length > 0 && (
+                    <p className="round-meta muted">
+                      <span>{fmtDay(round.matches[0].utcDate)} – {fmtDay(round.matches[round.matches.length - 1].utcDate)}</span>
+                      <span>
+                        {playable.length}/{round.matches.length} playable{region ? ` in ${flag(region)}` : ''}
+                        {withAny > playable.length && <button className="linkish inline" onClick={() => setSettingsOpen(true)}>why?</button>}
+                      </span>
+                      {roundTotal > 0 && <span>{fmtTotal(roundTotal)}</span>}
+                    </p>
+                  )}
                   <div className="round-actions">
-                    {round && <span className="muted">{playable.length}/{round.matches.length} with highlights{roundTotal ? ` · ${fmtTotal(roundTotal)}` : ''}</span>}
                     <button className="btn-primary" disabled={!playable.length} onClick={() => playFrom(playable[0].id)}>
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
                       Play all
@@ -271,38 +308,56 @@ export default function App() {
                 </div>
               )}
 
+              {round && !playable.length && blockedHere.length > 0 && (
+                <div className="region-note">
+                  <strong>None of this round&apos;s highlights are licensed on YouTube in {region ? `${flag(region)} ${countryName(region)}` : 'your country'}.</strong>
+                  <span> Broadcasters sell highlight rights country by country. Try another competition, or <button className="linkish inline" onClick={() => setSettingsOpen(true)}>change your country</button> if we guessed wrong.</span>
+                </div>
+              )}
+
               <div className="grid">
                 {!round && comp && Array.from({ length: 6 }, (_, i) => <div key={i} className="card skeleton" />)}
-                {round?.matches.map((m) => (
-                  <MatchCard
-                    key={m.id}
-                    match={m}
-                    pref={pref}
-                    spoilerFree={spoilerFree}
-                    playing={current?.match.id === m.id}
-                    queued={queuedIds.has(m.id)}
-                    pinned={pins[m.id]}
-                    onPin={(k) => setPins((p) => ({ ...p, [m.id]: k }))}
-                    onPlay={(k) => playFrom(m.id, k)}
-                    onQueue={(k) => queueMatch(m, k)}
-                  />
-                ))}
+                {[...playable, ...notYet].map(renderCard)}
               </div>
+
+              {blockedHere.length > 0 && playable.length > 0 && (
+                <details className="blocked-group">
+                  <summary>
+                    Not available in {region ? `${flag(region)} ${countryName(region)}` : 'your country'} <span className="count">{blockedHere.length}</span>
+                  </summary>
+                  <div className="grid">{blockedHere.map(renderCard)}</div>
+                </details>
+              )}
+              {blockedHere.length > 0 && !playable.length && <div className="grid">{blockedHere.map(renderCard)}</div>}
             </section>
           )}
         </main>
 
         {(current || hasUpNext) && (
           <aside className="aside">
-            <UpNext state={pb} pref={pref} dispatch={dispatch} />
+            <UpNext state={pb} pref={pref} region={region} dispatch={dispatch} />
           </aside>
         )}
       </div>
 
       <footer className="foot muted">
-        Videos are embedded from their official YouTube channels; Rondo Highlights hosts no video. Football data provided by the Football-Data.org API.
-        {index && ` Data updated ${new Date(index.generatedAt).toLocaleString()}.`}
+        <p>
+          Showing highlights that play in {region ? `${flag(region)} ${countryName(region)}` : 'your country'}.{' '}
+          <button className="linkish inline" onClick={() => setSettingsOpen(true)}>Change</button>
+        </p>
+        <p>
+          Videos are embedded from official YouTube channels; Rondo Highlights hosts no video. Football data provided by the Football-Data.org API.
+          {index && ` Updated ${new Date(index.generatedAt).toLocaleString()}.`}
+        </p>
       </footer>
+
+      <Settings
+        open={settingsOpen} onClose={() => setSettingsOpen(false)}
+        pref={pref} setPref={setPref}
+        spoilerFree={spoilerFree} setSpoilerFree={setSpoilerFree}
+        autoplay={autoplay} setAutoplay={setAutoplay}
+        detected={detected} override={regionOverride} setOverride={setRegionOverride}
+      />
 
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

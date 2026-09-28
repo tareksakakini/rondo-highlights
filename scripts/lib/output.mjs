@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { COMPETITIONS } from '../config.mjs';
 
 const dataDir = (root) => path.join(root, 'public', 'data');
 
@@ -20,16 +21,22 @@ export async function readPrevious(root, code, season) {
   return map;
 }
 
+/** The currently published index.json (or null). */
+export async function readIndex(root) {
+  return readJson(path.join(dataDir(root), 'index.json'));
+}
+
 /**
  * Write index.json + one file per round.
+ * Competitions without a single highlight are left out of the index (e.g. the Euros between tournaments).
  * merge=true keeps competitions from the existing index that weren't rebuilt this run.
  */
 export async function writeDataset(root, results, { source, merge }) {
   const dir = dataDir(root);
   await fs.mkdir(dir, { recursive: true });
   const existing = merge ? await readJson(path.join(dir, 'index.json')) : null;
-  const rebuilt = new Set(results.map((r) => r.index.code));
 
+  results = results.filter((r) => r.index.rounds.some((x) => x.withHighlights > 0));
   for (const { index, files } of results) {
     const compDir = path.join(dir, index.code);
     await fs.rm(compDir, { recursive: true, force: true });
@@ -39,8 +46,9 @@ export async function writeDataset(root, results, { source, merge }) {
     }
   }
 
+  const rebuilt = new Set(results.map((r) => r.index.code));
   const kept = (existing?.competitions ?? []).filter((c) => !rebuilt.has(c.code));
-  const order = ['PL', 'PD', 'SA', 'BL1', 'FL1', 'CL'];
+  const order = COMPETITIONS.map((c) => c.code);
   const competitions = [...kept, ...results.map((r) => ({ ...r.index, source }))]
     .sort((a, b) => order.indexOf(a.code) - order.indexOf(b.code));
   const sources = new Set(competitions.map((c) => c.source));

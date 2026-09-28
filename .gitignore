@@ -5,3 +5,6 @@ dist/
 *.tsbuildinfo
 Claude outputs/
 public/data/
+
+# Local Netlify folder
+.netlify

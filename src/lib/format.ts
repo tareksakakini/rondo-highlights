@@ -19,17 +19,30 @@ export function fmtDay(iso: string) {
 
 export const kindLabel = (k: Kind) => (k === 'short' ? 'Short' : 'Extended');
 
-/**
- * Pick the video to play for a match: the pinned/preferred length first,
- * falling back to the other length. `exclude` holds videos that already failed.
- */
-export function pickHighlight(match: Match, want: Kind, exclude: string[] = []): Highlight | null {
-  const ok = match.highlights.filter((h) => !exclude.includes(h.videoId));
-  return ok.find((h) => h.kind === want) ?? ok[0] ?? null;
+/** Can this video play in `region`? (YouTube country restrictions recorded at ingest.) */
+export function availableIn(h: Highlight, region: string | null) {
+  if (!region) return true;
+  if (h.allow) return h.allow.includes(region);
+  if (h.block) return !h.block.includes(region);
+  return true;
 }
 
-export const resolveItem = (item: PlayItem, pref: Kind, exclude: string[] = []) =>
-  pickHighlight(item.match, item.kind ?? pref, exclude);
+/**
+ * Pick the video to play for a match: the pinned/preferred length first,
+ * falling back to the other length, among cuts that play in the viewer's country.
+ * `exclude` holds videos that already failed. Unknown region: prefer unrestricted cuts.
+ */
+export function pickHighlight(match: Match, want: Kind, exclude: string[] = [], region: string | null = null): Highlight | null {
+  const ok = match.highlights.filter((h) => !exclude.includes(h.videoId) && availableIn(h, region));
+  const pool = region ? ok : [...ok.filter((h) => !h.allow && !h.block), ...ok.filter((h) => h.allow || h.block)];
+  return pool.find((h) => h.kind === want) ?? pool[0] ?? null;
+}
+
+export const resolveItem = (item: PlayItem, pref: Kind, exclude: string[] = [], region: string | null = null) =>
+  pickHighlight(item.match, item.kind ?? pref, exclude, region);
+
+/** Does the match have any cut that plays in `region`? */
+export const playableIn = (m: Match, region: string | null) => m.highlights.some((h) => availableIn(h, region));
 
 export function matchTitle(m: Match) {
   return `${m.home.short} v ${m.away.short}`;

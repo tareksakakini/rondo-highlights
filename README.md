@@ -1,52 +1,70 @@
 # Rondo Highlights
 
-**European football highlights, back to back.** Pick a league and a matchweek, press *Play all*, and every match's highlights play one after another. You can also build your own queue, and choose short or extended cuts.
+**Football highlights, back to back.** Pick a competition and a round, press *Play all*, and every match's highlights play one after another. You can also build your own queue, choose short or extended cuts, and see only what's licensed in your country.
 
 In football, a *rondo* is the passing drill where the ball keeps circulating without stopping. The logo is five players in a passing circle around a play button.
+
+## Competitions
+
+| | Fixtures from | Highlights from |
+|---|---|---|
+| Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Champions League | football-data.org (free tier) | league, broadcaster and club channels |
+| Europa League, Nations League | **no free fixture feed**, so matches are discovered from highlight titles (`scripts/lib/videos.mjs`) | CBS Sports Golazo Europe, FOX, club and federation channels |
+| World Cup 2026 | football-data.org (free tier) | FIFA, FOX Soccer, federation channels (archive, ingested once) |
+| Euros | football-data.org if your plan includes it | UEFA, FOX, federation channels (hidden until there are highlights) |
 
 ## Quick start
 
 ```bash
 npm install
-npm run sample     # offline snapshot: PL MW5, Bundesliga MD4, UCL MD1 (real videos)
+npm run sample     # offline snapshot: PL, Bundesliga, UCL, UEL and Nations League rounds (real videos)
 npm run dev        # http://localhost:5173
 ```
 
-## Live data (all six competitions)
+## Live data
 
 1. Put your keys in `.env` (see `.env.example`):
-   - `FOOTBALL_DATA_KEY`: free at football-data.org. Gives fixtures and results for the Premier League, La Liga, Serie A, Bundesliga, Ligue 1 and the Champions League.
+   - `FOOTBALL_DATA_KEY`: free at football-data.org.
    - `YOUTUBE_API_KEY`: from Google Cloud with **YouTube Data API v3** enabled.
 2. Run:
 
 ```bash
 npm run ingest                         # last ~10 days of uploads, every competition
-npm run ingest -- --since=2026-08-15   # backfill the season so far (more quota, still cheap)
+npm run ingest -- --since=2026-08-15   # backfill the season so far (reads deeper into busy channels)
+npm run ingest -- --only=WC            # force an archive competition again
 npm run ingest -- --only=PL,CL --dry   # preview without writing
 ```
 
-The ingest writes static JSON to `public/data/`. The site is fully static, so you can deploy `dist/` anywhere (Netlify, Vercel, GitHub Pages) and run the ingest on a schedule, for example with a GitHub Actions cron.
+**Quota:** the ingest never uses `search.list`, which costs 100 units a call. It reads each channel's uploads playlist at 1 unit per 50 videos, and re-checks stored videos at 1 unit per 50. A normal run costs a few hundred units of the 10,000 you get per day, and a backfill costs up to about 1,000.
 
-**Quota:** the ingest never uses `search.list`, which costs 100 units a call. It reads each channel's uploads playlist at 1 unit per 50 videos. A normal run costs roughly 30–150 units of the 10,000 you get per day.
+## Global audience
+
+Highlight rights are sold country by country. US broadcasters, for example, limit their videos to the US, while league and club channels are usually worldwide.
+
+- The ingest keeps **every** embeddable video along with its YouTube country restrictions, stored as `allow`/`block` lists.
+- The site works out the visitor's country from the browser's time zone. There's no server or IP lookup, and visitors can override it in Settings.
+- It then only offers cuts that play there. Matches with no playable cut are grouped under "Not available in …".
 
 ## How highlights are found
 
-`scripts/lib/match.mjs` does the matching:
+`scripts/lib/match.mjs` handles fixture competitions, and `scripts/lib/videos.mjs` handles title-discovered ones.
 
-1. For each competition, read recent uploads from the trusted channels in `scripts/config.mjs`. The list is priority-ordered and US-rights aware.
-2. Drop non-highlights (compilations, women's and youth games, cup ties, pressers, Shorts) and anything not embeddable or blocked in the US.
-3. Match a video to a fixture when **both teams** appear in the title as whole words (using aliases like *Spurs*, *Man Utd*, *Atleti*, *M'gladbach*) and it was **published within 5 days after kick-off**.
-4. Classify each cut as **extended** if the title says so or it runs 7 minutes or more. When a match only has short-ish cuts, the longest counts as extended if it's at least twice the length of the shortest.
-5. Merge with earlier runs so older highlights aren't lost when they fall out of the lookback window.
+1. For each competition, read recent uploads from the trusted channels in `scripts/config.mjs`. The list is priority-ordered: broadcasters first, then official league channels, then clubs and national teams.
+2. Drop non-highlights: compilations, "classic" replays, women's and youth games, qualifiers, friendlies, cup ties, pressers, tunnel cams and Shorts. Also drop anything not embeddable, and titles that name a different competition.
+3. Match a video to a fixture when **both teams** appear in the title as whole words (with aliases like *Spurs*, *Man Utd*, *Atleti*, *Inglaterra*) and it was **published within 5 days after kick-off**.
+   - For Europa League and Nations League there are no fixtures, so "A vs B" / "A 2-1 B" is parsed from the title. Videos about the same pair of teams within a few days become one match.
+   - Rounds come from "MD 1" in titles, or from date windows.
+4. Classify each cut as **extended** if the title says so or it runs 7 minutes or more. Otherwise the longest cut is extended if it's at least twice the length of the shortest.
+5. Merge with earlier runs, and re-check stored videos so deleted or de-embedded ones disappear.
 
-Run `npm test` to check the matcher against real titles from the sample snapshot.
+Run `npm test` to check the matcher against real titles and run the whole ingest against mocked APIs.
 
 ## Project layout
 
 ```
 scripts/        config.mjs (competitions + channels), ingest.mjs, build-sample.mjs, lib/
 public/data/    generated JSON (index.json + <CODE>/<round>.json)
-src/            React app: App.tsx, components/, lib/playback.ts (queue/autoplay logic)
+src/            React app: App.tsx, components/, lib/playback.ts (queue/autoplay), lib/region.ts (country detection)
 docs/           landscape.md (competitor comparison)
 ```
 

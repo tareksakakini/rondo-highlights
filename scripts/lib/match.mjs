@@ -2,6 +2,8 @@
 // No I/O here — shared by ingest.mjs (live APIs) and build-sample.mjs (offline seed),
 // and covered by tests/match.test.mjs.
 
+import { NATIONS } from './teams.mjs';
+
 /** Lowercase, strip accents/punctuation, collapse whitespace. */
 export function normalize(s) {
   return ` ${String(s ?? '')
@@ -64,6 +66,13 @@ export const MANUAL_ALIASES = {
   PSG: ['psg', 'paris saint germain', 'paris sg'],
 };
 
+// Lookup: any normalized national-team name/alias -> nation entry.
+const NATION_INDEX = new Map();
+for (const n of NATIONS) {
+  for (const a of [n.name, ...n.extraAliases]) NATION_INDEX.set(normalize(a).trim(), n);
+}
+export const nationFor = (name) => NATION_INDEX.get(normalize(name).trim()) ?? null;
+
 /** Every phrase that can identify this team in a video title (normalized, padded). */
 export function teamAliases(team) {
   const out = new Set();
@@ -80,7 +89,14 @@ export function teamAliases(team) {
     add(src);
     add(strip(src));
   }
-  for (const a of MANUAL_ALIASES[team.tla] ?? []) add(a);
+  const nation = team.national ? team : nationFor(team.name) ?? nationFor(team.shortName ?? '');
+  if (nation) {
+    add(nation.name);
+    for (const a of nation.extraAliases ?? []) add(a);
+  } else {
+    for (const a of MANUAL_ALIASES[team.tla] ?? []) add(a);
+  }
+  for (const a of team.extraAliases ?? []) add(a);
   out.delete('');
   return [...out].filter((a) => a.length >= 3);
 }
@@ -94,9 +110,33 @@ export function mentions(normTitle, aliases) {
   return best;
 }
 
-const HIGHLIGHT_RE = /highlight|resumen|extended|sintesi|melhores momentos/i;
+const HIGHLIGHT_RE = /highlight|resumen|extended|sintesi|melhores momentos|samenvatting|zusammenfassung/i;
 const EXCLUDE_RE =
-  /\b(women|femenino|femminile|frauen|wsl|u-?1[5-9]|u-?2[0-3]|academy|youth|press conference|preview|reaction|interview|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|all highlights|top \d+|review|full match|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|#shorts)\b/i;
+  /\b(women|womens|femenino|femenina|femminile|frauen|feminine|wsl|u-?1[5-9]|u-?2[0-3]|sub-?1[5-9]|sub-?2[0-3]|under-?\d\d|academy|youth|press conference|preview|reaction|interview|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|all highlights|top \d+|review|full match|classic|legends|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|esports|efootball|fc 2[5-9]|#shorts)\b/i;
+
+// Competition keywords in titles. Club and national-team channels post several
+// competitions, so a title that names a different competition is skipped.
+const COMP_HINTS = [
+  ['PL', /\bpremier league\b(?! 2\b)|\bepl\b/i],
+  ['PD', /\bla ?liga\b/i],
+  ['SA', /\bserie a\b/i],
+  ['BL1', /\bbundesliga\b(?!\s*2\b)/i],
+  ['FL1', /\bligue 1\b/i],
+  ['CL', /\bchampions league\b|\bucl\b/i],
+  ['EL', /\beuropa league\b|\buel\b/i],
+  ['ECL', /\bconference league\b|\buecl\b/i],
+  ['UNL', /\bnations league\b|\bunl\b/i],
+  ['WC', /\bworld cup\b/i],
+  ['EC', /\beuros?\b(?!\s*league)(?:\s*20\d\d)?|\beuropean championship\b|\beurocopa\b/i],
+];
+
+/** Competition codes a title explicitly mentions (empty set = no hint). */
+export function detectComps(title) {
+  const t = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const out = new Set();
+  for (const [code, re] of COMP_HINTS) if (re.test(t)) out.add(code);
+  return out;
+}
 
 /** Cheap title-only pre-filter (before we spend quota on video details). */
 export function looksLikeMatchHighlight(title) {
@@ -179,30 +219,41 @@ export function matchVideosToFixtures(fixtures, videos, { windowHours = 120 } = 
     );
     result.set(
       id,
-      classified.map(({ videoId, title, channel, channelId, durationSec, publishedAt, kind, priority }) => ({
-        videoId, title, channel, channelId, durationSec, publishedAt, kind, priority: priority ?? 99,
-      })),
+      classified.map(slimHighlight),
     );
   }
   return result;
 }
 
-const STAGE_LABELS = {
+/** The fields a highlight keeps in the published JSON. allow/block = YouTube country restrictions. */
+export function slimHighlight({ videoId, title, channel, channelId, durationSec, publishedAt, kind, priority, allow, block }) {
+  const h = { videoId, title, channel, channelId, durationSec, publishedAt, kind, priority: priority ?? 99 };
+  if (allow?.length) h.allow = allow;
+  if (block?.length) h.block = block;
+  return h;
+}
+
+export const STAGE_LABELS = {
   LEAGUE_STAGE: 'League phase',
+  GROUP_STAGE: 'Group stage',
   PLAYOFFS: 'Knockout play-offs',
+  PLAYOFF_ROUND: 'Play-off round',
+  LAST_32: 'Round of 32',
   LAST_16: 'Round of 16',
   QUARTER_FINALS: 'Quarter-finals',
   SEMI_FINALS: 'Semi-finals',
+  THIRD_PLACE: 'Third-place play-off',
   FINAL: 'Final',
 };
 
-/** Group fixtures into rounds ("Matchweek 5", "Round of 16"). */
+/** Group fixtures into rounds ("Matchweek 5", "Group stage · MD 2", "Round of 16"). */
 export function roundOf(fixture, roundLabel = 'Matchweek') {
   const stage = fixture.stage ?? 'REGULAR_SEASON';
-  if (stage === 'REGULAR_SEASON' || (stage === 'LEAGUE_STAGE' && fixture.matchday)) {
-    const md = fixture.matchday;
-    const prefix = stage === 'LEAGUE_STAGE' ? 'League phase · MD' : roundLabel;
-    return { key: `md-${md}`, label: `${prefix} ${md}`, matchday: md };
+  const md = fixture.matchday;
+  if (stage === 'REGULAR_SEASON' && md) return { key: `md-${md}`, label: `${roundLabel} ${md}`, matchday: md };
+  if ((stage === 'LEAGUE_STAGE' || stage === 'GROUP_STAGE') && md) {
+    const prefix = stage === 'GROUP_STAGE' ? 'gs-' : '';
+    return { key: `${prefix}md-${md}`, label: `${STAGE_LABELS[stage]} · MD ${md}`, matchday: md };
   }
   const key = stage.toLowerCase().replace(/_/g, '-');
   return { key, label: STAGE_LABELS[stage] ?? stage.replace(/_/g, ' ').toLowerCase(), stage };
@@ -235,30 +286,37 @@ export function buildCompetition(comp, season, fixtures, highlightsByMatch, prev
       home: slimTeam(f.homeTeam),
       away: slimTeam(f.awayTeam),
       score: { home: f.score?.fullTime?.home ?? null, away: f.score?.fullTime?.away ?? null },
-      highlights: classify(merged).sort(byKindThenPriority),
+      highlights: classify(merged).sort(byKindThenPriority).map(slimHighlight),
     });
   }
 
-  const files = [...rounds.values()]
-    .map(({ round, matches }) => ({
-      competition: comp.code,
-      season,
-      round,
-      matches: matches.sort((a, b) => Date.parse(a.utcDate) - Date.parse(b.utcDate) || a.home.name.localeCompare(b.home.name)),
-    }))
-    .sort((a, b) => Date.parse(a.matches[0].utcDate) - Date.parse(b.matches[0].utcDate));
+  const files = sortFiles([...rounds.values()].map(({ round, matches }) => ({ competition: comp.code, season, round, matches })));
+  return { index: indexFor(comp, season, files), files };
+}
 
-  // Default round = latest one that has any finished match.
-  const played = files.filter((f) => f.matches.some((m) => m.status === 'FINISHED' || m.highlights.length));
+/** Sort matches inside a round and the rounds themselves by date. */
+export function sortFiles(files) {
+  for (const f of files) {
+    f.matches.sort((a, b) => Date.parse(a.utcDate) - Date.parse(b.utcDate) || a.home.name.localeCompare(b.home.name));
+  }
+  return files.sort((a, b) => Date.parse(a.matches[0].utcDate) - Date.parse(b.matches[0].utcDate));
+}
+
+/** The competition's entry in index.json. */
+export function indexFor(comp, season, files) {
+  // Default round = latest one with any highlights (or finished matches).
+  const played = files.filter((f) => f.matches.some((m) => m.highlights.length || m.status === 'FINISHED'));
   const current = (played[played.length - 1] ?? files[0])?.round.key ?? null;
-
-  const index = {
+  const tournament = comp.code === 'WC' || comp.code === 'EC';
+  return {
     code: comp.code,
     name: comp.name,
+    short: comp.short ?? comp.name,
+    group: comp.group ?? 'league',
     country: comp.country,
     color: comp.color,
     season,
-    seasonLabel: `${season}/${String(season + 1).slice(2)}`,
+    seasonLabel: tournament ? String(season) : `${season}/${String(season + 1).slice(2)}`,
     currentRound: current,
     rounds: files.map((f) => ({
       key: f.round.key,
@@ -268,5 +326,4 @@ export function buildCompetition(comp, season, fixtures, highlightsByMatch, prev
       withHighlights: f.matches.filter((m) => m.highlights.length).length,
     })),
   };
-  return { index, files };
 }

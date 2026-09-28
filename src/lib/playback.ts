@@ -14,7 +14,7 @@ export interface PlaybackState {
   /** videoIds that failed to play, per item uid (so we fall back to the other cut) */
   failed: Record<string, string[]>;
   /** match ids already played since the context started (so queued matches aren't replayed) */
-  played: number[];
+  played: (number | string)[];
   /** bumps on every (re)start so the player reloads even for the same video */
   seq: number;
 }

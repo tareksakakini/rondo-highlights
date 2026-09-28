@@ -4,7 +4,7 @@ I opened each site's match pages; claims below are what I saw, not marketing cop
 
 | | Coverage | How you browse | Plays a whole round back to back | Queue | Short vs extended | Spoiler-free | Ads |
 |---|---|---|---|---|---|---|---|
-| **Rondo** | Big 5 + UCL | League → matchweek | **Yes, across channels** | **Yes, plays through, cross-league** | Global preference + per-match pin + fallback | Toggle; YouTube title can flash | None |
+| **Rondo** | Big 5, UCL, UEL, Nations League, World Cup (Euros when on) | Competition → round | **Yes, across channels** | **Yes, plays through, cross-competition** | Global preference + per-match pin + fallback | Toggle; YouTube title can flash | None |
 | [spoilerfreehighlights.com](https://spoilerfreehighlights.com/) | Big 5 + UCL | By date | No | "Saved" bookmarks (local), not a playlist | **Yes, per match** (e.g. club "Condensed" + ESPN FC "Extended") | Always; custom controls hide YouTube's UI | None seen |
 | [SpoilSports](https://spoilsports.net/) | PL, La Liga, Serie A, Ligue 1, MLS, Scottish Prem… | By date / team follow | No | No | No | Always; player preloaded off-screen and muted | None seen |
 | [MatchReplays](https://matchreplays.com/) | Big 5 + UCL | Match pages, league pages | No | No | One video per match | No, scores shown | Google ads |
@@ -20,7 +20,7 @@ I opened each site's match pages; claims below are what I saw, not marketing cop
 - **Unique:** "Play all" across different channels, a queue that actually plays (and mixes leagues), and matchweek framing. Nobody else I checked does any of these.
 - **Incremental:** short/extended choice. spoilerfreehighlights.com already offers both cuts per match; Rondo's edge is a global setting with automatic fallback.
 - **Table stakes, and we're behind:** spoiler-free. Three competitors do it better because the YouTube title never shows on their players.
-- **Weaker:** coverage. There are no internationals, Europa League or cups, so during international breaks (like now) Rondo has nothing new, while FootyRoom, DailyGoal and HighlightsFootball do.
+- **Coverage (updated):** Europa League, Nations League and the World Cup are now covered, and each visitor only sees cuts licensed in their country. Still missing: Conference League and domestic cups.
 - **Not a moat:** data. MatchReplays uses the same football-data.org + YouTube approach, and spoilerfreehighlights could add a "play all" button quickly.
 
 ## What would widen the gap
@@ -29,5 +29,5 @@ I opened each site's match pages; claims below are what I saw, not marketing cop
 2. **"Best first" ordering without spoilers:** rank a round by a hidden watchability score (goals, late winners, red cards) and let "skip the 0-0s" work blind.
 3. **Follow teams → auto-queue:** every Monday, your teams across all leagues are queued, extended cut for your club and short for the rest.
 4. **Resume and watched marks,** so you can come back to a half-finished matchweek.
-5. **Broader coverage:** Europa and Conference League, Nations League, and domestic cups to avoid dead weeks.
+5. **Broader coverage:** Conference League and domestic cups. (Europa League, Nations League and the World Cup are done.)
 6. **Lean-back / TV mode:** fullscreen continuous play, plus a keyboard/remote-friendly layout.

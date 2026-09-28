@@ -9,9 +9,14 @@ export interface Highlight {
   publishedAt: string;
   kind: Kind;
   priority?: number;
+  /** Only playable in these countries (ISO codes). */
+  allow?: string[];
+  /** Playable everywhere except these countries. */
+  block?: string[];
 }
 
 export interface Team {
+  key?: string;
   name: string;
   short: string;
   tla: string;
@@ -19,7 +24,7 @@ export interface Team {
 }
 
 export interface Match {
-  id: number;
+  id: number | string;
   utcDate: string;
   status: string;
   home: Team;
@@ -39,6 +44,8 @@ export interface RoundMeta {
 export interface Competition {
   code: string;
   name: string;
+  short?: string;
+  group?: 'league' | 'europe' | 'national';
   country: string;
   color: string;
   season: number;
