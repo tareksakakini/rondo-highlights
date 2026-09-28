@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-09-28T00:18:07.253Z",
+ "generatedAt": "2026-09-28T00:37:45.863Z",
  "source": "live",
  "competitions": [
   {
@@ -1431,8 +1431,8 @@
      "key": "md-1",
      "label": "League phase · MD 1",
      "firstDate": "2026-09-16T15:52:27.000Z",
-     "matches": 20,
-     "withHighlights": 20
+     "matches": 18,
+     "withHighlights": 18
     }
    ],
    "source": "live"
@@ -1450,10 +1450,87 @@
    "rounds": [
     {
      "key": "w-2026-09-24",
-     "label": "League phase · Sep 24–26",
+     "label": "League phase · Sep 24–27",
      "firstDate": "2026-09-24T18:10:50.000Z",
+     "matches": 6,
+     "withHighlights": 6
+    }
+   ],
+   "source": "live"
+  },
+  {
+   "code": "WC",
+   "name": "FIFA World Cup",
+   "short": "World Cup",
+   "group": "national",
+   "country": "World",
+   "color": "#E11D48",
+   "season": 2026,
+   "seasonLabel": "2026",
+   "currentRound": "final",
+   "rounds": [
+    {
+     "key": "gs-md-1",
+     "label": "Group stage · MD 1",
+     "firstDate": "2026-06-11T19:00:00Z",
+     "matches": 24,
+     "withHighlights": 24
+    },
+    {
+     "key": "gs-md-2",
+     "label": "Group stage · MD 2",
+     "firstDate": "2026-06-18T16:00:00Z",
+     "matches": 24,
+     "withHighlights": 24
+    },
+    {
+     "key": "gs-md-3",
+     "label": "Group stage · MD 3",
+     "firstDate": "2026-06-24T19:00:00Z",
+     "matches": 24,
+     "withHighlights": 24
+    },
+    {
+     "key": "last-32",
+     "label": "Round of 32",
+     "firstDate": "2026-06-28T19:00:00Z",
+     "matches": 16,
+     "withHighlights": 16
+    },
+    {
+     "key": "last-16",
+     "label": "Round of 16",
+     "firstDate": "2026-07-04T17:00:00Z",
+     "matches": 8,
+     "withHighlights": 8
+    },
+    {
+     "key": "quarter-finals",
+     "label": "Quarter-finals",
+     "firstDate": "2026-07-09T20:00:00Z",
      "matches": 4,
      "withHighlights": 4
+    },
+    {
+     "key": "semi-finals",
+     "label": "Semi-finals",
+     "firstDate": "2026-07-14T19:00:00Z",
+     "matches": 2,
+     "withHighlights": 2
+    },
+    {
+     "key": "third-place",
+     "label": "Third-place play-off",
+     "firstDate": "2026-07-18T21:00:00Z",
+     "matches": 1,
+     "withHighlights": 1
+    },
+    {
+     "key": "final",
+     "label": "Final",
+     "firstDate": "2026-07-19T19:00:00Z",
+     "matches": 1,
+     "withHighlights": 1
     }
    ],
    "source": "live"
