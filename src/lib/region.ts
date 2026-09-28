@@ -37,3 +37,29 @@ export function allRegions() {
   all ??= [...new Set(Object.values(TZ))].sort((a, b) => countryName(a).localeCompare(countryName(b)));
   return all;
 }
+
+/**
+ * The visitor's country as our CDN sees it (Netlify GeoIP rule → /geo.json).
+ * This is the same signal YouTube uses to block videos, so it beats the time zone
+ * for VPN users and travellers. Resolves null in local dev or if it's slow.
+ */
+export async function fetchNetworkRegion(timeoutMs = 2500): Promise<string | null> {
+  try {
+    const cached = sessionStorage.getItem('rondo:netRegion');
+    if (cached) return cached === '-' ? null : cached;
+  } catch { /* ignore */ }
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}geo.json`, { cache: 'no-store', signal: ctrl.signal });
+    if (!res.ok) return null;
+    const { country } = (await res.json()) as { country: string | null };
+    const code = typeof country === 'string' && /^[A-Z]{2}$/.test(country) ? country : null;
+    try { sessionStorage.setItem('rondo:netRegion', code ?? '-'); } catch { /* ignore */ }
+    return code;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}

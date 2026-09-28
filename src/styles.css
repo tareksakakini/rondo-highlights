@@ -279,6 +279,7 @@ main { display: contents; }
 
 .region-note { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; font-size: 13.5px; background: var(--surface); border: 1px solid var(--line); }
 .region-note strong { font-weight: 700; }
+.region-note.hint { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0 0; flex-wrap: wrap; }
 .blocked-group { margin-top: 18px; }
 .blocked-group summary { cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 600; padding: 8px 2px; list-style: none; display: flex; align-items: center; gap: 6px; }
 .blocked-group summary::-webkit-details-marker { display: none; }

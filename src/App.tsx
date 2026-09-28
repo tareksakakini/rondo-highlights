@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
 import { fetchIndex, fetchRound } from './lib/data';
 import { fmtDay, fmtDuration, fmtTotal, kindLabel, matchTitle, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
-import { countryName, detectRegion, flag } from './lib/region';
+import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
 import { initialPlayback, playbackReducer } from './lib/playback';
 import { usePersistentState } from './lib/storage';
 import { describeYtError } from './lib/youtube';
@@ -33,9 +33,20 @@ export default function App() {
   const [revealTitle, setRevealTitle] = useState(false);
   const [pins, setPins] = useState<Record<string, Kind>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const detected = useMemo(detectRegion, []);
+  // Country: your choice in Settings > what our CDN sees (same signal YouTube uses) > time zone.
+  const tzRegion = useMemo(detectRegion, []);
+  const [netRegion, setNetRegion] = useState<string | null>(null);
+  const detected = netRegion ?? tzRegion;
+  const detectedFrom: 'network' | 'timezone' | null = netRegion ? 'network' : tzRegion ? 'timezone' : null;
   const [regionOverride, setRegionOverride] = usePersistentState('region', '');
   const region = regionOverride || detected;
+  const [embedErrors, setEmbedErrors] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    fetchNetworkRegion().then((c) => { if (alive && c) setNetRegion(c); });
+    return () => { alive = false; };
+  }, []);
   const [toast, setToast] = useState<string | null>(null);
   const [pb, dispatch] = useReducer(playbackReducer, undefined, () => initialPlayback(readQueue()));
   const stageRef = useRef<HTMLDivElement>(null);
@@ -125,6 +136,9 @@ export default function App() {
     (code: number) => {
       if (!video) return;
       setToast(`${video.channel}: ${describeYtError(code)}. Trying another cut`);
+      // 101/150 also show up when a video is blocked in the viewer's country: after a
+      // couple of those, suggest checking the country setting (VPNs, travel).
+      if (code === 101 || code === 150) setEmbedErrors((n) => n + 1);
       dispatch({ type: 'failed', videoId: video.videoId });
     },
     [video],
@@ -241,6 +255,12 @@ export default function App() {
                   </label>
                 </div>
               </div>
+              {embedErrors >= 2 && (
+                <div className="region-note hint">
+                  <span>Several videos wouldn&apos;t play here. If you&apos;re using a VPN or travelling, set the country YouTube sees you in.</span>
+                  <button className="btn-ghost sm" onClick={() => { setSettingsOpen(true); setEmbedErrors(0); }}>Check country</button>
+                </div>
+              )}
             </section>
           )}
 
@@ -356,7 +376,7 @@ export default function App() {
         pref={pref} setPref={setPref}
         spoilerFree={spoilerFree} setSpoilerFree={setSpoilerFree}
         autoplay={autoplay} setAutoplay={setAutoplay}
-        detected={detected} override={regionOverride} setOverride={setRegionOverride}
+        detected={detected} detectedFrom={detectedFrom} override={regionOverride} setOverride={(c) => { setRegionOverride(c); setEmbedErrors(0); }}
       />
 
       {toast && <div className="toast" role="status">{toast}</div>}

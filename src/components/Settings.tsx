@@ -13,6 +13,7 @@ interface Props {
   autoplay: boolean;
   setAutoplay: (v: boolean) => void;
   detected: string | null;
+  detectedFrom: 'network' | 'timezone' | null;
   override: string;
   setOverride: (code: string) => void;
 }
@@ -20,17 +21,21 @@ interface Props {
 /** Settings sheet: slides up from the bottom on phones, a floating panel on desktop. */
 export function Settings(p: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const close = useRef(p.onClose);
+  close.current = p.onClose;
 
   useEffect(() => {
     if (!p.open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && p.onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close.current();
     window.addEventListener('keydown', onKey);
     ref.current?.querySelector<HTMLElement>('button, select')?.focus();
     return () => window.removeEventListener('keydown', onKey);
-  }, [p.open, p]);
+  }, [p.open]);
 
   if (!p.open) return null;
-  const detectedLabel = p.detected ? `${flag(p.detected)} ${countryName(p.detected)}` : 'unknown';
+  const detectedLabel = p.detected
+    ? `${flag(p.detected)} ${countryName(p.detected)}${p.detectedFrom === 'timezone' ? ', from your time zone' : ''}`
+    : 'unknown';
 
   return (
     <div className="sheet-backdrop" onClick={p.onClose}>
@@ -82,7 +87,7 @@ export function Settings(p: Props) {
         <label className="setting column">
           <div className="setting-text">
             <span className="setting-name">Your country</span>
-            <span className="setting-help">Highlights are licensed by country. We only show videos that play where you are.</span>
+            <span className="setting-help">Highlights are licensed by country. We detect yours from your internet connection, the same way YouTube does, and only show videos that play there. Change it if videos won&apos;t play.</span>
           </div>
           <select className="select" value={p.override} onChange={(e) => p.setOverride(e.target.value)}>
             <option value="">Automatic ({detectedLabel})</option>

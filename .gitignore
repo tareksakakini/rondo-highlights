@@ -8,3 +8,5 @@ public/data/
 
 # Local Netlify folder
 .netlify
+public/geo/
+public/_redirects

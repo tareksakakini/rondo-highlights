@@ -5,3 +5,9 @@
 # Hashed build assets never change.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The visitor's country: never cache across visitors or networks.
+/geo.json
+  Cache-Control: no-store
+/geo/*
+  Cache-Control: no-store
