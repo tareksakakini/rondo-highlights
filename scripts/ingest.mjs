@@ -5,7 +5,7 @@
 //   npm run ingest -- --only=PL,CL         # subset (also forces archive competitions like WC)
 //   npm run ingest -- --since=2026-08-15   # backfill further back (reads up to 60 pages per channel)
 //   npm run ingest -- --pages=20           # override how many upload pages to read per channel
-//   npm run ingest -- --fresh=EL,UNL       # rebuild title-discovered competitions from scratch
+//   npm run ingest -- --fresh=EL,UNL       # rebuild competitions from scratch (forget earlier matches)
 //   npm run ingest -- --dry                # print a summary, write nothing
 //
 //   npm run ingest -- --refresh-fixtures   # re-download Highlightly fixtures now (normally once a day)
@@ -367,7 +367,9 @@ async function main() {
       .filter((v) => v.embeddable && v.durationSec >= 45 && !claimed.has(v.videoId) && looksLikeMatchHighlight(v.title, { fixtures: true }))
       .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
     unmatched[comp.code] = missed.map(({ videoId, title, channel, publishedAt }) => ({ videoId, title, channel, publishedAt }));
-    const previous = await readPrevious(ROOT, comp.code, season);
+    // --fresh=EL,UNL drops highlights kept from earlier runs (after matching or filter fixes).
+    const fresh = String(args.fresh ?? '').toUpperCase().split(',').includes(comp.code);
+    const previous = fresh ? new Map() : await readPrevious(ROOT, comp.code, season);
     const built = await refreshStored(comp, buildCompetition(comp, season, fixtures, highlights, previous), YT);
     const cur = built.index.rounds.find((r) => r.key === built.index.currentRound);
     log(`  matched ${highlights.size} matches · current: ${cur?.label ?? '-'} (${cur?.withHighlights ?? 0}/${cur?.matches ?? 0} with highlights)`);

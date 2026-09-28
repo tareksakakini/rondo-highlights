@@ -15,7 +15,7 @@ on:
         required: false
         default: ''
       fresh:
-        description: 'Rebuild title-discovered competitions from scratch (none use title discovery now). Blank = keep.'
+        description: 'Rebuild these competitions from scratch, forgetting earlier matches, e.g. EL,UNL (use with since). Blank = keep.'
         required: false
         default: ''
       only:

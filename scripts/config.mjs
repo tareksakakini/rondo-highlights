@@ -38,13 +38,21 @@ export const EURO_CLUBS = [
   '@CelticFC', '@RangersFC', '@Galatasaray', '@Fenerbahce', '@ClubBrugge',
 ].map((h) => ch(h, { tier: 'club' }));
 
+/**
+ * Extra rules for federation channels whose match-tagged uploads aren't all highlights
+ * (Serbia's FSS tags interviews and press conferences "SRBIJA - HOLANDIJA 1:2 <name>").
+ */
+const NATION_RULES = {
+  '@FSSrbije': { mustMatch: 'highlights|sa[zž]etak|golovi' },
+};
+
 /** National-team / federation channels (Nations League, Euros, World Cup). */
 export const NATIONS = [
   '@England', '@DFB', '@SeFutbol', '@FFF', '@OnsOranje', '@FAWales', '@ScotlandNationalTeam',
   '@LaczyNasPilka', '@OEFB', '@nazionaledicalcio', '@FPF.Oficial', '@royalbelgianfa', '@hns.family',
   '@DBUTV', '@norges.fotballforbund', '@svenskfotboll', '@sfvasf', '@MLSZTV', '@FAITV', '@OfficialIrishFA',
   '@FRFTVofficial', '@FSSrbije', '@sfzofficial', '@nzssi', '@TFF', '@uafukraine', '@EthnikiOmada', '@footballiceland',
-].map((h) => ch(h, { tier: 'nation' }));
+].map((h) => ch(h, { tier: 'nation', ...NATION_RULES[h] }));
 
 // ---------------------------------------------------------------- competitions
 // source: 'fixtures' → fixtures from football-data.org (free tier), videos matched to them

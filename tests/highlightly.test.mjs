@@ -49,6 +49,13 @@ test('clubs borrow football-data identity only when it is really the same club',
   assert.ok(!turku.extraAliases.includes('FC Internazionale Milano'));
 });
 
+test('club acronyms become aliases ("Juventus 5-0 NEC"), club-type prefixes do not', () => {
+  const nec = toTeam({ name: 'NEC Nijmegen' }, { national: false });
+  assert.ok(nec.extraAliases.includes('NEC'));
+  const afc = toTeam({ name: 'AFC Bournemouth' }, { national: false });
+  assert.ok(!afc.extraAliases.includes('AFC'));
+});
+
 test('sample Europa League + Nations League: every highlight lands on its fixture', () => {
   const el = toFixtures(seed.highlightly.EL, { season: 2026, knownTeams: clubs });
   assert.ok(!el.some((f) => f.id === 952 || f.id === 953), 'qualifiers are dropped');

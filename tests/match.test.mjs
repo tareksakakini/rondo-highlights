@@ -5,6 +5,7 @@ import {
   normalize, teamAliases, mentions, fuzzyMentions, looksLikeMatchHighlight, classify, matchVideosToFixtures, roundOf,
 } from '../scripts/lib/match.mjs';
 import { COMPETITIONS } from '../scripts/config.mjs';
+import { NATIONS } from '../scripts/lib/teams.mjs';
 
 const seed = JSON.parse(fs.readFileSync(new URL('../scripts/sample/seed.json', import.meta.url)));
 
@@ -33,6 +34,27 @@ test('typo-tolerant fallback: one letter off in long words only', () => {
   assert.equal(fuzzyMentions(normalize('Celtic vs. Ferencváros: Highlights'), ['ferencvarosi tc', 'ferencvarosi']), 'ferencvarosi');
   assert.equal(fuzzyMentions(normalize('Lens vs Lyon highlights'), ['leon']), ''); // short words stay exact
   assert.equal(fuzzyMentions(normalize('Braga vs Brage'), ['sporting braga']), '');
+});
+
+test('title filter drops federation extras: pressers, other angles, vlogs, reactions, youth', () => {
+  assert.ok(!looksLikeMatchHighlight('LIGA NACIJA | SRBIJA - HOLANDIJA 1:2  KONFERENCIJA ZA MEDIJE (27.09.2026)'));
+  assert.ok(!looksLikeMatchHighlight('LIGA NACIJA | SRBIJA - HOLANDIJA 1:2  IZ DRUGOG UGLA (27.09.2026)'));
+  assert.ok(!looksLikeMatchHighlight('„NIE WYGRYWASZ, TO NIE PRZEGRAJ” | Vlogowe kulisy meczu POLSKA – BOŚNIA I HERCEGOWINA (0:0)'));
+  assert.ok(!looksLikeMatchHighlight('Turquie-France : les réactions (0-1)'));
+  assert.ok(!looksLikeMatchHighlight('Highlights P18/08 | Sverige-Finland 2-2'));
+  assert.ok(!looksLikeMatchHighlight('Highlights: Italia-Inghilterra 1-3  | Under 20 | La Nucía Tournament'));
+  assert.ok(looksLikeMatchHighlight('ČEŠKA - HRVATSKA | SAŽECI | HIGHLIGHTS (26.9.2026.)'));
+});
+
+test('national teams are recognised in federation languages', () => {
+  const nl = teamAliases({ name: 'Netherlands', national: true, ...NATIONS.find((n) => n.tla === 'NED') });
+  assert.ok(mentions(normalize('MEXX MEERDINK\'S FIRST GOALS! | Highlights Serbia - Nederland'), nl));
+  const cz = teamAliases(NATIONS.find((n) => n.tla === 'CZE'));
+  assert.ok(mentions(normalize('ČEŠKA - HRVATSKA | SAŽECI | HIGHLIGHTS'), cz));
+  const fr = teamAliases(NATIONS.find((n) => n.tla === 'FRA'));
+  assert.ok(mentions(normalize('Maç Özeti | Türkiye 0-1 Fransa | UEFA Uluslar A Ligi'), fr));
+  const md = teamAliases(NATIONS.find((n) => n.tla === 'MDA'));
+  assert.ok(mentions(normalize('ZOSTRIH GÓLOV I Slovensko 2:0 Moldavsko (Liga Národov 2026/2027)'), md));
 });
 
 test('title filter keeps match highlights, drops compilations, women, cups', () => {

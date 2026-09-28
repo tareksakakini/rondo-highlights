@@ -35,6 +35,7 @@ npm run ingest -- --since=2026-08-15   # backfill the season so far (reads deepe
 npm run ingest -- --only=WC            # force an archive competition again
 npm run ingest -- --only=PL,CL --dry   # preview without writing
 npm run ingest -- --only=EL,UNL --refresh-fixtures   # re-download Highlightly fixtures now
+npm run ingest -- --since=2026-08-15 --fresh=EL,UNL   # rebuild after a matching fix (drops earlier matches)
 ```
 
 **Highlightly budget:** fixtures are cached in `public/data/cache/highlightly-<CODE>-<season>.json`. The full list is re-downloaded about once a day (100 matches per request, so ~5 requests for both competitions), and in between only the dates of recent unfinished matches are re-fetched for scores. That's roughly 10–25 of the 100 daily requests. If Highlightly is down, the cached fixtures are used.

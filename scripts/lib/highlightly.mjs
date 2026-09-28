@@ -20,6 +20,9 @@ const GENERIC = new Set([
   'north', 'south', 'east', 'west', 'republic', 'new', 'san', 'santa', 'nacional', 'crvena', 'zvezda',
 ]);
 
+// Club-type abbreviations that say nothing about which club it is.
+const CLUB_PREFIXES = new Set(['AFC', 'SSC', 'TSG', 'VFB', 'VFL', 'RCD', 'OSC', 'BSC', 'KRC', 'RSC', 'HNK', 'GNK', 'FSV', 'SPAL']);
+
 /** "League Stage - 8" → { stage, matchday }; qualifying rounds → null (not shown on the site). */
 export function parseRound(round, utcDate, season) {
   const r = String(round ?? '').trim();
@@ -102,7 +105,9 @@ export function toTeam(t, { national, clubRegistry } = {}) {
   }
   const known = clubRegistry?.(raw);
   const fd = known && !known.key.startsWith('x:') && sameClub(raw, known) ? known : null;
-  const extraAliases = [...new Set([raw, ...distinctiveWords(raw), ...(fd ? [fd.name, fd.short] : [])])];
+  // Acronyms in the name are what titles often use on their own ("NEC", "OFI", "PAOK").
+  const acronyms = raw.split(/\s+/).filter((w) => /^[A-Z]{3,4}$/.test(w) && !CLUB_PREFIXES.has(w));
+  const extraAliases = [...new Set([raw, ...distinctiveWords(raw), ...acronyms, ...(fd ? [fd.name, fd.short] : [])])];
   return {
     id: t.id ?? raw,
     name: raw,
