@@ -257,7 +257,7 @@ async function main() {
     for (const f of fixtures) for (const t of [f.homeTeam, f.awayTeam]) if (t?.id) knownTeams.set(t.id, t);
     if (!fixtures.length) continue;
 
-    const sinceMs = comp.since && !args.since ? Date.parse(comp.since) : globalSince;
+    const sinceMs = comp.since ? Math.min(Date.parse(comp.since), globalSince) : globalSince;
     const videos = await collectCandidates(comp, sinceMs, YT, pagesFor(comp));
     const highlights = matchVideosToFixtures(fixtures, videos, { windowHours: MATCH_WINDOW_HOURS });
     const previous = await readPrevious(ROOT, comp.code, season);
@@ -268,11 +268,12 @@ async function main() {
   }
 
   // Video-first competitions (Europa League, Nations League).
-  const canonical = makeRegistry([...knownTeams.values()]);
   for (const comp of comps.filter((c) => c.source === 'videos')) {
+    const national = comp.group === 'national';
+    const canonical = makeRegistry([...knownTeams.values()], { nations: national, clubs: !national });
     const season = comp.season ?? defaultSeason;
     log(`\n▸ ${comp.name} (${comp.code}) ${season} · discovered from highlight titles`);
-    const sinceMs = comp.since && !args.since ? Date.parse(comp.since) : globalSince;
+    const sinceMs = comp.since ? Math.min(Date.parse(comp.since), globalSince) : globalSince;
     const videos = await collectCandidates(comp, sinceMs, YT, pagesFor(comp));
     const previous = await readPrevious(ROOT, comp.code, season);
     const built = await refreshStored(comp, buildFromVideos(comp, season, videos, canonical, previous), YT);

@@ -125,22 +125,27 @@ const COMP_HINTS = [
   ['CL', /\bchampions league\b|\bucl\b/i],
   ['EL', /\beuropa league\b|\buel\b/i],
   ['ECL', /\bconference league\b|\buecl\b/i],
-  ['UNL', /\bnations league\b|\bunl\b/i],
+  ['UNL', /\bnations league\b|\bunl\b|\bliga de (?:las )?naciones\b|\bligue des nations\b|\bnationenliga\b|\bliga delle nazioni\b|\bliga narodow\b|\bliga naroda\b|\bliga nacija\b|\buluslar ligi\b|\bnemzetek ligaja\b|\bliga natiunilor\b|\bnationernes liga\b|\bnasjonsligaen\b|\bnationsligan\b|\bliga das nacoes\b|\bliga narodu\b|\bthjodadeild\b/i],
   ['WC', /\bworld cup\b/i],
   ['EC', /\beuros?\b(?!\s*league)(?:\s*20\d\d)?|\beuropean championship\b|\beurocopa\b/i],
 ];
 
 /** Competition codes a title explicitly mentions (empty set = no hint). */
 export function detectComps(title) {
-  const t = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const t = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ø/gi, 'o').replace(/ł/g, 'l').replace(/ı/g, 'i');
   const out = new Set();
   for (const [code, re] of COMP_HINTS) if (re.test(t)) out.add(code);
   return out;
 }
 
+// Highlight words on federation channels in other languages (matched without accents).
+const HIGHLIGHT_LOCAL_RE = /\b(sazetak|osszefoglalo|sestrih|hojdpunkter|hoydepunkter|hojdepunkter|hoejdepunkter|skrot|resumo|ozet|rezumat|povzetek|zostrih|samantekt|stigmiotypa)\b/i;
+const deaccent = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ø/gi, 'o').replace(/ı/g, 'i');
+
 /** Cheap title-only pre-filter (before we spend quota on video details). */
 export function looksLikeMatchHighlight(title) {
-  return HIGHLIGHT_RE.test(title) && !EXCLUDE_RE.test(title);
+  const t = deaccent(title);
+  return (HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t)) && !EXCLUDE_RE.test(t);
 }
 
 const EXTENDED_RE = /\bextended\b|\bextendido\b|\blong\b/i;

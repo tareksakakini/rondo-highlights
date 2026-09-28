@@ -43,6 +43,11 @@ export function parseTeams(title) {
       const a = cleanSide(m[1]); const b = cleanSide(m[4]);
       if (plausible(a) && plausible(b)) return { home: a, away: b, score: [Number(m[2]), Number(m[3])] };
     }
+    // "Italia-Belgio 2-1" (federation style, no spaces around the dash)
+    if ((m = seg.match(/^([^\d\s-][^\d-]*?)-([^\d\s-][^\d-]*?)\s+(\d{1,2})\s*[-–:]\s*(\d{1,2})\b/))) {
+      const a = cleanSide(m[1]); const b = cleanSide(m[2]);
+      if (plausible(a) && plausible(b)) return { home: a, away: b, score: [Number(m[3]), Number(m[4])] };
+    }
     // "A 2 B 1" (Newcastle style)
     if ((m = seg.match(/^([^\d]+?)\s+(\d{1,2})\s+([^\d]+?)\s+(\d{1,2})$/))) {
       const a = cleanSide(m[1]); const b = cleanSide(m[3]);
@@ -81,10 +86,11 @@ const titleCase = (s) => s.toLowerCase().replace(/(^|[\s'.-])(\p{L})/gu, (_, p, 
  * Build a resolver that maps a raw team string to a stable team.
  * `knownTeams` = teams from the free fixture feeds (clubs) — national teams are always included.
  */
-export function makeRegistry(knownTeams = []) {
+export function makeRegistry(knownTeams = [], { nations = true, clubs = true } = {}) {
   const entries = [];
   const seen = new Set();
-  for (const t of [...NATIONS, ...knownTeams]) {
+  // Club competitions must not resolve "Ararat-Armenia" to the national team, and vice versa.
+  for (const t of [...(nations ? NATIONS : []), ...(clubs ? knownTeams : [])]) {
     const key = t.national ? `n:${t.tla}` : `c:${t.id ?? normalize(t.name).trim()}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -112,6 +118,20 @@ export function makeRegistry(knownTeams = []) {
 }
 
 const DAY = 86400e3;
+
+const tokens = (s) => new Set(normalize(s).trim().split(' ').filter((w) => w.length > 1));
+const subset = (a, b) => [...a].every((w) => b.has(w));
+/** One side is the same team and the other side's name is a word-subset of the other's. */
+function relatedTeam(a, b) {
+  if (a.key === b.key) return true;
+  const ta = tokens(a.name); const tb = tokens(b.name);
+  return ta.size > 0 && tb.size > 0 && (subset(ta, tb) || subset(tb, ta));
+}
+function sameFixture(m, home, away) {
+  const [h, a] = [m.home, m.away];
+  return (h.key === home.key && relatedTeam(a, away)) || (a.key === away.key && relatedTeam(h, home))
+    || (h.key === away.key && relatedTeam(a, home)) || (a.key === home.key && relatedTeam(h, away));
+}
 
 /**
  * Discover matches for a video-first competition.
@@ -153,7 +173,9 @@ export function buildFromVideos(comp, season, videos, canonical, previous = new 
     const t = Date.parse(v.publishedAt);
     const r = roundFromTitle(v.title);
 
-    let match = [...matches.values()].find((m) => m._pair === pair && Math.abs(m._t - t) <= 4 * DAY);
+    let match = [...matches.values()].find((m) => m._pair === pair && Math.abs(m._t - t) <= 4 * DAY)
+      // Same fixture spelled differently by another channel ("AZ Alkmaar" vs "Alkmaar", "NEC" vs "NEC Nijmegen").
+      ?? [...matches.values()].find((m) => Math.abs(m._t - t) <= 2 * DAY && sameFixture(m, home, away));
     if (!match) {
       const kickoff = new Date(t - 3 * 3600e3);
       const id = `${comp.code}-${home.key}-${away.key}-${kickoff.toISOString().slice(0, 10)}`.replace(/[^\w:-]+/g, '_');

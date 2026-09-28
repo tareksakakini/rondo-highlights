@@ -98,3 +98,34 @@ test('slimHighlight keeps country lists only when present', () => {
   assert.equal('allow' in slimHighlight({ videoId: 'x', allow: undefined }), false);
   assert.deepEqual(slimHighlight({ videoId: 'x', block: ['DE'] }).block, ['DE']);
 });
+
+test('club competitions never resolve to national teams', () => {
+  const clubs = makeRegistry([{ id: 1, name: 'AC Sparta Praha', shortName: 'Sparta Praha', tla: 'SPA' }], { nations: false });
+  assert.notEqual(clubs('Ararat-Armenia').key, clubs('Armenia').key.replace('x:', 'n:'));
+  assert.equal(clubs('Ararat-Armenia').name, 'Ararat-Armenia');
+  const nations = makeRegistry([], { clubs: false });
+  assert.equal(nations('Italia').key, 'n:ITA');
+  assert.equal(nations('Sverige').key, 'n:SWE');
+});
+
+test('the same fixture spelled differently by two channels merges into one match', () => {
+  const c = COMPETITIONS.find((x) => x.code === 'EL');
+  const canonical = makeRegistry([{ id: 71, name: 'Sunderland AFC', shortName: 'Sunderland', tla: 'SUN' }, { id: 109, name: 'Juventus FC', shortName: 'Juventus', tla: 'JUV' }], { nations: false });
+  const v = (videoId, title, channel, priority, tier, publishedAt, durationSec = 600) => ({ videoId, title, channel, priority, tier, publishedAt, durationSec, embeddable: true });
+  const built = buildFromVideos(c, 2026, [
+    v('a', 'Sunderland vs. AZ Alkmaar: Extended Highlights | UEL League Phase MD1 | CBS Sports Golazo', 'CBS', 0, 'broadcaster', '2026-09-16T21:29:06Z'),
+    v('b', 'Sunderland 2-0 Alkmaar | Europa League Highlights', 'TNT Sports', 1, 'broadcaster', '2026-09-16T22:10:00Z', 180),
+    v('c', 'Juventus vs. NEC Nijmegen: Extended Highlights | UEL League Phase MD1 | CBS Sports Golazo', 'CBS', 0, 'broadcaster', '2026-09-17T21:16:34Z'),
+    v('d', 'JUVENTUS-NEC 3-1 | HIGHLIGHTS | UEFA Europa League', 'Juventus', 5, 'club', '2026-09-18T08:00:00Z', 150),
+  ], canonical);
+  const ms = built.files.flatMap((f) => f.matches);
+  assert.equal(ms.length, 2);
+  assert.ok(ms.every((m) => m.highlights.length === 2));
+  assert.equal(ms.find((m) => m.home.name.startsWith('Juventus')).away.name, 'NEC Nijmegen');
+});
+
+test('localized federation titles', () => {
+  assert.deepEqual(parseTeams('Italia-Belgio 2-1 | Highlights | UEFA Nations League 2026/27'), { home: 'Italia', away: 'Belgio', score: [2, 1] });
+  assert.ok(detectComps('Polska - Szwecja 1:1 | Skrót meczu | Liga Narodów').has('UNL'));
+  assert.ok(looksLikeMatchHighlight('Hrvatska - Portugal 2:1 | Sažetak | Liga nacija'));
+});

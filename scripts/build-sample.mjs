@@ -40,8 +40,9 @@ for (const comp of COMPETITIONS.filter((c) => c.source === 'fixtures')) {
   results.push(buildCompetition(comp, seed.season, fixtures, highlights));
   console.log(`${comp.code.padEnd(4)} ${fixtures.length} fixtures · ${highlights.size} with highlights`);
 }
-const canonical = makeRegistry(known);
 for (const comp of COMPETITIONS.filter((c) => c.source === 'videos')) {
+  const national = comp.group === 'national';
+  const canonical = makeRegistry(known, { nations: national, clubs: !national });
   const built = buildFromVideos(comp, seed.season, candidatesFor(comp, seed.videos), canonical);
   if (!built.files.length) continue;
   results.push(built);

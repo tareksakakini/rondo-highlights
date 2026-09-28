@@ -40,7 +40,9 @@ export const EURO_CLUBS = [
 /** National-team / federation channels (Nations League, Euros, World Cup). */
 export const NATIONS = [
   '@England', '@DFB', '@SeFutbol', '@FFF', '@OnsOranje', '@FAWales', '@ScotlandNationalTeam',
-  '@LaczyNasPilka', '@OEFB',
+  '@LaczyNasPilka', '@OEFB', '@nazionaledicalcio', '@FPF.Oficial', '@royalbelgianfa', '@hns.family',
+  '@DBUTV', '@norges.fotballforbund', '@svenskfotboll', '@sfvasf', '@MLSZTV', '@FAITV', '@OfficialIrishFA',
+  '@FRFTVofficial', '@FSSrbije', '@sfzofficial', '@nzssi', '@TFF', '@uafukraine', '@EthnikiOmada', '@footballiceland',
 ].map((h) => ch(h, { tier: 'nation' }));
 
 // ---------------------------------------------------------------- competitions
