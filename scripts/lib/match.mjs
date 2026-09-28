@@ -66,6 +66,19 @@ export const MANUAL_ALIASES = {
   PSG: ['psg', 'paris saint germain', 'paris sg'],
 };
 
+// Keyed by football-data's full name where three-letter codes collide across leagues
+// (BRE is Brentford and Brest). Spellings taken from the Ligue 1 channel's titles.
+const NAME_ALIASES = {
+  'le havre ac': ['havre', 'havre ac'],
+  'es troyes ac': ['troyes', 'estac troyes', 'estac'],
+  'racing club de lens': ['lens', 'rc lens'],
+  'lille osc': ['lille', 'losc lille', 'losc'],
+  'as monaco fc': ['monaco', 'as monaco'],
+  'stade rennais fc 1901': ['rennes', 'stade rennais'],
+  'olympique lyonnais': ['lyon', 'olympique lyonnais'],
+  'rc strasbourg alsace': ['strasbourg', 'rc strasbourg'],
+};
+
 // Lookup: any normalized national-team name/alias -> nation entry.
 const NATION_INDEX = new Map();
 for (const n of NATIONS) {
@@ -95,6 +108,7 @@ export function teamAliases(team) {
     for (const a of nation.extraAliases ?? []) add(a);
   } else {
     for (const a of MANUAL_ALIASES[team.tla] ?? []) add(a);
+    for (const a of NAME_ALIASES[normalize(team.name ?? '').trim()] ?? []) add(a);
   }
   for (const a of team.extraAliases ?? []) add(a);
   out.delete('');
@@ -112,7 +126,7 @@ export function mentions(normTitle, aliases) {
 
 const HIGHLIGHT_RE = /highlight|resumen|extended|sintesi|melhores momentos|samenvatting|zusammenfassung/i;
 const EXCLUDE_RE =
-  /\b(women|womens|femenino|femenina|femminile|frauen|feminine|wsl|u-?1[5-9]|u-?2[0-3]|sub-?1[5-9]|sub-?2[0-3]|under-?\d\d|academy|youth|press conference|preview|reaction|interview|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|all highlights|top \d+|review|full match|classic|legends|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|esports|efootball|fc 2[5-9]|#shorts)\b/i;
+  /\b(women|womens|femenino|femenina|femminile|frauen|feminine|wsl|u-?1[5-9]|u-?2[0-3]|sub-?1[5-9]|sub-?2[0-3]|under-?\d\d|academy|youth|press conference|preview|reaction|interview|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|all highlights|top \d+|review|full match|legends|alt angle|behind the scenes|behind the tigers|in hd|cinematic|inside the match|members only|on the road|match cut|post-?match|pre-?match|watchalong|reacts?|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|esports|efootball|fc 2[5-9]|#shorts)\b/i;
 
 // Competition keywords in titles. Club and national-team channels post several
 // competitions, so a title that names a different competition is skipped.
@@ -142,10 +156,21 @@ export function detectComps(title) {
 const HIGHLIGHT_LOCAL_RE = /\b(sazetak|osszefoglalo|sestrih|hojdpunkter|hoydepunkter|hojdepunkter|hoejdepunkter|skrot|resumo|ozet|rezumat|povzetek|zostrih|samantekt|stigmiotypa)\b/i;
 const deaccent = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ø/gi, 'o').replace(/ı/g, 'i');
 
-/** Cheap title-only pre-filter (before we spend quota on video details). */
-export function looksLikeMatchHighlight(title) {
+// A scoreline between two names ("Everton 1-0 Ipswich", "OM - PSG (1-2)") marks a match
+// video even when the title never says "highlights" (Ligue 1 and several clubs do this).
+const SCORE_RE = /[a-z)]\s+\d{1,2}\s*[-–:]\s*\d{1,2}\s+[a-z(]|\(\d{1,2}\s*[-–:]\s*\d{1,2}\)/i;
+const CLASSIC_RE = /\bclassics?\b/i;
+
+/**
+ * Cheap title-only pre-filter (before we spend quota on video details).
+ * `fixtures: true` is for fixture-backed competitions: a video must be published after a
+ * real kick-off between the two teams, so "classic" can't smuggle in an old match there
+ * ("EXTENDED HIGHLIGHTS | Man City 5-3 Sunderland | A Premier League Classic").
+ */
+export function looksLikeMatchHighlight(title, { fixtures = false } = {}) {
   const t = deaccent(title);
-  return (HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t)) && !EXCLUDE_RE.test(t);
+  if (EXCLUDE_RE.test(t) || (!fixtures && CLASSIC_RE.test(t))) return false;
+  return HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t) || SCORE_RE.test(t);
 }
 
 const EXTENDED_RE = /\bextended\b|\bextendido\b|\blong\b/i;
@@ -192,7 +217,7 @@ export function matchVideosToFixtures(fixtures, videos, { windowHours = 120 } = 
   for (const v of videos) {
     if (v.embeddable === false) continue;
     if (!v.durationSec || v.durationSec < 45) continue; // Shorts / teasers
-    if (!looksLikeMatchHighlight(v.title)) continue;
+    if (!looksLikeMatchHighlight(v.title, { fixtures: true })) continue;
     const t = normalize(v.title);
     const published = Date.parse(v.publishedAt);
 

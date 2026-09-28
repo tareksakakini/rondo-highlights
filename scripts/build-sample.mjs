@@ -21,7 +21,7 @@ export function candidatesFor(comp, videos) {
     const must = ch.mustMatch ? new RegExp(ch.mustMatch, 'i') : null;
     for (const v of videos) {
       if (v.handle.toLowerCase() !== ch.handle.toLowerCase()) continue;
-      if (!looksLikeMatchHighlight(v.title) || (must && !must.test(v.title))) continue;
+      if (!looksLikeMatchHighlight(v.title, { fixtures: comp.source !== 'videos' }) || (must && !must.test(v.title))) continue;
       const hints = detectComps(v.title);
       if (hints.size && !hints.has(comp.code)) continue;
       out.push({ ...v, priority, tier: ch.tier });

@@ -129,3 +129,45 @@ test('localized federation titles', () => {
   assert.ok(detectComps('Polska - Szwecja 1:1 | Skrót meczu | Liga Narodów').has('UNL'));
   assert.ok(looksLikeMatchHighlight('Hrvatska - Portugal 2:1 | Sažetak | Liga nacija'));
 });
+
+test('scoreline titles without the word "highlights" count; filler does not', () => {
+  const yes = [
+    "OLYMPIQUE DE MARSEILLE - PARIS SAINT-GERMAIN (1-2) | Week 5 - Ligue 1 McDonald's 26/27",
+    'Historic week ends in defeat at Vitality Stadium | AFC Bournemouth 0-1 Liverpool',
+    'EAGLES BIGGEST EUROPEAN WIN | Crystal Palace 4-0 Lech Poznań | UEFA Europa League',
+  ];
+  for (const t of yes) assert.ok(looksLikeMatchHighlight(t), t);
+  const no = [
+    "Highlights Week 5 | Ligue 1 McDonald's 26/27 ", // no teams: fine to pass the filter, but check filler below
+    'Newcastle United 2-1 Hull City | Sergej Jakirović\'s Post Match Reaction',
+    'Kluivert and Tavernier goals and celebrations from unique views | Alt Angle',
+    'Narrow Defeat In Game of Two Halves | Behind the Tigers Vs Newcastle United',
+    'Seven games unbeaten as Blues celebrate! | IN HD: Everton v Ipswich Town',
+    "All goals Week 5 | Ligue 1 McDonald's 26/27",
+    'TOP SAVES From the Serie A Round 5 | 2026/27',
+  ].slice(1);
+  for (const t of no) assert.ok(!looksLikeMatchHighlight(t), t);
+});
+
+test('"classic" is only trusted where a real fixture backs the video', () => {
+  const t = 'EXTENDED HIGHLIGHTS | Man City 5-3 Sunderland | A Premier League Classic at the Etihad!';
+  assert.ok(looksLikeMatchHighlight(t, { fixtures: true }));
+  assert.ok(!looksLikeMatchHighlight(t));
+  assert.ok(!looksLikeMatchHighlight('England v Spain | Classic Nations League Highlights'));
+});
+
+test('Ligue 1 official titles resolve to both teams', () => {
+  const t = normalize("OLYMPIQUE DE MARSEILLE - PARIS SAINT-GERMAIN (1-2) | Week 5 - Ligue 1 McDonald's 26/27");
+  assert.ok(mentions(t, teamAliases({ name: 'Olympique de Marseille', shortName: 'Marseille', tla: 'MAR' })));
+  assert.ok(mentions(t, teamAliases({ name: 'Paris Saint-Germain FC', shortName: 'PSG', tla: 'PSG' })));
+  const b = normalize("AJ AUXERRE - STADE BRESTOIS 29 (2-1) | Week 5 - Ligue 1 McDonald's 26/27");
+  assert.ok(mentions(b, teamAliases({ name: 'Stade Brestois 29', shortName: 'Brest', tla: 'SB2' })));
+  assert.ok(mentions(b, teamAliases({ name: 'AJ Auxerre', shortName: 'Auxerre', tla: 'AUX' })));
+  const h = normalize("TOULOUSE FC - HAVRE AC (3-2) | Week 5 - Ligue 1 McDonald's 26/27");
+  assert.ok(mentions(h, teamAliases({ name: 'Le Havre AC', tla: 'HAC' })));
+  for (const [title, name, tla] of [
+    ['ANGERS SCO - ESTAC TROYES (2-0)', 'ES Troyes AC', 'ETR'], ['AS MONACO - RC LENS (2-1)', 'Racing Club de Lens', 'RCL'],
+    ['AS MONACO - RC LENS (2-1)', 'AS Monaco FC', 'ASM'], ['OGC NICE - LOSC LILLE (2-1)', 'Lille OSC', 'LIL'],
+    ['OLYMPIQUE LYONNAIS - STADE RENNAIS (4-0)', 'Stade Rennais FC 1901', 'REN'], ['PARIS FC - RC STRASBOURG ALSACE (2-1)', 'RC Strasbourg Alsace', 'RC '],
+  ]) assert.ok(mentions(normalize(title + ' |'), teamAliases({ name, tla })), `${name} in ${title}`);
+});

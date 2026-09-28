@@ -52,7 +52,7 @@ Highlight rights are sold country by country. US broadcasters, for example, limi
 `scripts/lib/match.mjs` handles fixture competitions, and `scripts/lib/videos.mjs` handles title-discovered ones.
 
 1. For each competition, read recent uploads from the trusted channels in `scripts/config.mjs`. The list is priority-ordered: broadcasters first, then official league channels, then clubs and national teams.
-2. Drop non-highlights: compilations, "classic" replays, women's and youth games, qualifiers, friendlies, cup ties, pressers, tunnel cams and Shorts. Also drop anything not embeddable, and titles that name a different competition.
+2. Keep titles that say "highlights" (in any of several languages) or show a scoreline ("Everton 1-0 Ipswich", "OM - PSG (1-2)"). Drop non-highlights: compilations, women's and youth games, qualifiers, friendlies, cup ties, pressers, reactions, tunnel cams, alt-angle and behind-the-scenes cuts, and Shorts. "Classic" replays are dropped for Europa League and Nations League; elsewhere the kick-off check below already rules out old matches. Also drop anything not embeddable, and titles that name a different competition.
 3. Match a video to a fixture when **both teams** appear in the title as whole words (with aliases like *Spurs*, *Man Utd*, *Atleti*, *Inglaterra*) and it was **published within 5 days after kick-off**.
    - For Europa League and Nations League there are no fixtures, so "A vs B" / "A 2-1 B" is parsed from the title. Videos about the same pair of teams within a few days become one match.
    - Rounds come from "MD 1" in titles, or from date windows.

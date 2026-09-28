@@ -162,7 +162,7 @@ async function collectCandidates(comp, sinceMs, YT, maxPages) {
     const uploads = await recentUploads(info, sinceMs, YT, maxPages);
     const must = ch.mustMatch ? new RegExp(ch.mustMatch, 'i') : null;
     const keep = uploads.filter((u) => {
-      if (!looksLikeMatchHighlight(u.title) || (must && !must.test(u.title))) return false;
+      if (!looksLikeMatchHighlight(u.title, { fixtures: comp.source !== 'videos' }) || (must && !must.test(u.title))) return false;
       const hints = detectComps(u.title);
       return !hints.size || hints.has(comp.code);
     });

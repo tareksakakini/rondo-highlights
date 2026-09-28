@@ -22,9 +22,10 @@ const ch = (handle, extra = {}) => ({ handle, tier: 'broadcaster', ...extra });
 
 /** Premier League clubs (2026/27) with official channels we could verify. */
 export const PL_CLUBS = [
-  '@arsenal', '@avfcofficial', '@afcbournemouth', '@BrentfordFC', '@chelseafc', '@CoventryCityFC',
-  '@Everton', '@FulhamFC', '@IpswichTown', '@LeedsUnited', '@LiverpoolFC', '@mancity', '@manutd',
-  '@NUFC', '@SunderlandAFC', '@TottenhamHotspur',
+  '@arsenal', '@avfcofficial', '@afcbournemouth', '@BrentfordFC', '@OfficialBHAFC', '@chelseafc',
+  '@CoventryCityFC', '@OfficialCPFC', '@Everton', '@FulhamFC', '@hullcityofficial', '@IpswichTown',
+  '@LeedsUnited', '@LiverpoolFC', '@mancity', '@manutd', '@NUFC', '@NottinghamForestFC',
+  '@SunderlandAFC', '@TottenhamHotspur',
 ].map((h) => ch(h, { tier: 'club' }));
 
 /** Big European clubs: their channels carry UCL/UEL highlights worldwide. */
