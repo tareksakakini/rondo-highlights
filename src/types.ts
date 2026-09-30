@@ -78,4 +78,6 @@ export interface PlayItem {
   roundLabel: string;
   /** Pinned length for this item; otherwise the global preference applies. */
   kind?: Kind;
+  /** Queued by "Play" as the rest of a round (not added by hand): the next "Play" replaces it. */
+  auto?: boolean;
 }

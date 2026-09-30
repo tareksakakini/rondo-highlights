@@ -1,6 +1,6 @@
 import { useState, type Dispatch } from 'react';
 import type { Kind, PlayItem } from '../types';
-import { contextRemaining, type Action, type PlaybackState } from '../lib/playback';
+import type { Action, PlaybackState } from '../lib/playback';
 import { cutKind, cutLabel, cutSec, fmtDuration, fmtTotal, matchTitle, resolveItem } from '../lib/format';
 import type { CondensedMap } from '../lib/moments';
 import { TeamBadge } from './TeamBadge';
@@ -38,77 +38,52 @@ function Row({ item, pref, condensed, region, avoid, onPlay, children }: { item:
 
 const wide = () => typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1100px)').matches;
 
+/** The queue: everything that plays after the current match, as one list. Hidden when empty. */
 export function UpNext({ state, pref, condensed, region, avoid = [], dispatch }: Props) {
   const [open, setOpen] = useState(wide);
-  const rest = contextRemaining(state);
-  const upcoming = [...state.queue, ...rest.map((r) => r.item)];
-  const total = upcoming.reduce((t, it) => { const c = resolveItem(it, pref, condensed, [], region, avoid); return t + (c ? cutSec(c) : 0); }, 0);
-  const next = upcoming[0];
+  const { queue } = state;
+  if (!queue.length) return null;
+  const total = queue.reduce((t, it) => { const c = resolveItem(it, pref, condensed, [], region, avoid); return t + (c ? cutSec(c) : 0); }, 0);
+  const next = queue[0];
 
   return (
     <div className={`upnext${open ? ' open' : ''}`}>
-      <button className="panel-head" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span className="panel-title">
-          <h2>Up next</h2>
-          {!open && next && <span className="peek">{matchTitle(next.match)}{upcoming.length > 1 ? ` +${upcoming.length - 1}` : ''}</span>}
+      <div className="panel-bar">
+        <button className="panel-head" onClick={() => setOpen(!open)} aria-expanded={open}>
+          <span className="panel-title">
+            <h2>Up next <span className="count">{queue.length}</span></h2>
+            {!open && <span className="peek">{matchTitle(next.match)}{queue.length > 1 ? ` +${queue.length - 1}` : ''}</span>}
+          </span>
+          {total > 0 && <span className="muted">{fmtTotal(total)}</span>}
+          <svg className="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5z" /></svg>
+        </button>
+        <span className="section-actions">
+          {!state.current && (
+            <button className="btn-ghost sm" onClick={() => dispatch({ type: 'next' })}>Play</button>
+          )}
+          <button className="btn-ghost sm" onClick={() => dispatch({ type: 'clearQueue' })}>Clear</button>
         </span>
-        {total > 0 && <span className="muted">{fmtTotal(total)}</span>}
-        <svg className="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5z" /></svg>
-      </button>
+      </div>
 
       <div className="upnext-body">
-        <section aria-label="Your queue">
-          <div className="section-head">
-            <h3>Your queue <span className="count">{state.queue.length}</span></h3>
-            {state.queue.length > 0 && (
-              <span className="section-actions">
-                {state.from !== 'queue' && (
-                  <button className="btn-ghost sm" onClick={() => dispatch({ type: 'playQueue' })}>Play queue</button>
-                )}
-                <button className="btn-ghost sm" onClick={() => dispatch({ type: 'clearQueue' })}>Clear</button>
-              </span>
-            )}
-          </div>
-          {state.queue.length === 0 ? (
-            <p className="empty">Tap <b>+</b> on any match to line it up next, ahead of the rest of the round.</p>
-          ) : (
-            <ol className="rows">
-              {state.queue.map((item, i) => (
-                <Row key={item.uid} item={item} pref={pref} condensed={condensed} region={region} avoid={avoid} onPlay={() => dispatch({ type: 'playQueued', uid: item.uid })}>
-                  <button className="btn-icon sm" aria-label="Move up" disabled={i === 0}
-                    onClick={() => dispatch({ type: 'move', uid: item.uid, dir: -1 })}>
-                    <svg viewBox="0 0 24 24"><path d="m7 14 5-5 5 5z" /></svg>
-                  </button>
-                  <button className="btn-icon sm" aria-label="Move down" disabled={i === state.queue.length - 1}
-                    onClick={() => dispatch({ type: 'move', uid: item.uid, dir: 1 })}>
-                    <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5z" /></svg>
-                  </button>
-                  <button className="btn-icon sm" aria-label="Remove from queue"
-                    onClick={() => dispatch({ type: 'dequeue', uid: item.uid })}>
-                    <svg viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
-                  </button>
-                </Row>
-              ))}
-            </ol>
-          )}
-        </section>
-
-        {state.context && (
-          <section aria-label="Continuing">
-            <div className="section-head">
-              <h3>Then: {state.context.label} <span className="count">{rest.length}</span></h3>
-            </div>
-            {rest.length === 0 ? (
-              <p className="empty">That's the last match of this round.</p>
-            ) : (
-              <ol className="rows">
-                {rest.map(({ item, pos }) => (
-                  <Row key={item.uid} item={item} pref={pref} condensed={condensed} region={region} avoid={avoid} onPlay={() => dispatch({ type: 'jumpContext', pos })} />
-                ))}
-              </ol>
-            )}
-          </section>
-        )}
+        <ol className="rows" aria-label="Queue">
+          {queue.map((item, i) => (
+            <Row key={item.uid} item={item} pref={pref} condensed={condensed} region={region} avoid={avoid} onPlay={() => dispatch({ type: 'playQueued', uid: item.uid })}>
+              <button className="btn-icon sm" aria-label="Move up" disabled={i === 0}
+                onClick={() => dispatch({ type: 'move', uid: item.uid, dir: -1 })}>
+                <svg viewBox="0 0 24 24"><path d="m7 14 5-5 5 5z" /></svg>
+              </button>
+              <button className="btn-icon sm" aria-label="Move down" disabled={i === queue.length - 1}
+                onClick={() => dispatch({ type: 'move', uid: item.uid, dir: 1 })}>
+                <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5z" /></svg>
+              </button>
+              <button className="btn-icon sm" aria-label="Remove from queue"
+                onClick={() => dispatch({ type: 'dequeue', uid: item.uid })}>
+                <svg viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
+              </button>
+            </Row>
+          ))}
+        </ol>
       </div>
     </div>
   );

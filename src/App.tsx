@@ -128,16 +128,23 @@ export default function App() {
   const playFrom = (matchId: number | string, kind?: Kind) => {
     const start = playable.findIndex((m) => m.id === matchId);
     const items = playable.map((m) => toItem(m, m.id === matchId ? kind ?? pins[m.id] : pins[m.id]));
-    dispatch({ type: 'playContext', label: `${comp!.name} · ${round!.round.label}`, items, start: Math.max(0, start) });
+    dispatch({ type: 'playRound', items, start: Math.max(0, start) });
     requestAnimationFrame(() => stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
   const queueMatch = (m: Match, kind?: Kind) => {
+    if (pb.queue.some((q) => q.match.id === m.id)) {
+      dispatch({ type: 'dequeueMatch', matchId: m.id });
+      setToast(`Removed ${matchTitle(m)} from the queue`);
+      return;
+    }
     dispatch({ type: 'enqueue', items: [toItem(m, kind)] });
     setToast(`Queued ${matchTitle(m)}`);
   };
   const queueAll = () => {
-    dispatch({ type: 'enqueue', items: playable.map((m) => toItem(m, pins[m.id])) });
-    setToast(`Queued ${playable.length} matches from ${round!.round.label}`);
+    const inQueue = new Set(pb.queue.filter((q) => !q.auto).map((q) => q.match.id));
+    const adding = playable.filter((m) => !inQueue.has(m.id) && m.id !== pb.current?.match.id);
+    dispatch({ type: 'enqueue', items: adding.map((m) => toItem(m, pins[m.id])) });
+    setToast(adding.length ? `Queued ${adding.length} matches from ${round!.round.label}` : 'Already in your queue');
   };
 
   // ---- current video ----
@@ -206,7 +213,7 @@ export default function App() {
   );
 
   const roundIdx = comp?.rounds.findIndex((r) => r.key === roundKey) ?? -1;
-  const hasUpNext = pb.queue.length > 0 || !!pb.context;
+  const hasUpNext = pb.queue.length > 0;
 
   return (
     <div className="app">
@@ -249,7 +256,7 @@ export default function App() {
         </div>
       )}
 
-      <div className={`layout${current || hasUpNext ? ' with-aside' : ''}`}>
+      <div className={`layout${hasUpNext ? ' with-aside' : ''}`}>
         <main>
           {current && (
             <section className="stage" ref={stageRef} aria-label="Now playing">
@@ -412,7 +419,7 @@ export default function App() {
           )}
         </main>
 
-        {(current || hasUpNext) && (
+        {hasUpNext && (
           <aside className="aside">
             <UpNext state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} dispatch={dispatch} />
           </aside>

@@ -166,8 +166,17 @@ export function fuzzyMentions(normTitle, aliases) {
 }
 
 const HIGHLIGHT_RE = /highlight|resumen|extended|sintesi|melhores momentos|samenvatting|zusammenfassung|key moments/i;
+// Anything but the men's first team: women's sides, youth and academy sides (UEFA Youth
+// League, U19, Primavera, Juvenil...), reserve and B teams (Dortmund II, Castilla, Jong Ajax).
+// Also applied to highlights kept from earlier runs, so tightening it cleans up stored data.
+const NOT_FIRST_TEAM_RE =
+  /\b(women|womens|woman|ladies|femenino|femenina|femminile|frauen|damen|feminine|feminines|wsl|nwsl|liga f|u-?1[4-9]\w*|u-?2[0-3]\w*|sub-?1[4-9]|sub-?2[0-3]|weuro|under[- ]?\d\d|[pf]1[4-9]|[pf]2[01]|academy|youth|uyl|juvenil|juveniles|primavera|jugend|a-?junioren|b-?junioren|nextgen|next gen|pl2|premier league 2|reserves?|b team|ii|castilla|filial|jong (?:ajax|psv|az|utrecht|twente))\b/i;
+
+/** False for women's, youth and reserve-team videos (the site is men's first teams only). */
+export const isFirstTeam = (title) => !NOT_FIRST_TEAM_RE.test(deaccent(title));
+
 const EXCLUDE_RE =
-  /\b(women|womens|femenino|femenina|femminile|frauen|feminine|wsl|u-?1[5-9]|u-?2[0-3]|sub-?1[5-9]|sub-?2[0-3]|under[- ]?\d\d|[pf]1[4-9]|[pf]2[01]|academy|youth|press conference|konferencija za medije|pressekonferenz|conferenza stampa|rueda de prensa|conference de presse|iz drugog ugla|izjave|preview|reactions?|interview|vlogs?|vlogowe|kulisy|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|all highlights|top \d+|review|full match|legends|alt angle|behind the scenes|behind the tigers|in hd|cinematic|inside the match|members only|on the road|match cut|post-?match|pre-?match|watchalong|reacts?|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|esports|efootball|fc 2[5-9]|#shorts)\b/i;
+  /\b(press conference|konferencija za medije|pressekonferenz|conferenza stampa|rueda de prensa|conference de presse|iz drugog ugla|izjave|preview|reactions?|interview|vlogs?|vlogowe|kulisy|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|all highlights|top \d+|review|full match|legends|alt angle|behind the scenes|behind the tigers|in hd|cinematic|inside the match|members only|on the road|match cut|post-?match|pre-?match|watchalong|reacts?|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|esports|efootball|fc 2[5-9]|#shorts)\b/i;
 
 // Competition keywords in titles. Club and national-team channels post several
 // competitions, so a title that names a different competition is skipped.
@@ -210,7 +219,7 @@ const CLASSIC_RE = /\bclassics?\b/i;
  */
 export function looksLikeMatchHighlight(title, { fixtures = false } = {}) {
   const t = deaccent(title);
-  if (EXCLUDE_RE.test(t) || (!fixtures && CLASSIC_RE.test(t))) return false;
+  if (NOT_FIRST_TEAM_RE.test(t) || EXCLUDE_RE.test(t) || (!fixtures && CLASSIC_RE.test(t))) return false;
   return HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t) || SCORE_RE.test(t);
 }
 
@@ -238,6 +247,38 @@ export function classify(videos) {
     }
   }
   return out;
+}
+
+/**
+ * True when the title puts a scoreline between the two team names ("Dortmund 2-3
+ * Villarreal") that isn't the fixture's final score. That's another game between the same
+ * clubs: a youth or women's match on the same day, or an older meeting. Titles with no
+ * scoreline there, unfinished fixtures and shoot-outs are never rejected.
+ */
+export function scoreContradicts(normTitle, homeAlias, awayAlias, fixture) {
+  const s = fixture.score;
+  const fh = s?.fullTime?.home;
+  const fa = s?.fullTime?.away;
+  if (fixture.status !== 'FINISHED' || !Number.isInteger(fh) || !Number.isInteger(fa)) return false;
+  if (s.penalties?.home != null || s.duration === 'PENALTY_SHOOTOUT') return false;
+  const hi = normTitle.indexOf(` ${homeAlias} `);
+  const ai = normTitle.indexOf(` ${awayAlias} `);
+  if (hi < 0 || ai < 0) return false; // matched fuzzily: positions unknown
+  const [first, firstAlias, second] = hi < ai ? [hi, homeAlias, ai] : [ai, awayAlias, hi];
+  const between = normTitle.slice(first + firstAlias.length + 1, second + 1);
+  const m = between.match(/^ (\d{1,2}) (\d{1,2}) $/);
+  if (!m) return false;
+  const [x, y] = [Number(m[1]), Number(m[2])];
+  return hi < ai ? x !== fh || y !== fa : x !== fa || y !== fh;
+}
+
+/** Does a stored highlight still pass the title filters and the scoreline check for `f`? */
+export function stillBelongs(h, f) {
+  if (!looksLikeMatchHighlight(h.title, { fixtures: true })) return false;
+  const t = normalize(h.title);
+  const home = mentions(t, teamAliases(f.homeTeam));
+  const away = mentions(t, teamAliases(f.awayTeam));
+  return !(home && away && home !== away && scoreContradicts(t, home, away, f));
 }
 
 /**
@@ -272,6 +313,7 @@ export function matchVideosToFixtures(fixtures, videos, { windowHours = 120 } = 
       if (!h) { h = fuzzyMentions(t, aliasesOf(f.homeTeam)); fuzzy = true; }
       if (h && !a) { a = fuzzyMentions(t, aliasesOf(f.awayTeam)); fuzzy = true; }
       if (!h || !a || h === a) continue;
+      if (scoreContradicts(t, h, a, f)) continue;
       // Prefer exact name matches over typo-tolerant ones, then the fixture whose names
       // matched most specifically, then the closest kick-off.
       const score = (fuzzy ? -1000 : 0) + h.length + a.length - (published - kickoff) / 3.6e9;
@@ -354,7 +396,10 @@ export function buildCompetition(comp, season, fixtures, highlightsByMatch, prev
     const prevRound = previous.get(r.key);
     const prevMatch = prevRound?.matches.find((m) => m.id === f.id);
     const fresh = highlightsByMatch.get(f.id) ?? [];
-    const merged = [...new Map([...(prevMatch?.highlights ?? []), ...fresh].map((h) => [h.videoId, h])).values()];
+    // Highlights kept from earlier runs go through today's filters again, so a filter fix
+    // also removes what the old rules let in.
+    const kept = (prevMatch?.highlights ?? []).filter((h) => stillBelongs(h, f));
+    const merged = [...new Map([...kept, ...fresh].map((h) => [h.videoId, h])).values()];
     rounds.get(r.key).matches.push({
       id: f.id,
       utcDate: f.utcDate,

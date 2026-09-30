@@ -1,31 +1,30 @@
 import type { PlayItem } from '../types';
 
 /**
- * Spotify-style play order:
- *  - `context` is what you pressed Play on (a whole matchweek, from a given match on)
- *  - `queue` is what you added by hand; it always plays before the context continues
- * When the current video ends: next queued item if any, else the next context item.
+ * One play order:
+ *  - `current` is playing; `queue` is everything that plays after it, in order.
+ *  - "Play" on a match plays it and queues the rest of that round behind it (those items
+ *    are marked `auto`). Starting another round replaces the old round's leftovers.
+ *  - Matches added by hand go ahead of the `auto` ones, so "+" still means "play this next".
+ *  - `history` is what played before, for Previous.
+ * Clearing the queue empties it; nothing else keeps playing afterwards.
  */
 export interface PlaybackState {
-  context: { label: string; items: PlayItem[]; pos: number } | null;
   queue: PlayItem[];
   current: PlayItem | null;
-  from: 'context' | 'queue' | null;
+  history: PlayItem[];
   /** videoIds that failed to play, per item uid (so we fall back to the other cut) */
   failed: Record<string, string[]>;
-  /** match ids already played since the context started (so queued matches aren't replayed) */
-  played: (number | string)[];
   /** bumps on every (re)start so the player reloads even for the same video */
   seq: number;
 }
 
 export type Action =
-  | { type: 'playContext'; label: string; items: PlayItem[]; start: number }
-  | { type: 'playQueue' }
+  | { type: 'playRound'; items: PlayItem[]; start: number }
   | { type: 'playQueued'; uid: string }
-  | { type: 'jumpContext'; pos: number }
   | { type: 'enqueue'; items: PlayItem[] }
   | { type: 'dequeue'; uid: string }
+  | { type: 'dequeueMatch'; matchId: number | string }
   | { type: 'move'; uid: string; dir: -1 | 1 }
   | { type: 'clearQueue' }
   | { type: 'next' }
@@ -33,69 +32,104 @@ export type Action =
   | { type: 'failed'; videoId: string }
   | { type: 'stop' };
 
+const HISTORY_MAX = 50;
+
 export const initialPlayback = (queue: PlayItem[] = []): PlaybackState => ({
-  context: null, queue, current: null, from: null, failed: {}, played: [], seq: 0,
+  queue: dedupe(queue), current: null, history: [], failed: {}, seq: 0,
 });
 
-const markPlayed = (s: PlaybackState, item: PlayItem | null) =>
-  item && !s.played.includes(item.match.id) ? [...s.played, item.match.id] : s.played;
+/** First occurrence of each match wins. */
+function dedupe(items: PlayItem[]): PlayItem[] {
+  const seen = new Set<number | string>();
+  return items.filter((it) => (seen.has(it.match.id) ? false : (seen.add(it.match.id), true)));
+}
 
-function advance(s: PlaybackState): PlaybackState {
-  const played = markPlayed(s, s.current);
-  if (s.queue.length) {
-    const [head, ...rest] = s.queue;
-    return { ...s, played, current: head, queue: rest, from: 'queue', seq: s.seq + 1 };
-  }
-  if (s.context) {
-    let pos = s.context.pos + 1;
-    while (pos < s.context.items.length && played.includes(s.context.items[pos].match.id)) pos++;
-    if (pos < s.context.items.length) {
-      return { ...s, played, context: { ...s.context, pos }, current: s.context.items[pos], from: 'context', seq: s.seq + 1 };
-    }
-  }
-  return { ...s, played, current: null, from: null, seq: s.seq + 1 };
+const pushHistory = (h: PlayItem[], item: PlayItem | null) =>
+  item ? [...h, item].slice(-HISTORY_MAX) : h;
+
+/** Hand-added items first (in the order added), then the round's leftovers. */
+function withHandAdded(queue: PlayItem[], added: PlayItem[]): PlayItem[] {
+  const ids = new Set(added.map((a) => a.match.id));
+  const rest = queue.filter((q) => !ids.has(q.match.id));
+  const cut = rest.findIndex((q) => q.auto);
+  const at = cut < 0 ? rest.length : cut;
+  return [...rest.slice(0, at), ...added, ...rest.slice(at)];
 }
 
 export function playbackReducer(s: PlaybackState, a: Action): PlaybackState {
   switch (a.type) {
-    case 'playContext': {
+    case 'playRound': {
       if (!a.items.length) return s;
       const pos = Math.max(0, Math.min(a.start, a.items.length - 1));
-      return { ...s, context: { label: a.label, items: a.items, pos }, current: a.items[pos], from: 'context', failed: {}, played: [], seq: s.seq + 1 };
+      const start = a.items[pos];
+      const handAdded = s.queue.filter((q) => !q.auto && q.match.id !== start.match.id);
+      const taken = new Set(handAdded.map((q) => q.match.id));
+      const leftovers = a.items.slice(pos + 1)
+        .filter((it) => !taken.has(it.match.id))
+        .map((it) => ({ ...it, auto: true }));
+      return {
+        ...s,
+        current: { ...start, auto: undefined },
+        queue: dedupe([...handAdded, ...leftovers]),
+        history: pushHistory(s.history, s.current),
+        failed: {},
+        seq: s.seq + 1,
+      };
     }
-    case 'playQueue':
-      return s.queue.length ? advance({ ...s, context: null }) : s;
     case 'playQueued': {
       const item = s.queue.find((q) => q.uid === a.uid);
       if (!item) return s;
-      return { ...s, current: item, from: 'queue', queue: s.queue.filter((q) => q.uid !== a.uid), seq: s.seq + 1 };
+      return {
+        ...s,
+        current: item,
+        queue: s.queue.filter((q) => q.uid !== a.uid),
+        history: pushHistory(s.history, s.current),
+        seq: s.seq + 1,
+      };
     }
-    case 'jumpContext': {
-      if (!s.context || !s.context.items[a.pos]) return s;
-      return { ...s, context: { ...s.context, pos: a.pos }, current: s.context.items[a.pos], from: 'context', seq: s.seq + 1 };
+    case 'enqueue': {
+      const added = dedupe(a.items)
+        .filter((it) => it.match.id !== s.current?.match.id && !s.queue.some((q) => !q.auto && q.match.id === it.match.id))
+        .map((it) => ({ ...it, auto: undefined }));
+      return added.length ? { ...s, queue: withHandAdded(s.queue, added) } : s;
     }
-    case 'enqueue':
-      return { ...s, queue: [...s.queue, ...a.items] };
     case 'dequeue':
       return { ...s, queue: s.queue.filter((q) => q.uid !== a.uid) };
+    case 'dequeueMatch':
+      return { ...s, queue: s.queue.filter((q) => q.match.id !== a.matchId) };
     case 'move': {
       const i = s.queue.findIndex((q) => q.uid === a.uid);
       const j = i + a.dir;
       if (i < 0 || j < 0 || j >= s.queue.length) return s;
       const q = [...s.queue];
       [q[i], q[j]] = [q[j], q[i]];
+      // Moving an item by hand makes it the viewer's choice: it's no longer a round leftover
+      // that the next "Play" would replace.
+      q[j] = { ...q[j], auto: undefined };
       return { ...s, queue: q };
     }
     case 'clearQueue':
       return { ...s, queue: [] };
-    case 'next':
-      return advance(s);
+    case 'next': {
+      const [head, ...rest] = s.queue;
+      return {
+        ...s,
+        current: head ?? null,
+        queue: rest,
+        history: pushHistory(s.history, s.current),
+        seq: s.seq + 1,
+      };
+    }
     case 'prev': {
-      if (s.from === 'context' && s.context && s.context.pos > 0) {
-        const pos = s.context.pos - 1;
-        return { ...s, context: { ...s.context, pos }, current: s.context.items[pos], seq: s.seq + 1 };
-      }
-      return { ...s, seq: s.seq + 1 }; // restart current
+      const back = s.history[s.history.length - 1];
+      if (!back) return { ...s, seq: s.seq + 1 }; // restart current
+      return {
+        ...s,
+        current: back,
+        history: s.history.slice(0, -1),
+        queue: s.current ? [s.current, ...s.queue.filter((q) => q.match.id !== s.current!.match.id)] : s.queue,
+        seq: s.seq + 1,
+      };
     }
     case 'failed': {
       if (!s.current) return s;
@@ -103,15 +137,6 @@ export function playbackReducer(s: PlaybackState, a: Action): PlaybackState {
       return { ...s, failed: { ...s.failed, [s.current.uid]: list } };
     }
     case 'stop':
-      return { ...s, current: null, from: null, context: null };
+      return { ...s, current: null, history: pushHistory(s.history, s.current) };
   }
-}
-
-/** Context items still to come (with their absolute positions), skipping ones already played or queued. */
-export function contextRemaining(s: PlaybackState) {
-  if (!s.context) return [];
-  const skip = new Set([...s.played, ...(s.current ? [s.current.match.id] : []), ...s.queue.map((q) => q.match.id)]);
-  return s.context.items
-    .map((item, pos) => ({ item, pos }))
-    .filter(({ item, pos }) => pos > s.context!.pos && !skip.has(item.match.id));
 }

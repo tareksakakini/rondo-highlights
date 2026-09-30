@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   normalize, teamAliases, mentions, fuzzyMentions, looksLikeMatchHighlight, classify, matchVideosToFixtures, roundOf,
+  isFirstTeam, stillBelongs, buildCompetition,
 } from '../scripts/lib/match.mjs';
 import { COMPETITIONS } from '../scripts/config.mjs';
 import { NATIONS } from '../scripts/lib/teams.mjs';
@@ -158,4 +159,56 @@ test('Nations League MD2 titles: TUDN (Spanish or English), Italian and Slovenia
     'Northern Ireland v Hungary': ['t4'], 'Norway v Portugal': ['t5'], 'Turkey v Italy': ['f1'], 'Slovenia v Scotland': ['s1'],
   });
   assert.ok(looksLikeMatchHighlight('Belgium vs. France, 0-1: All the key moments (Nations League)'));
+});
+
+test('first teams only: youth, women and reserve sides are dropped', () => {
+  for (const t of [
+    'HIGHLIGHTS | BORUSSIA DORTMUND 2-3 VILLARREAL | UYL',
+    'UEFA Youth League Highlights | Barcelona 2-1 Bayern',
+    'Highlights Primavera | Il Milan batte la Juve e vola in vetta alla classifica | Milan 2-0 Juventus',
+    'RESUMEN #U19WEURO | España 2-1 Austria | Fase de grupos (Jornada 3)',
+    'Juvenil A | Real Madrid 3-0 Atlético | Resumen',
+    'Highlights | Borussia Dortmund II 1-1 Aachen | 3. Liga',
+    'RESUMEN | Real Madrid Castilla 2-0 Ceuta',
+    'Jong Ajax - Jong PSV (1-2) | Samenvatting',
+    'Arsenal 2-2 Chelsea | Premier League 2 Highlights',
+    'Man City 3-0 Everton | Women\'s Super League highlights',
+  ]) assert.ok(!isFirstTeam(t) && !looksLikeMatchHighlight(t, { fixtures: true }), t);
+  for (const t of [
+    'HIGHLIGHTS | BORUSSIA DORTMUND 3-2 VILLARREAL | CHAMPIONS LEAGUE',
+    'Guirassy Strikes Twice Late On! | Dortmund 3-2 Villarreal | UEFA Champions League Highlights',
+    'De Jong stunner! | Barcelona 2-0 Sevilla | LaLiga Highlights',
+  ]) assert.ok(isFirstTeam(t) && looksLikeMatchHighlight(t, { fixtures: true }), t);
+});
+
+const BVB = { id: 4, name: 'Borussia Dortmund', shortName: 'Dortmund', tla: 'BVB' };
+const VIL = { id: 94, name: 'Villarreal CF', shortName: 'Villarreal', tla: 'VIL' };
+const bvbVil = { id: 1, utcDate: '2026-09-08T19:00:00Z', status: 'FINISHED', matchday: 1, stage: 'LEAGUE_STAGE',
+  homeTeam: BVB, awayTeam: VIL, score: { fullTime: { home: 3, away: 2 } } };
+const vid = (videoId, title) => ({ videoId, title, channel: 'Villarreal CF', channelId: 'x', durationSec: 120, publishedAt: '2026-09-09T15:00:00Z', embeddable: true, priority: 26 });
+
+test('a scoreline that is not the final score belongs to another game', () => {
+  const got = matchVideosToFixtures([bvbVil], [
+    vid('youth', 'HIGHLIGHTS | BORUSSIA DORTMUND 2-3 VILLARREAL'), // no "UYL" tag: caught by the score
+    vid('first', 'HIGHLIGHTS | BORUSSIA DORTMUND 3-2 VILLARREAL | CHAMPIONS LEAGUE'),
+    vid('away-first', 'Villarreal 2-3 Dortmund | Highlights'), // away team named first
+    vid('no-score', 'Dortmund vs. Villarreal: Extended Highlights'),
+  ]);
+  assert.deepEqual(got.get(1).map((h) => h.videoId).sort(), ['away-first', 'first', 'no-score']);
+  // Unfinished fixtures and shoot-outs are never judged by the scoreline.
+  const live = { ...bvbVil, status: 'IN_PLAY' };
+  assert.equal(matchVideosToFixtures([live], [vid('youth', 'HIGHLIGHTS | BORUSSIA DORTMUND 2-3 VILLARREAL')]).get(1).length, 1);
+  const pens = { ...bvbVil, score: { duration: 'PENALTY_SHOOTOUT', fullTime: { home: 7, away: 6 }, penalties: { home: 4, away: 3 } } };
+  assert.equal(matchVideosToFixtures([pens], [vid('p', 'Dortmund 3-3 Villarreal | Highlights')]).get(1).length, 1);
+});
+
+test('highlights kept from earlier runs are re-checked against today\'s filters', () => {
+  const stored = (videoId, title) => ({ ...vid(videoId, title), kind: 'short' });
+  const previous = new Map([['md-1', { round: { key: 'md-1' }, matches: [{ id: 1, highlights: [
+    stored('uyl', 'HIGHLIGHTS | BORUSSIA DORTMUND 2-3 VILLARREAL | UYL'),
+    stored('first', 'HIGHLIGHTS | BORUSSIA DORTMUND 3-2 VILLARREAL | CHAMPIONS LEAGUE'),
+  ] }] }]]);
+  const { files } = buildCompetition({ code: 'CL', name: 'Champions League' }, 2026, [bvbVil], new Map(), previous);
+  assert.deepEqual(files[0].matches[0].highlights.map((h) => h.videoId), ['first']);
+  assert.ok(stillBelongs(stored('ok', 'Dortmund 3-2 Villarreal | UCL Highlights'), bvbVil));
 });
