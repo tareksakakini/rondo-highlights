@@ -125,3 +125,37 @@ test('embed blocks merge into country lists', async () => {
   assert.deepEqual(withEmbedBlocks({ allow: ['US'] }, 'F', t).allow, ['ZZ']);
   assert.equal(withEmbedBlocks({ videoId: 'a' }, 'other', t).block, undefined);
 });
+
+test('Nations League MD2 titles: TUDN (Spanish or English), Italian and Slovenian federations', () => {
+  const unl = COMPETITIONS.find((c) => c.code === 'UNL');
+  const rule = (handle) => new RegExp(unl.channels.find((c) => c.handle === handle).mustMatch, 'i');
+  const tudn = rule('@tudn_usa');
+  const nation = (name) => NATIONS.find((n) => n.name === name);
+  const pairs = [['Germany', 'Greece'], ['Slovakia', 'Kazakhstan'], ['Turkey', 'Italy'], ['Moldova', 'Faroe Islands'],
+    ['Northern Ireland', 'Hungary'], ['Slovenia', 'Scotland'], ['Norway', 'Portugal']];
+  const fixtures = pairs.map(([h, a], i) => ({ id: i + 1, utcDate: '2026-09-27T18:45:00Z', homeTeam: nation(h), awayTeam: nation(a) }));
+  const video = (videoId, title, durationSec) => ({ videoId, title, durationSec, publishedAt: '2026-09-28T09:00:00Z', embeddable: true });
+  const tudnTitles = [
+    video('t1', 'HIGHLIGHTS - Alemania vs Grecia | UEFA Nations League - Jornada 2 2026-27 | TUDN', 917),
+    video('t2', 'SUPER EXTENDED HIGHLIGTS - Eslovaquia vs Kazajistán | UEFA Nations League - Jornada 2 2026-27 | TUDN', 1432),
+    video('t3', 'HIGHLIGHTS - Moldavia vs Islas Feroe | UEFA Nations League - Jornada 2 2026-27 | TUDN', 913),
+    video('t4', 'HIGHLIGHTS - Irlanda del Norte vs Hungría | UEFA Nations League - Jornada 2 2026-27 | TUDN', 916),
+    video('t5', 'SUPER EXTENDED HIGHLIGHTS - Norway vs Portugal | UEFA Nations League - Matchday 2 2026-27 | TUDN', 1499),
+  ];
+  for (const v of tudnTitles) assert.ok(tudn.test(v.title), v.title);
+  assert.ok(!tudn.test('ITALY GOAL! | Turkey vs Italy | UEFA Nations League - Matchday 2 2026-27 | TUDN'), 'goal clips are not highlights');
+  assert.ok(!tudn.test('HIGHLIGHTS - América vs Toluca | Liga MX Apertura 2026 | TUDN'), 'other competitions stay out');
+  assert.ok(!tudn.test('HIGHLIGHTS - México vs Panamá | Concacaf Nations League 2026-27 | TUDN'), 'CONCACAF stays out');
+
+  const res = matchVideosToFixtures(fixtures, [
+    ...tudnTitles,
+    video('f1', 'Highlights: Turchia-Italia 1-4 | Nations League 2026/27', 240),
+    video('s1', 'Slovenija - Škotska | #NationsLeague | Vrhunci', 117),
+  ]);
+  const got = Object.fromEntries([...res].map(([id, hs]) => [pairs[id - 1].join(' v '), hs.map((h) => h.videoId).sort()]));
+  assert.deepEqual(got, {
+    'Germany v Greece': ['t1'], 'Slovakia v Kazakhstan': ['t2'], 'Moldova v Faroe Islands': ['t3'],
+    'Northern Ireland v Hungary': ['t4'], 'Norway v Portugal': ['t5'], 'Turkey v Italy': ['f1'], 'Slovenia v Scotland': ['s1'],
+  });
+  assert.ok(looksLikeMatchHighlight('Belgium vs. France, 0-1: All the key moments (Nations League)'));
+});

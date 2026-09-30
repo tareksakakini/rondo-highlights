@@ -9,7 +9,7 @@ In football, a *rondo* is the passing drill where the ball keeps circulating wit
 | | Fixtures from | Highlights from |
 |---|---|---|
 | Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Champions League | football-data.org (free tier) | league, broadcaster and club channels |
-| Europa League, Nations League | Highlightly (free plan: 100 requests/day), because football-data.org's free tier doesn't include them | CBS Sports Golazo Europe, FOX, club and federation channels |
+| Europa League, Nations League | Highlightly (free plan: 100 requests/day), because football-data.org's free tier doesn't include them | CBS Sports Golazo Europe, FOX, TUDN (Nations League), club and federation channels |
 | World Cup 2026 | football-data.org (free tier) | FIFA, FOX Soccer, federation channels (archive, ingested once) |
 | Euros | football-data.org if your plan includes it | UEFA, FOX, federation channels (hidden until there are highlights) |
 

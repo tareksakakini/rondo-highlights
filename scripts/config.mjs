@@ -102,7 +102,16 @@ export const COMPETITIONS = [
   {
     code: 'UNL', name: 'UEFA Nations League', short: 'Nations League', country: 'Europe', color: '#14B8A6',
     group: 'national', roundLabel: 'Matchday', source: 'fixtures', highlightly: 5039,
-    channels: [ch('@FOXSports', { mustMatch: 'nations league' }), ch('@FOXSoccer', { mustMatch: 'nations league' }), ...NATIONS],
+    // TUDN (US Spanish-language rights) posts a ~15 min cut and a ~25 min "super extended"
+    // cut of every match, titled in Spanish or English. Its goal clips never say
+    // "highlights", and it sometimes writes "HIGHLIGTS", hence "highlig". It also covers the
+    // CONCACAF Nations League, which is not ours.
+    channels: [
+      ch('@FOXSports', { mustMatch: 'nations league' }),
+      ch('@FOXSoccer', { mustMatch: 'nations league' }),
+      ch('@tudn_usa', { mustMatch: '^(?!.*concacaf)(?=.*nations league)(?=.*highlig)' }),
+      ...NATIONS,
+    ],
   },
   {
     code: 'WC', name: 'FIFA World Cup', short: 'World Cup', country: 'World', color: '#E11D48',
