@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- One URL for now: rounds live behind #/ hashes, which search engines treat as the
+     same page. Competition and round pages get their own URLs (and entries) later. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://rondohighlights.com/</loc>
+  </url>
+</urlset>

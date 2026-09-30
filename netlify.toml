@@ -9,3 +9,31 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# One canonical host: https://rondohighlights.com. Everything else 301s there
+# (path kept), so search engines index one copy of the site and share links
+# agree. Netlify already sends http -> https; the http rules save a hop.
+# public/_redirects (generated, for /geo.json only) is applied before these.
+[[redirects]]
+  from = "https://www.rondohighlights.com/*"
+  to = "https://rondohighlights.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.rondohighlights.com/*"
+  to = "https://rondohighlights.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://rondo-highlights.netlify.app/*"
+  to = "https://rondohighlights.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://rondo-highlights.netlify.app/*"
+  to = "https://rondohighlights.com/:splat"
+  status = 301
+  force = true
