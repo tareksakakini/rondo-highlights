@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-09-29T23:45:55.802Z",
+ "generatedAt": "2026-09-30T03:28:20.849Z",
  "source": "live",
  "competitions": [
   {
@@ -1502,14 +1502,14 @@
      "label": "League phase · MD 1",
      "firstDate": "2026-09-24T16:00:00Z",
      "matches": 26,
-     "withHighlights": 10
+     "withHighlights": 12
     },
     {
      "key": "md-2",
      "label": "League phase · MD 2",
      "firstDate": "2026-09-27T13:00:00Z",
      "matches": 26,
-     "withHighlights": 6
+     "withHighlights": 7
     },
     {
      "key": "md-3",
