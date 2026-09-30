@@ -285,6 +285,14 @@ export default function App() {
             </div>
           )}
 
+          {!index && !loadError && (
+            <section className="browse" aria-label="Loading highlights" aria-busy="true">
+              <div className="grid">
+                {Array.from({ length: 6 }, (_, i) => <div key={i} className="card skeleton" />)}
+              </div>
+            </section>
+          )}
+
           {index && (
             <section className="browse" aria-label="Browse">
               <nav className="comps" aria-label="Competitions">

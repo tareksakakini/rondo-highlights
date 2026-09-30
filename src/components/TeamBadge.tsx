@@ -1,4 +1,5 @@
 import type { Team } from '../types';
+import { dataAsset } from '../lib/data';
 
 function hue(s: string) {
   let h = 0;
@@ -8,7 +9,7 @@ function hue(s: string) {
 
 export function TeamBadge({ team, size = 28 }: { team: Team; size?: number }) {
   if (team.crest) {
-    return <img className="badge" src={team.crest} alt="" width={size} height={size} loading="lazy" />;
+    return <img className="badge" src={dataAsset(team.crest)} alt="" width={size} height={size} loading="lazy" decoding="async" />;
   }
   const h = hue(team.name);
   return (

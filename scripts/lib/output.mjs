@@ -52,13 +52,16 @@ export async function writeDataset(root, results, { source, merge }) {
   const competitions = [...kept, ...results.map((r) => ({ ...r.index, source }))]
     .sort((a, b) => order.indexOf(a.code) - order.indexOf(b.code));
   const sources = new Set(competitions.map((c) => c.source));
+  const previous = await readJson(path.join(dir, 'index.json'));
   const index = {
     generatedAt: new Date().toISOString(),
     source: sources.size === 1 ? [...sources][0] : 'mixed',
+    // The data-branch commit holding the round files. Kept as is here; the refresh
+    // workflow re-stamps it (scripts/stamp-rev.mjs) when round files or crests change.
+    rev: previous?.rev,
     competitions,
   };
   // Keep the old timestamp when nothing changed, so scheduled runs don't create empty commits/deploys.
-  const previous = await readJson(path.join(dir, 'index.json'));
   if (previous && JSON.stringify({ ...previous, generatedAt: 0 }) === JSON.stringify({ ...index, generatedAt: 0 })) {
     index.generatedAt = previous.generatedAt;
   }

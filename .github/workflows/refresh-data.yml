@@ -70,21 +70,51 @@ jobs:
           if [ -n "$ONLY" ]; then ARGS="$ARGS --only=$ONLY"; fi
           npm run ingest -- $ARGS
 
+      - name: Self-host small crests
+        run: npm run crests
+
       - name: Commit to the data branch and refresh the CDN
         working-directory: public/data
         run: |
-          git add -A
-          if git diff --cached --quiet; then
+          commit() {
+            git -c user.name="rondo-bot" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "$1"
+          }
+          stamp=$(date -u +'%Y-%m-%d %H:%M UTC')
+          start=$(git rev-parse --verify -q HEAD || echo none)
+
+          # 1. Round files and crests. The site reads these from this exact commit
+          #    (jsDelivr @<sha>), which is cached forever, so they never need purging.
+          git add -A -- . ':(exclude)index.json'
+          visible=no
+          git diff --cached --quiet -- . ':(exclude)cache' || visible=yes   # cache/ is internal
+          if ! git diff --cached --quiet; then
+            commit "data: refresh highlights $stamp"
+          fi
+          if [ "$visible" = yes ]; then
+            rev=$(git rev-parse HEAD)
+          else
+            # Nothing the site reads changed: keep the commit the index already names,
+            # so visitors' cached round files stay valid.
+            rev=$(git show HEAD:index.json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).rev||"")}catch{}})')
+            [ -n "$rev" ] || rev=$(git rev-parse HEAD)
+          fi
+
+          # 2. index.json names that commit. It is the only file read from the moving branch.
+          node ../../scripts/stamp-rev.mjs index.json "$rev"
+          git add index.json
+          index_changed=no
+          if ! git diff --cached --quiet; then
+            commit "data: index for $stamp"
+            index_changed=yes
+          fi
+
+          if [ "$(git rev-parse HEAD)" = "$start" ]; then
             echo "No new highlights."
             exit 0
           fi
-          changed=$(git diff --cached --name-only)
-          git -c user.name="rondo-bot" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -m "data: refresh highlights $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push origin HEAD:data
-          # jsDelivr caches branch files for up to 12 h; purge what changed so visitors see it now.
-          for f in $changed; do
-            case "$f" in cache/*) continue ;; esac   # internal files, not read by the site
-            curl -fsS -o /dev/null "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@data/${f}" \
-              && echo "purged $f" || echo "purge failed for $f (will expire on its own)"
-          done
+          [ "$index_changed" = yes ] || exit 0
+          # jsDelivr caches branch files for up to 12 h; purge the index so visitors see it now.
+          curl -fsS -o /dev/null "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@data/index.json" \
+            && echo "purged index.json" || echo "purge failed for index.json (will expire on its own)"

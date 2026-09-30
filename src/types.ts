@@ -58,6 +58,8 @@ export interface Competition {
 export interface DataIndex {
   generatedAt: string;
   source: 'live' | 'sample' | 'mixed';
+  /** Data-branch commit holding the round files and crests (set by the refresh workflow). */
+  rev?: string;
   competitions: Competition[];
 }
 

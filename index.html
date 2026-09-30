@@ -17,7 +17,10 @@
     <meta name="apple-mobile-web-app-title" content="Rondo" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&display=swap" rel="stylesheet" />
+    <!-- Loaded without blocking the first paint: on a slow connection the page (and its
+         loading placeholders) shows in the fallback font instead of waiting for Google. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&display=swap" /></noscript>
     <title>Rondo Highlights · Football highlights, back to back</title>
   </head>
   <body>

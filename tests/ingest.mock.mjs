@@ -82,4 +82,4 @@ await import(path.join(tmp, 'scripts/ingest.mjs'));
 await new Promise((r) => realSetTimeout(r, 500));
 
 const index = JSON.parse(fs.readFileSync(path.join(tmp, 'public/data/index.json'), 'utf8'));
-console.log('\nRESULT', JSON.stringify(index.competitions.map((c) => [c.code, c.currentRound, c.rounds.reduce((a, r) => a + r.withHighlights, 0)])), calls);
+console.log('\nRESULT', JSON.stringify(index.competitions.map((c) => [c.code, c.currentRound, c.rounds.reduce((a, r) => a + r.withHighlights, 0)])), JSON.stringify(calls).replace(/"(\w+)":/g, '$1: '));
