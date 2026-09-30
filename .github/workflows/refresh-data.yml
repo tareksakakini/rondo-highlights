@@ -22,6 +22,10 @@ on:
         description: 'Only these competitions, e.g. WC (also re-ingests finished tournaments). Blank = all.'
         required: false
         default: ''
+      condense_max:
+        description: 'Condensed cuts: how many YouTube watch pages to read this run (default 40). Raise once to backfill, e.g. 300.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -72,6 +76,16 @@ jobs:
 
       - name: Self-host small crests
         run: npm run crests
+
+      # Experimental: key moments of extended cuts, from YouTube's chapters
+      # (public/data/condensed.json, used only when a visitor turns on condensed
+      # cuts). Never blocks the refresh: delete this step to switch it off.
+      - name: Condensed cuts (experimental)
+        continue-on-error: true
+        timeout-minutes: 12
+        env:
+          CONDENSE_MAX: ${{ inputs.condense_max }}
+        run: npm run condense
 
       - name: Commit to the data branch and refresh the CDN
         working-directory: public/data

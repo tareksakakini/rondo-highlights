@@ -1,4 +1,5 @@
 import type { DataIndex, RoundFile } from '../types';
+import type { CondensedMap } from './moments';
 
 // Where highlight data lives. Set at build time by vite.config.ts:
 // - production: the repo's public `data` branch via jsDelivr's CDN, with raw.githubusercontent.com as a fallback
@@ -64,6 +65,12 @@ export const fetchIndex = () =>
 export const fetchRound = (code: string, key: string) => {
   const ref = pinnedRef();
   return memo(`${ref}/${code}/${key}.json`, () => fetchFrom<RoundFile>(`${code}/${key}.json`, ref, rev != null));
+};
+
+/** Key moments of extended cuts, by videoId (experimental "condensed" cuts; see scripts/condense.mjs). */
+export const fetchCondensed = () => {
+  const ref = pinnedRef();
+  return memo(`${ref}/condensed.json`, () => fetchFrom<CondensedMap>('condensed.json', ref, rev != null));
 };
 
 /** URL for a file stored alongside the data (e.g. `crests/1a2b….webp`); absolute URLs pass through. */

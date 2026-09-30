@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
-import { fetchIndex, fetchRound } from './lib/data';
+import { fetchCondensed, fetchIndex, fetchRound } from './lib/data';
+import type { CondensedMap } from './lib/moments';
 import { fmtDay, fmtDuration, fmtTotal, kindLabel, matchTitle, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
 import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
 import { initialPlayback, playbackReducer } from './lib/playback';
@@ -30,6 +31,10 @@ export default function App() {
   const [pref, setPref] = usePersistentState<Kind>('length', 'short');
   const [spoilerFree, setSpoilerFree] = usePersistentState('spoilerFree', false);
   const [autoplay, setAutoplay] = usePersistentState('autoplay', true);
+  // Experimental: play extended cuts as their key moments only (off by default).
+  const [condensedOn, setCondensedOn] = usePersistentState('condensed', false);
+  const [condensed, setCondensed] = useState<CondensedMap | null>(null);
+  const [moment, setMoment] = useState<number | null>(null);
   const [revealTitle, setRevealTitle] = useState(false);
   const [pins, setPins] = useState<Record<string, Kind>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -94,6 +99,13 @@ export default function App() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  useEffect(() => {
+    if (!condensedOn || !index || condensed) return;
+    let alive = true;
+    fetchCondensed().then((c) => { if (alive) setCondensed(c); }).catch(() => { /* not generated yet */ });
+    return () => { alive = false; };
+  }, [condensedOn, index, condensed]);
+
   // ---- helpers ----
   const toItem = useCallback(
     (m: Match, kind?: Kind): PlayItem => ({
@@ -127,6 +139,7 @@ export default function App() {
   // ---- current video ----
   const current = pb.current;
   const video = current ? resolveItem(current, pref, pb.failed[current.uid], region, avoid) : null;
+  const cut = condensedOn && video?.kind === 'extended' ? condensed?.[video.videoId] ?? null : null;
 
   useEffect(() => {
     if (current && !video) {
@@ -232,6 +245,8 @@ export default function App() {
                 videoId={video?.videoId ?? null}
                 seq={pb.seq}
                 label={matchTitle(current.match)}
+                moments={cut?.m ?? null}
+                onMoment={setMoment}
                 onEnded={onEnded}
                 onError={onError}
                 onClose={() => dispatch({ type: 'stop' })}
@@ -241,7 +256,10 @@ export default function App() {
                   <div className="now-kicker">
                     <i className="comp-dot" style={{ background: current.comp.color }} />
                     {current.comp.name} · {current.roundLabel}
-                    {video && <span className={`kind-tag ${video.kind}`}>{kindLabel(video.kind)} · {fmtDuration(video.durationSec)}</span>}
+                    {video && (cut && moment != null
+                      ? <span className="kind-tag condensed" title="The key moments of the extended cut, found from YouTube's chapters">Condensed · {fmtDuration(cut.s)}</span>
+                      : <span className={`kind-tag ${video.kind}`}>{kindLabel(video.kind)} · {fmtDuration(video.durationSec)}</span>)}
+                    {cut && moment != null && <span className="moment-count">Moment {moment + 1} of {cut.m.length}</span>}
                   </div>
                   <h1 className="now-title">{matchTitle(current.match)}</h1>
                   {video && (
@@ -398,6 +416,7 @@ export default function App() {
         pref={pref} setPref={setPref}
         spoilerFree={spoilerFree} setSpoilerFree={setSpoilerFree}
         autoplay={autoplay} setAutoplay={setAutoplay}
+        condensed={condensedOn} setCondensed={setCondensedOn}
         detected={detected} detectedFrom={detectedFrom} override={regionOverride} setOverride={(c) => { setRegionOverride(c); setEmbedErrors(0); }}
       />
 

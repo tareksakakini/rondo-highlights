@@ -121,6 +121,9 @@ main { display: contents; }
 .linkish.inline { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; margin-left: 6px; font-size: inherit; font-weight: 600; }
 .kind-tag { padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--surface-2); color: var(--text); }
 .kind-tag.extended { background: color-mix(in srgb, var(--accent) 18%, var(--surface-2)); color: var(--accent); }
+.kind-tag.condensed { background: var(--accent); color: var(--accent-ink); }
+.beta { margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; vertical-align: 2px; background: var(--surface-2); color: var(--muted); }
+.moment-count { font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .transport { display: flex; gap: 8px; align-items: center; }
 
