@@ -77,9 +77,9 @@ jobs:
       - name: Self-host small crests
         run: npm run crests
 
-      # Experimental: key moments of extended cuts, from YouTube's chapters
-      # (public/data/condensed.json, used only when a visitor turns on condensed
-      # cuts). Never blocks the refresh: delete this step to switch it off.
+      # Key moments of extended cuts, from YouTube's chapters (public/data/condensed.json):
+      # the site plays them in place of a missing short cut. Never blocks the refresh:
+      # delete this step to switch it off.
       - name: Condensed cuts (experimental)
         continue-on-error: true
         timeout-minutes: 12

@@ -12,8 +12,6 @@ interface Props {
   setSpoilerFree: (v: boolean) => void;
   autoplay: boolean;
   setAutoplay: (v: boolean) => void;
-  condensed: boolean;
-  setCondensed: (v: boolean) => void;
   detected: string | null;
   detectedFrom: 'network' | 'timezone' | null;
   override: string;
@@ -82,17 +80,6 @@ export function Settings(p: Props) {
           </div>
           <span className="switch">
             <input type="checkbox" checked={p.autoplay} onChange={(e) => p.setAutoplay(e.target.checked)} />
-            <span className="track"><span className="thumb-dot" /></span>
-          </span>
-        </label>
-
-        <label className="setting">
-          <div className="setting-text">
-            <span className="setting-name">Condensed extended cuts <span className="beta">Experimental</span></span>
-            <span className="setting-help">Play only the key moments of extended highlights, found from YouTube&apos;s chapters. Matches where not every goal can be found play in full.</span>
-          </div>
-          <span className="switch">
-            <input type="checkbox" checked={p.condensed} onChange={(e) => p.setCondensed(e.target.checked)} />
             <span className="track"><span className="thumb-dot" /></span>
           </span>
         </label>

@@ -69,15 +69,15 @@ Highlight rights are sold country by country. US broadcasters, for example, limi
 
 Run `npm test` to check the matcher against real titles and run the whole ingest against mocked APIs.
 
-## Condensed cuts (experimental)
+## Auto-condensed cuts
 
-An optional setting, off by default: **Settings → Condensed extended cuts** plays only the key moments of an extended highlight.
+When a match has no short cut in the visitor's country, the **Short** option plays an auto-condensed cut instead: just the key moments of the extended cut. The **Auto-condense** button next to Short/Extended (on by default) switches this off, and a footnote under the round's header says which matches it applies to.
 
-- YouTube adds automatic chapters to most extended highlights, and a chapter usually starts right at a goal (the ball goes in ~2 s before to ~10 s after the chapter start). `scripts/condense.mjs` (`npm run condense`, run by the workflow after crests) reads each extended cut's chapters from its public watch page and turns every action chapter into a moment from 20 s before its start to 25 s after (`scripts/lib/condense.mjs`). Moments less than 10 s apart are merged.
-- A video only gets a condensed cut when it has at least as many action chapters as the match had goals and a chapter title names a goal. Otherwise it plays in full. Many videos have no chapters (none of TUDN's Nations League cuts did).
-- The result goes to `condensed.json` on the data branch (`{ videoId: { m: [[start, end], …], s: seconds } }`); chapters are cached in `cache/chapters.json` and each watch page is read once (at most 40 a run, stopping at the first sign of a bot check). Round files are not touched.
+- YouTube adds automatic chapters to most extended highlights, and a chapter usually starts right at a goal (the ball goes in ~2 s before to ~10 s after the chapter start). `scripts/condense.mjs` (`npm run condense`, run by the workflow after crests) reads each extended cut's chapters from its public watch page and turns every chapter edge into a moment from 20 s before it to 25 s after (`scripts/lib/condense.mjs`). Moments less than 10 s apart are merged. Every video with chapters gets a cut; busy games can have several goals in one chapter, so a cut can skip a goal.
+- Many videos have no chapters (none of TUDN's Nations League cuts did); those matches fall back to the extended cut as before.
+- The result goes to `condensed.json` on the data branch (`{ videoId: { m: [[start, end], …], s: seconds } }`). Chapters are cached in `cache/chapters.json` and each watch page is read once: at most 40 a run (`CONDENSE_MAX`, or the workflow's `condense_max` input, for a backfill; YouTube cut a runner off after ~140 in one run), stopping after 3 failures in a row. Round files are not touched.
 - The player (`src/components/Player.tsx`) starts at the first moment, fades the sound out as a moment ends, seeks to the next and fades back in. Scrubbing to somewhere between moments plays the rest of that video in full.
-- To switch it off: delete the "Condensed cuts" step from `.github/workflows/refresh-data.yml`. The site ignores `condensed.json` unless the setting is on.
+- To switch it off for everyone: delete the "Condensed cuts" step from `.github/workflows/refresh-data.yml` (without `condensed.json` updates, new matches simply fall back to extended cuts).
 
 To try it locally against the live data: `npm run dev:live`.
 

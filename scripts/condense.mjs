@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Condensed cuts (experimental). Runs after `npm run ingest` and `npm run crests`.
+// Auto-condensed cuts. Runs after `npm run ingest` and `npm run crests`.
 //
 // For every extended highlight in the published data, read the chapters YouTube
 // shows on its watch page, turn them into key moments (scripts/lib/condense.mjs)
 // and write public/data/condensed.json: { "<videoId>": { m: [[start, end], ...], s: seconds } }.
-// The site reads that file only when a visitor turns on "Condensed extended cuts",
-// and round files are left untouched, so switching the feature off (or deleting
-// the file) leaves the rest of the site exactly as before.
+// The site plays a condensed cut in place of the short cut when a match has no
+// short cut (and the visitor hasn't switched Auto-condense off). Round files are
+// left untouched, so dropping the feature (or the file) changes nothing else.
 //
 // Chapters aren't in the YouTube Data API, so this reads the public watch page.
 // To keep that light: each video's chapters are cached in cache/chapters.json and
@@ -21,7 +21,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseChapters, momentsFor, goalsIn, MAX_VIDEO_SEC } from './lib/condense.mjs';
+import { parseChapters, momentsFor } from './lib/condense.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SKIP_DIRS = new Set(['cache', 'crests', '.git']);
@@ -36,7 +36,7 @@ async function readJson(p, fallback) {
   try { return JSON.parse(await fs.readFile(p, 'utf8')); } catch { return fallback; }
 }
 
-/** Every extended highlight in the round files, newest first, with its match's goal count. */
+/** Every extended highlight in the round files, newest first. */
 export async function extendedVideos(dir) {
   const out = new Map();
   const comps = (await fs.readdir(dir, { withFileTypes: true })).filter((d) => d.isDirectory() && !SKIP_DIRS.has(d.name));
@@ -46,8 +46,8 @@ export async function extendedVideos(dir) {
       const round = await readJson(path.join(dir, c.name, f), null);
       for (const m of round?.matches ?? []) {
         for (const h of m.highlights ?? []) {
-          if (h.kind !== 'extended' || !h.durationSec || h.durationSec > MAX_VIDEO_SEC || out.has(h.videoId)) continue;
-          out.set(h.videoId, { videoId: h.videoId, durationSec: h.durationSec, publishedAt: h.publishedAt, goals: goalsIn(m) });
+          if (h.kind !== 'extended' || !h.durationSec || out.has(h.videoId)) continue;
+          out.set(h.videoId, { videoId: h.videoId, durationSec: h.durationSec, publishedAt: h.publishedAt });
         }
       }
     }
@@ -105,12 +105,10 @@ export async function main(dir = path.join(ROOT, 'public', 'data'), { fetchPage 
   for (const id of Object.keys(cache)) if (!live.has(id)) delete cache[id];
 
   const out = {};
-  let gated = 0;
   for (const v of videos) {
     const ch = cache[v.videoId]?.ch;
-    if (!ch) continue;
-    const r = momentsFor(ch.map(([start, title]) => ({ start, title })), v.durationSec, v.goals);
-    if (r) out[v.videoId] = r; else gated++;
+    const r = ch && momentsFor(ch.map(([start, title]) => ({ start, title })), v.durationSec);
+    if (r) out[v.videoId] = r;
   }
   const withChapters = videos.filter((v) => cache[v.videoId]?.ch).length;
 
@@ -119,7 +117,7 @@ export async function main(dir = path.join(ROOT, 'public', 'data'), { fetchPage 
   await fs.writeFile(path.join(dir, 'condensed.json'), JSON.stringify(sortKeys(out)));
 
   log(`condensed cuts: ${videos.length} extended videos, ${fetched} watch page(s) read, ${withChapters} with chapters, `
-    + `${Object.keys(out).length} condensed, ${gated} left in full (fewer chapters than goals or no saving)`);
+    + `${Object.keys(out).length} condensed`);
   if (stopped) log(`  stopped reading watch pages this run: ${stopped}`);
   return { videos: videos.length, fetched, withChapters, condensed: Object.keys(out).length, stopped };
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
 import { fetchCondensed, fetchIndex, fetchRound } from './lib/data';
 import type { CondensedMap } from './lib/moments';
-import { fmtDay, fmtDuration, fmtTotal, kindLabel, matchTitle, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
+import { cutKind, cutLabel, cutSec, fmtDay, fmtDuration, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
 import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
 import { initialPlayback, playbackReducer } from './lib/playback';
 import { usePersistentState } from './lib/storage';
@@ -31,9 +31,11 @@ export default function App() {
   const [pref, setPref] = usePersistentState<Kind>('length', 'short');
   const [spoilerFree, setSpoilerFree] = usePersistentState('spoilerFree', false);
   const [autoplay, setAutoplay] = usePersistentState('autoplay', true);
-  // Experimental: play extended cuts as their key moments only (off by default).
-  const [condensedOn, setCondensedOn] = usePersistentState('condensed', false);
+  // Auto-condense (on by default): a match with no short cut plays the key moments
+  // of its extended cut instead, when YouTube's chapters give us those moments.
+  const [autoCondense, setAutoCondense] = usePersistentState('autoCondense', true);
   const [condensed, setCondensed] = useState<CondensedMap | null>(null);
+  const cmap = autoCondense ? condensed : null;
   const [moment, setMoment] = useState<number | null>(null);
   const [revealTitle, setRevealTitle] = useState(false);
   const [pins, setPins] = useState<Record<string, Kind>>({});
@@ -100,11 +102,11 @@ export default function App() {
   }, [toast]);
 
   useEffect(() => {
-    if (!condensedOn || !index || condensed) return;
+    if (!autoCondense || !index || condensed) return;
     let alive = true;
     fetchCondensed().then((c) => { if (alive) setCondensed(c); }).catch(() => { /* not generated yet */ });
     return () => { alive = false; };
-  }, [condensedOn, index, condensed]);
+  }, [autoCondense, index, condensed]);
 
   // ---- helpers ----
   const toItem = useCallback(
@@ -119,7 +121,9 @@ export default function App() {
   const withAny = round?.matches.filter((m) => m.highlights.length).length ?? 0;
   const blockedHere = useMemo(() => round?.matches.filter((m) => m.highlights.length && !pickHighlight(m, pref, [], region)) ?? [], [round, pref, region]);
   const notYet = useMemo(() => round?.matches.filter((m) => !m.highlights.length) ?? [], [round]);
-  const roundTotal = playable.reduce((t, m) => t + (pickHighlight(m, pins[m.id] ?? pref, [], region, avoid)?.durationSec ?? 0), 0);
+  const cutFor = (m: Match) => pickCut(m, pins[m.id] ?? pref, cmap, [], region, avoid);
+  const roundTotal = playable.reduce((t, m) => { const c = cutFor(m); return t + (c ? cutSec(c) : 0); }, 0);
+  const condensedHere = playable.filter((m) => cutFor(m)?.condensed).length;
 
   const playFrom = (matchId: number | string, kind?: Kind) => {
     const start = playable.findIndex((m) => m.id === matchId);
@@ -138,8 +142,9 @@ export default function App() {
 
   // ---- current video ----
   const current = pb.current;
-  const video = current ? resolveItem(current, pref, pb.failed[current.uid], region, avoid) : null;
-  const cut = condensedOn && video?.kind === 'extended' ? condensed?.[video.videoId] ?? null : null;
+  const picked = current ? resolveItem(current, pref, cmap, pb.failed[current.uid], region, avoid) : null;
+  const video = picked?.h ?? null;
+  const cut = picked?.condensed ?? null;
 
   useEffect(() => {
     if (current && !video) {
@@ -187,6 +192,7 @@ export default function App() {
       key={m.id}
       match={m}
       pref={pref}
+      condensed={cmap}
       region={region}
       avoid={avoid}
       spoilerFree={spoilerFree}
@@ -211,10 +217,16 @@ export default function App() {
           <div className="seg" role="radiogroup" aria-label="Preferred highlight length">
             {(['short', 'extended'] as Kind[]).map((k) => (
               <button key={k} role="radio" aria-checked={pref === k} className={pref === k ? 'on' : ''} onClick={() => setPref(k)}>
-                {kindLabel(k)}
+                {k === 'extended' ? <><span className="lbl-long">Extended</span><span className="lbl-short">Ext.</span></> : kindLabel(k)}
               </button>
             ))}
           </div>
+          <button className={`toggle cond-toggle${autoCondense ? ' on' : ''}`} aria-pressed={autoCondense} onClick={() => setAutoCondense(!autoCondense)}
+            title="Auto-condense: when a match has no short cut, play just the key moments of the extended cut, found from YouTube's chapters. It can occasionally skip a goal."
+            aria-label="Auto-condense matches with no short cut">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.64 7.64c.23-.5.36-1.05.36-1.64 0-2.21-1.79-4-4-4S2 3.79 2 6s1.79 4 4 4c.59 0 1.14-.13 1.64-.36L10 12l-2.36 2.36C7.14 14.13 6.59 14 6 14c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4c0-.59-.13-1.14-.36-1.64L12 14l7 7h3v-1L9.64 7.64zM6 8c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm0 12c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm6-7.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zM19 3l-6 6 2 2 7-7V3z" /></svg>
+            <span className="toggle-text">Auto-condense</span><sup>*</sup>
+          </button>
           <button className={`toggle desktop-only${spoilerFree ? ' on' : ''}`} aria-pressed={spoilerFree} onClick={() => setSpoilerFree(!spoilerFree)}
             title="Hide scores and thumbnails">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -256,9 +268,9 @@ export default function App() {
                   <div className="now-kicker">
                     <i className="comp-dot" style={{ background: current.comp.color }} />
                     {current.comp.name} · {current.roundLabel}
-                    {video && (cut && moment != null
-                      ? <span className="kind-tag condensed" title="The key moments of the extended cut, found from YouTube's chapters">Condensed · {fmtDuration(cut.s)}</span>
-                      : <span className={`kind-tag ${video.kind}`}>{kindLabel(video.kind)} · {fmtDuration(video.durationSec)}</span>)}
+                    {picked && (cut && moment != null
+                      ? <span className="kind-tag condensed" title="The key moments of the extended cut, found from YouTube's chapters. It can skip a goal.">{cutLabel(cutKind(picked))} · {fmtDuration(cutSec(picked))}</span>
+                      : <span className={`kind-tag ${picked.h.kind}`}>{kindLabel(picked.h.kind)} · {fmtDuration(picked.h.durationSec)}</span>)}
                     {cut && moment != null && <span className="moment-count">Moment {moment + 1} of {cut.m.length}</span>}
                   </div>
                   <h1 className="now-title">{matchTitle(current.match)}</h1>
@@ -358,6 +370,13 @@ export default function App() {
                       {roundTotal > 0 && <span>{fmtTotal(roundTotal)}</span>}
                     </p>
                   )}
+                  {condensedHere > 0 && (
+                    <p className="cond-note">
+                      <sup>*</sup> {condensedHere === 1 ? '1 match has' : `${condensedHere} matches have`} no short cut here, so {condensedHere === 1 ? 'it plays' : 'they play'} auto-condensed:
+                      the key moments of the extended cut, found from YouTube&apos;s chapters. These can occasionally skip a goal.{' '}
+                      <button className="linkish inline" onClick={() => setAutoCondense(false)}>Turn off</button>
+                    </p>
+                  )}
                   <div className="round-actions">
                     <button className="btn-primary" disabled={!playable.length} onClick={() => playFrom(playable[0].id)}>
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
@@ -395,7 +414,7 @@ export default function App() {
 
         {(current || hasUpNext) && (
           <aside className="aside">
-            <UpNext state={pb} pref={pref} region={region} avoid={avoid} dispatch={dispatch} />
+            <UpNext state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} dispatch={dispatch} />
           </aside>
         )}
       </div>
@@ -416,7 +435,6 @@ export default function App() {
         pref={pref} setPref={setPref}
         spoilerFree={spoilerFree} setSpoilerFree={setSpoilerFree}
         autoplay={autoplay} setAutoplay={setAutoplay}
-        condensed={condensedOn} setCondensed={setCondensedOn}
         detected={detected} detectedFrom={detectedFrom} override={regionOverride} setOverride={(c) => { setRegionOverride(c); setEmbedErrors(0); }}
       />
 

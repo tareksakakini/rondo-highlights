@@ -1,4 +1,5 @@
 import type { Highlight, Kind, Match, PlayItem } from '../types';
+import type { CondensedEntry, CondensedMap } from './moments';
 
 export function fmtDuration(sec: number) {
   const h = Math.floor(sec / 3600);
@@ -38,15 +39,48 @@ export function availableIn(h: Highlight, region: string | null) {
 export function pickHighlight(
   match: Match, want: Kind, exclude: string[] = [], region: string | null = null, avoid: string[] = [],
 ): Highlight | null {
-  const ok = match.highlights.filter((h) => !exclude.includes(h.videoId) && availableIn(h, region));
-  const ranked = region ? ok : [...ok.filter((h) => !h.allow && !h.block), ...ok.filter((h) => h.allow || h.block)];
-  const trusted = ranked.filter((h) => !h.channelId || !avoid.includes(h.channelId));
-  const pool = trusted.length ? trusted : ranked;
+  const pool = poolFor(match, exclude, region, avoid);
   return pool.find((h) => h.kind === want) ?? pool[0] ?? null;
 }
 
-export const resolveItem = (item: PlayItem, pref: Kind, exclude: string[] = [], region: string | null = null, avoid: string[] = []) =>
-  pickHighlight(item.match, item.kind ?? pref, exclude, region, avoid);
+function poolFor(match: Match, exclude: string[], region: string | null, avoid: string[]) {
+  const ok = match.highlights.filter((h) => !exclude.includes(h.videoId) && availableIn(h, region));
+  const ranked = region ? ok : [...ok.filter((h) => !h.allow && !h.block), ...ok.filter((h) => h.allow || h.block)];
+  const trusted = ranked.filter((h) => !h.channelId || !avoid.includes(h.channelId));
+  return trusted.length ? trusted : ranked;
+}
+
+/** What plays for a match: a video, and its key moments when it plays auto-condensed. */
+export interface Cut {
+  h: Highlight;
+  condensed: CondensedEntry | null;
+}
+export type CutKind = Kind | 'condensed';
+
+export const cutKind = (c: Cut): CutKind => (c.condensed ? 'condensed' : c.h.kind);
+export const cutSec = (c: Cut) => c.condensed?.s ?? c.h.durationSec;
+export const cutLabel = (k: CutKind) => (k === 'condensed' ? 'Auto-condensed' : kindLabel(k));
+
+/**
+ * Like pickHighlight, plus auto-condensing: when "short" is wanted and no short cut
+ * plays here, the extended cut's key moments stand in for it (`condensed` = the
+ * moments by videoId, or null when the visitor switched Auto-condense off).
+ */
+export function pickCut(
+  match: Match, want: Kind, condensed: CondensedMap | null, exclude: string[] = [], region: string | null = null, avoid: string[] = [],
+): Cut | null {
+  const pool = poolFor(match, exclude, region, avoid);
+  if (want === 'short' && condensed && !pool.some((h) => h.kind === 'short')) {
+    const ext = pool.find((h) => h.kind === 'extended' && condensed[h.videoId]);
+    if (ext) return { h: ext, condensed: condensed[ext.videoId] };
+  }
+  const h = pool.find((x) => x.kind === want) ?? pool[0];
+  return h ? { h, condensed: null } : null;
+}
+
+export const resolveItem = (
+  item: PlayItem, pref: Kind, condensed: CondensedMap | null, exclude: string[] = [], region: string | null = null, avoid: string[] = [],
+) => pickCut(item.match, item.kind ?? pref, condensed, exclude, region, avoid);
 
 /** Does the match have any cut that plays in `region`? */
 export const playableIn = (m: Match, region: string | null) => m.highlights.some((h) => availableIn(h, region));

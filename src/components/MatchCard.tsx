@@ -1,11 +1,14 @@
 import type { Kind, Match } from '../types';
-import { availableIn, fmtDay, fmtDuration, pickHighlight } from '../lib/format';
+import { availableIn, cutSec, fmtDay, fmtDuration, pickCut } from '../lib/format';
+import type { CondensedMap } from '../lib/moments';
 import { countryName } from '../lib/region';
 import { TeamBadge } from './TeamBadge';
 
 interface Props {
   match: Match;
   pref: Kind;
+  /** key moments by videoId, or null when Auto-condense is off */
+  condensed: CondensedMap | null;
   region: string | null;
   avoid?: string[];
   spoilerFree: boolean;
@@ -19,10 +22,15 @@ interface Props {
 
 const KINDS: Kind[] = ['short', 'extended'];
 
-export function MatchCard({ match, pref, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue }: Props) {
-  const hl = pickHighlight(match, pinned ?? pref, [], region, avoid);
-  const cut = (k: Kind) => match.highlights.find((h) => h.kind === k && availableIn(h, region));
-  const fallback = hl && hl.kind !== (pinned ?? pref);
+export function MatchCard({ match, pref, condensed, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue }: Props) {
+  const picked = pickCut(match, pinned ?? pref, condensed, [], region, avoid);
+  const hl = picked?.h ?? null;
+  // The "short" slot holds the official short cut, or else the auto-condensed extended cut.
+  const official = (k: Kind) => match.highlights.find((h) => h.kind === k && availableIn(h, region));
+  const shortSlot = official('short') ? null : pickCut(match, 'short', condensed, [], region, avoid);
+  const condensedCut = shortSlot?.condensed ? shortSlot : null;
+  const slot = picked?.condensed ? 'short' : hl?.kind;
+  const fallback = hl && slot !== (pinned ?? pref);
   const blocked = !hl && match.highlights.length > 0;
   const { home, away, score } = match;
   const showScore = !spoilerFree && score.home != null && score.away != null;
@@ -41,7 +49,7 @@ export function MatchCard({ match, pref, region, avoid = [], spoilerFree, playin
             <TeamBadge team={away} size={40} />
           </span>
         )}
-        {hl && <span className="dur">{fmtDuration(hl.durationSec)}</span>}
+        {picked && <span className="dur">{fmtDuration(cutSec(picked))}</span>}
         {hl && <span className="play-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span>}
         {playing && <span className="now-tag">Playing</span>}
         {!hl && <span className="no-hl">{blocked ? `Not available in ${region ? countryName(region) : 'your country'}` : 'Highlights not in yet'}</span>}
@@ -67,15 +75,18 @@ export function MatchCard({ match, pref, region, avoid = [], spoilerFree, playin
           <div className="card-actions">
             <div className="versions" role="radiogroup" aria-label="Highlight length for this match">
               {KINDS.map((k) => {
-                const v = cut(k);
-                const active = hl.kind === k;
+                const v = official(k);
+                const cond = k === 'short' && !v ? condensedCut : null;
+                const active = slot === k;
+                const sec = cond ? cutSec(cond) : v?.durationSec;
                 return (
-                  <button key={k} role="radio" aria-checked={active} disabled={!v}
-                    className={`chip${active ? ' active' : ''}${active && fallback ? ' fallback' : ''}`}
-                    title={v ? `${v.channel} · ${fmtDuration(v.durationSec)}` : `No ${k} cut available`}
+                  <button key={k} role="radio" aria-checked={active} disabled={!v && !cond}
+                    className={`chip${active ? ' active' : ''}${active && fallback ? ' fallback' : ''}${cond ? ' cond' : ''}`}
+                    title={cond ? `Auto-condensed from ${cond.h.channel}'s extended cut: the key moments, found from YouTube's chapters. It can occasionally skip a goal.`
+                      : v ? `${v.channel} · ${fmtDuration(v.durationSec)}` : `No ${k} cut available`}
                     onClick={() => onPin(k)}>
-                    {k === 'short' ? 'Short' : 'Ext.'}
-                    <span className="chip-dur">{v ? fmtDuration(v.durationSec) : '—'}</span>
+                    {cond ? <>Auto<sup>*</sup></> : k === 'short' ? 'Short' : 'Ext.'}
+                    <span className="chip-dur">{sec != null ? fmtDuration(sec) : '—'}</span>
                   </button>
                 );
               })}
