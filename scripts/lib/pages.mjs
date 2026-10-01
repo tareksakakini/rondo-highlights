@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { isExcludedMatch } from './excluded.mjs';
 
 const teamName = (t) => t?.short || t?.name || 'TBD';
 
@@ -22,7 +23,7 @@ export async function buildModel(index, readRound) {
     for (const r of c.rounds) {
       if (!r.matches) continue;
       const file = await readRound(c.code, r.key);
-      const fixtures = (file?.matches ?? []).map((m) => `${teamName(m.home)} v ${teamName(m.away)}`);
+      const fixtures = (file?.matches ?? []).filter((m) => !isExcludedMatch(m)).map((m) => `${teamName(m.home)} v ${teamName(m.away)}`);
       if (fixtures.length) rounds.push({ key: r.key, label: r.label, fixtures });
     }
     if (rounds.length) {

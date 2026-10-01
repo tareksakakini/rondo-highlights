@@ -3,6 +3,7 @@
 // and covered by tests/match.test.mjs.
 
 import { NATIONS } from './teams.mjs';
+import { isExcludedMatch } from './excluded.mjs';
 import { EMBED_BLOCKED } from '../config.mjs';
 
 /** Lowercase, strip accents/punctuation, collapse whitespace. */
@@ -391,6 +392,7 @@ function slimTeam(t) {
 export function buildCompetition(comp, season, fixtures, highlightsByMatch, previous = new Map()) {
   const rounds = new Map();
   for (const f of fixtures) {
+    if (isExcludedMatch(f)) continue;
     const r = roundOf(f, comp.roundLabel);
     if (!rounds.has(r.key)) rounds.set(r.key, { round: r, matches: [] });
     const prevRound = previous.get(r.key);

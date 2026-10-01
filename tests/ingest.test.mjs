@@ -13,7 +13,8 @@ test('ingest end-to-end against mocked APIs; a second run changes nothing', () =
   const run = (env = {}) => execFileSync(process.execPath, [harness, dir], { env: { ...process.env, ...env }, encoding: 'utf8' });
   const out = run();
   const result = JSON.parse(out.match(/RESULT (\[.*\]) \{/)[1]);
-  assert.deepEqual(result, [['PL', 'md-5', 10], ['BL1', 'md-4', 9], ['CL', 'md-1', 18], ['EL', 'md-1', 18], ['UNL', 'md-1', 4]]);
+  assert.deepEqual(result, [['PL', 'md-5', 10], ['BL1', 'md-4', 9], ['CL', 'md-1', 18], ['EL', 'md-1', 17], ['UNL', 'md-1', 4]]);
+  // EL MD1 has 18 fixtures in the mock; Hapoel Beer Sheva v Dinamo Zagreb is left out (scripts/lib/excluded-teams.json).
   assert.equal(Number(out.match(/hl: (\d+)/)[1]), 2, 'one Highlightly page per competition');
   const el = JSON.parse(fs.readFileSync(path.join(dir, 'public/data/EL/md-2.json'), 'utf8'));
   assert.equal(el.matches[0].status, 'TIMED', 'upcoming fixtures are listed before any highlight exists');
