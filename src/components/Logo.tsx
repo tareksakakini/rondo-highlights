@@ -18,7 +18,7 @@ export function LogoMark({ size = 32 }: { size?: number }) {
 
 export function Logo() {
   return (
-    <a className="logo" href="./" aria-label="Rondo Highlights home">
+    <a className="logo" href="/" aria-label="Rondo Highlights home">
       <LogoMark />
       <span className="wordmark">rondo<span className="wordmark-sub">highlights</span></span>
     </a>

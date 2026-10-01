@@ -84,7 +84,7 @@ To try it locally against the live data: `npm run dev:live`.
 ## Project layout
 
 ```
-scripts/        config.mjs (competitions + channels), ingest.mjs, build-sample.mjs, lib/
+scripts/        config.mjs (competitions + channels), ingest.mjs, build-sample.mjs, prerender.ts (pages), check-pages.mjs, lib/
 public/data/    generated JSON (index.json + <CODE>/<round>.json, condensed.json)
 src/            React app: App.tsx, components/, lib/playback.ts (queue/autoplay), lib/region.ts (country detection)
 docs/           landscape.md (competitor comparison)
@@ -105,14 +105,17 @@ The only cost is the domain.
 ```
 main branch ──(push)──▶ Netlify build ──▶ rondohighlights.com       (code: a few deploys a month)
 data branch ◀──(every 2 h)── GitHub Actions: npm run ingest            (data: no deploys)
-     └──▶ jsDelivr CDN ──▶ fetched by the site at runtime
+     ├──▶ jsDelivr CDN ──▶ fetched by the site at runtime
+     └──▶ new rounds or fixtures ──▶ Netlify build hook               (pages: rarely, at most ~daily)
 ```
 
 - **Code** lives on `main`. Netlify builds it with `netlify.toml`, only when code changes.
 - **Data** lives on the public `data` branch. `.github/workflows/refresh-data.yml` runs the ingest every 2 hours, then `npm run crests`, and commits only when something changed. `index.json` is read from `https://cdn.jsdelivr.net/gh/<owner>/<repo>@data/index.json` (purged after each change). It names the commit that holds the dataset (`rev`), and round files and crests are read from `…@<rev>/…`, which never changes and is cached for good; `rev` only moves when files the site reads change (not `cache/`). Both fall back to `raw.githubusercontent.com`. `vite.config.ts` works out the repo from Netlify's `REPOSITORY_URL`, or you can set `VITE_DATA_BASE` (with an optional `{ref}` placeholder) to override it.
 - **Crests** are self-hosted: `scripts/crests.mjs` downloads each crest once, stores an 80×80 WebP under `crests/` on the data branch, and points the round files at it (about a third of the original size; the originals are 200×200). A crest that fails to download keeps its original URL.
 - **Fast first load:** the built `index.html` starts fetching `index.json` and opens connections to jsDelivr and i.ytimg.com while the page is still loading, and the web font no longer blocks the first paint.
-- **Repo secrets:** `FOOTBALL_DATA_KEY`, `YOUTUBE_API_KEY` and `HIGHLIGHTLY_API_KEY`. The repo must be public so the CDN can read the `data` branch; the secrets stay private.
+- **Pages and URLs:** every competition and round has its own URL (`/premier-league/`, `/premier-league/matchweek-5/`; slugs in `src/lib/routes.ts`), and old `#/PL/md-5` links redirect there. At build time `scripts/prerender.ts` writes one HTML page per URL with its own title, description, heading and fixture list (no scores or dates), plus `sitemap.xml`, `404.html` and `pages.json`, reading the data from GitHub. The app replaces that content when it starts and keeps the title and canonical URL in step as you browse.
+- **Redeploying pages:** the pages only change when competitions, rounds or who plays whom change. The last workflow step (`scripts/check-pages.mjs`) compares the data's fingerprint with the live `/pages.json` and, if they differ and the site was built more than 20 hours ago, calls the Netlify build hook in the `NETLIFY_BUILD_HOOK` secret (each production deploy costs Netlify credits). Without the secret it only logs a warning.
+- **Repo secrets:** `FOOTBALL_DATA_KEY`, `YOUTUBE_API_KEY`, `HIGHLIGHTLY_API_KEY`, and `NETLIFY_BUILD_HOOK` (optional, see above). The repo must be public so the CDN can read the `data` branch; the secrets stay private.
 - To backfill, open Actions → *Refresh data* → *Run workflow* and set a `since` date.
 - For local development, `npm run ingest` or `npm run sample` writes `public/data/`, which is gitignored on `main`.
 - **Attribution:** football-data.org requires "Football data provided by the Football-Data.org API" to be shown on the site. It's in the footer, next to a credit for Highlightly.

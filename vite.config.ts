@@ -1,5 +1,6 @@
 import { defineConfig, type HtmlTagDescriptor, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { prerenderPages } from './scripts/prerender';
 
 // Production builds read highlight data from the GitHub repo's `data` branch
 // (served by jsDelivr, raw.githubusercontent.com as fallback), so the scheduled
@@ -53,7 +54,7 @@ function earlyData(bases: string[]): Plugin {
 const bases = dataBases();
 
 export default defineConfig({
-  plugins: [react(), earlyData(bases)],
+  plugins: [react(), earlyData(bases), prerenderPages()],
   server: { host: true, port: 5173 },
   define: { __DATA_BASES__: JSON.stringify(bases) },
 });

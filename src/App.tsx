@@ -7,6 +7,8 @@ import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/regio
 import { initialPlayback, playbackReducer } from './lib/playback';
 import { usePersistentState } from './lib/storage';
 import { describeYtError } from './lib/youtube';
+import { compHead, compHeading, compPath, homeHead, legacyHash, resolvePath, roundHead, roundHeading, roundPath } from './lib/routes';
+import { applyHead } from './lib/head';
 import { Logo } from './components/Logo';
 import { MatchCard } from './components/MatchCard';
 import { Player } from './components/Player';
@@ -17,9 +19,18 @@ function readQueue(): PlayItem[] {
   try { return JSON.parse(localStorage.getItem('rondo:queue') ?? '[]'); } catch { return []; }
 }
 
-function parseHash() {
-  const [, code, round] = window.location.hash.match(/^#\/([A-Z0-9]+)(?:\/([\w-]+))?/) ?? [];
-  return { code, round };
+/** Which kind of page the URL names: the app shows a round on all three. */
+type Page = 'home' | 'comp' | 'round';
+
+/** Follow an in-app link with a plain click; let modified clicks (new tab etc.) through. */
+/** A round's URL; rounds without fixtures have no page of their own, so they use the competition's. */
+const pathFor = (c: Competition, key: string | null) =>
+  key && c.rounds.find((r) => r.key === key)?.matches ? roundPath(c, key) : compPath(c);
+
+function onNav(e: React.MouseEvent, go: () => void) {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  go();
 }
 
 export default function App() {
@@ -27,6 +38,7 @@ export default function App() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [compCode, setCompCode] = usePersistentState<string | null>('comp', null);
   const [roundKey, setRoundKey] = useState<string | null>(null);
+  const [page, setPage] = useState<Page>('home');
   const [round, setRound] = useState<RoundFile | null>(null);
   const [pref, setPref] = usePersistentState<Kind>('length', 'short');
   const [spoilerFree, setSpoilerFree] = usePersistentState('spoilerFree', false);
@@ -69,12 +81,27 @@ export default function App() {
     fetchIndex()
       .then((idx) => {
         setIndex(idx);
-        const h = parseHash();
-        const comp = idx.competitions.find((c) => c.code === h.code) ?? idx.competitions.find((c) => c.code === compCode) ?? idx.competitions[0];
+        const byCode = (code: string | null | undefined) => idx.competitions.find((c) => c.code === code);
+        // The URL decides (/premier-league/matchweek-5/); an unknown path (404 page) goes home.
+        let route = resolvePath(idx.competitions, location.pathname);
+        if (!route) {
+          history.replaceState(null, '', '/');
+          route = { code: null, round: null };
+        }
+        // Old links: /#/PL/md-5 becomes /premier-league/matchweek-5/.
+        const legacy = route.code === null ? legacyHash(location.hash) : null;
+        if (legacy) {
+          const lc = byCode(legacy.code);
+          const lr = lc?.rounds.some((r) => r.key === legacy.round) ? legacy.round : null;
+          if (lc) route = { code: lc.code, round: lr };
+          history.replaceState(null, '', lc ? (lr ? roundPath(lc, lr) : compPath(lc)) : '/');
+        }
+        const comp = byCode(route.code) ?? byCode(compCode) ?? idx.competitions[0];
         if (comp) {
           setCompCode(comp.code);
-          setRoundKey(comp.rounds.some((r) => r.key === h.round) && comp.code === h.code ? h.round! : comp.currentRound);
+          setRoundKey(route.round ?? comp.currentRound);
         }
+        setPage(route.round ? 'round' : route.code ? 'comp' : 'home');
       })
       .catch((e: Error) => setLoadError(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -87,9 +114,49 @@ export default function App() {
     let stale = false;
     setRound(null);
     fetchRound(comp.code, roundKey).then((r) => { if (!stale) setRound(r); }).catch((e: Error) => setToast(e.message));
-    history.replaceState(null, '', `#/${comp.code}/${roundKey}`);
     return () => { stale = true; };
   }, [comp, roundKey]);
+
+  // ---- URLs: each competition and round has its own page ----
+  /** Show a competition (its current round) or one round, as a new history entry. */
+  const navigate = (c: Competition, key: string | null) => {
+    setCompCode(c.code);
+    setRoundKey(key ?? c.currentRound);
+    setPage(key ? 'round' : 'comp');
+    const path = pathFor(c, key);
+    if (location.pathname !== path || location.hash) history.pushState(null, '', path);
+  };
+
+  useEffect(() => {
+    if (!index) return;
+    const onPop = () => {
+      const route = resolvePath(index.competitions, location.pathname);
+      if (!route) return;
+      const c = index.competitions.find((x) => x.code === route.code);
+      if (c) {
+        setCompCode(c.code);
+        setRoundKey(route.round ?? c.currentRound);
+      }
+      setPage(route.round ? 'round' : route.code ? 'comp' : 'home');
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [index, setCompCode]);
+
+  const roundMeta = comp?.rounds.find((r) => r.key === roundKey);
+  const fixtures = round && round.round.key === roundKey && round.competition === comp?.code
+    ? round.matches.map((m) => `${m.home.short || m.home.name} v ${m.away.short || m.away.name}`)
+    : [];
+  const fixturesKey = fixtures.join('|');
+  useEffect(() => {
+    if (!comp) return;
+    if (page === 'home') applyHead(homeHead());
+    else if (page === 'comp' || !roundMeta) applyHead(compHead(comp));
+    else applyHead(roundHead(comp, roundMeta, fixtures));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, comp, roundMeta, fixturesKey]);
+  const heading = page === 'home' || !comp ? 'Football highlights, back to back'
+    : page === 'comp' || !roundMeta ? compHeading(comp) : roundHeading(comp, roundMeta);
 
   useEffect(() => {
     try { localStorage.setItem('rondo:queue', JSON.stringify(pb.queue)); } catch { /* ignore */ }
@@ -285,7 +352,7 @@ export default function App() {
                       : <span className={`kind-tag ${picked.h.kind}`}>{kindLabel(picked.h.kind)} · {fmtDuration(picked.h.durationSec)}</span>)}
                     {cut && moment != null && <span className="moment-count">Moment {moment + 1} of {cut.m.length}</span>}
                   </div>
-                  <h1 className="now-title">{matchTitle(current.match)}</h1>
+                  <h2 className="now-title">{matchTitle(current.match)}</h2>
                   {video && (
                     <p className="yt-meta">
                       {spoilerFree && !revealTitle ? (
@@ -337,15 +404,16 @@ export default function App() {
 
           {index && (
             <section className="browse" aria-label="Browse">
+              <h1 className="sr-only">{heading}</h1>
               <nav className="comps" aria-label="Competitions">
                 {index.competitions.map((c, i) => (
                   <span key={c.code} className="comp-wrap">
                     {i > 0 && (c.group ?? 'league') !== (index.competitions[i - 1].group ?? 'league') && <span className="comp-sep" aria-hidden="true" />}
-                    <button className={`comp${c.code === compCode ? ' on' : ''}`} style={{ '--c': c.color } as React.CSSProperties}
-                      aria-pressed={c.code === compCode}
-                      onClick={() => { setCompCode(c.code); setRoundKey(c.currentRound); }}>
+                    <a className={`comp${c.code === compCode ? ' on' : ''}`} style={{ '--c': c.color } as React.CSSProperties}
+                      href={compPath(c)} aria-current={c.code === compCode ? 'page' : undefined}
+                      onClick={(e) => onNav(e, () => navigate(c, null))}>
                       <i className="comp-dot" />{c.short ?? c.name}
-                    </button>
+                    </a>
                   </span>
                 ))}
               </nav>
@@ -353,13 +421,12 @@ export default function App() {
               {comp && (
                 <div className="round-bar">
                   <div className="round-nav">
-                    <button className="btn-icon" disabled={roundIdx <= 0} aria-label="Previous round"
-                      onClick={() => setRoundKey(comp.rounds[roundIdx - 1].key)}>
+                    <RoundLink comp={comp} roundKey={roundIdx > 0 ? comp.rounds[roundIdx - 1].key : null} label="Previous round" navigate={navigate}>
                       <svg viewBox="0 0 24 24"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z" /></svg>
-                    </button>
+                    </RoundLink>
                     <label className="round-select">
                       <span className="sr-only">Round</span>
-                      <select value={roundKey ?? ''} onChange={(e) => setRoundKey(e.target.value)}>
+                      <select value={roundKey ?? ''} onChange={(e) => navigate(comp, e.target.value)}>
                         {comp.rounds.map((r) => (
                           <option key={r.key} value={r.key}>
                             {r.label}{r.withHighlights ? '' : r.matches ? ' · upcoming' : ''}
@@ -367,10 +434,9 @@ export default function App() {
                         ))}
                       </select>
                     </label>
-                    <button className="btn-icon" disabled={roundIdx < 0 || roundIdx >= comp.rounds.length - 1} aria-label="Next round"
-                      onClick={() => setRoundKey(comp.rounds[roundIdx + 1].key)}>
+                    <RoundLink comp={comp} roundKey={roundIdx >= 0 && roundIdx < comp.rounds.length - 1 ? comp.rounds[roundIdx + 1].key : null} label="Next round" navigate={navigate}>
                       <svg viewBox="0 0 24 24"><path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" /></svg>
-                    </button>
+                    </RoundLink>
                   </div>
                   {round && round.matches.length > 0 && (
                     <p className="round-meta muted">
@@ -452,5 +518,19 @@ export default function App() {
 
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
+  );
+}
+
+/** Previous/next round: a real link (crawlable, opens in a new tab), or a disabled button at either end. */
+function RoundLink({ comp, roundKey, label, navigate, children }: {
+  comp: Competition; roundKey: string | null; label: string;
+  navigate: (c: Competition, key: string | null) => void; children: React.ReactNode;
+}) {
+  if (!roundKey) return <button className="btn-icon" disabled aria-label={label}>{children}</button>;
+  return (
+    <a className="btn-icon" href={pathFor(comp, roundKey)} aria-label={label} title={label}
+      onClick={(e) => onNav(e, () => navigate(comp, roundKey))}>
+      {children}
+    </a>
   );
 }
