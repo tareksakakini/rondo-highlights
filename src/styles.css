@@ -353,7 +353,8 @@ a.comp { text-decoration: none; }
 
 /* ---------- tablets & phones ---------- */
 @media (max-width: 760px) {
-  .tagline, .desktop-only { display: none; }
+  .tagline, .desktop-only, .spoiler-toggle .toggle-text { display: none; }
+  .spoiler-toggle { padding: 7px 9px; }
   .topbar { gap: 10px; }
   .seg button { padding: 7px 11px; }
   .wordmark { font-size: 20px; flex-direction: column; align-items: flex-start; gap: 3px; }
@@ -425,13 +426,19 @@ a.comp { text-decoration: none; }
   .settings-btn { padding: 7px 8px; }
   .seg button { padding: 7px 9px; font-size: 13px; }
 }
+@media (max-width: 380px) {
+  .topbar { gap: 6px; }
+  .prefs { gap: 4px; }
+  .toggle, .cond-toggle, .spoiler-toggle, .settings-btn { padding: 7px; }
+  .seg button { padding: 6px 7px; font-size: 12.5px; }
+}
 @media (max-width: 359px) {
   .topbar { padding-left: 10px; padding-right: 10px; }
   .wordmark { font-size: 18px; }
   .logo svg { width: 24px; height: 24px; }
-  .prefs { gap: 6px; }
-  .seg button { padding: 6px 8px; font-size: 12px; }
-  .toggle { padding: 7px 9px; }
+  .seg button { padding: 6px 6px; font-size: 12px; }
+  .prefs { gap: 3px; }
+  .toggle, .cond-toggle, .spoiler-toggle, .settings-btn { padding: 6px; }
   .card { grid-template-columns: 104px minmax(0, 1fr); }
   .chip-dur { display: none; }
 }
