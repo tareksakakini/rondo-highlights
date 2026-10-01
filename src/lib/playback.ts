@@ -3,9 +3,10 @@ import type { PlayItem } from '../types';
 /**
  * One play order:
  *  - `current` is playing; `queue` is everything that plays after it, in order.
- *  - "Play" on a match plays it and queues the rest of that round behind it (those items
- *    are marked `auto`). Starting another round replaces the old round's leftovers.
- *  - Matches added by hand go ahead of the `auto` ones, so "+" still means "play this next".
+ *  - "+" and "Queue all" add to the end of the queue, in the order you add them.
+ *  - "Play" on a match plays it now and puts the rest of that round at the front of the
+ *    queue (marked `auto`), ahead of what you had queued. Starting another round replaces
+ *    the old round's leftovers; what you queued yourself stays, in its order.
  *  - `history` is what played before, for Previous.
  * Clearing the queue empties it; nothing else keeps playing afterwards.
  */
@@ -47,30 +48,22 @@ function dedupe(items: PlayItem[]): PlayItem[] {
 const pushHistory = (h: PlayItem[], item: PlayItem | null) =>
   item ? [...h, item].slice(-HISTORY_MAX) : h;
 
-/** Hand-added items first (in the order added), then the round's leftovers. */
-function withHandAdded(queue: PlayItem[], added: PlayItem[]): PlayItem[] {
-  const ids = new Set(added.map((a) => a.match.id));
-  const rest = queue.filter((q) => !ids.has(q.match.id));
-  const cut = rest.findIndex((q) => q.auto);
-  const at = cut < 0 ? rest.length : cut;
-  return [...rest.slice(0, at), ...added, ...rest.slice(at)];
-}
-
 export function playbackReducer(s: PlaybackState, a: Action): PlaybackState {
   switch (a.type) {
     case 'playRound': {
       if (!a.items.length) return s;
       const pos = Math.max(0, Math.min(a.start, a.items.length - 1));
       const start = a.items[pos];
-      const handAdded = s.queue.filter((q) => !q.auto && q.match.id !== start.match.id);
-      const taken = new Set(handAdded.map((q) => q.match.id));
-      const leftovers = a.items.slice(pos + 1)
-        .filter((it) => !taken.has(it.match.id))
-        .map((it) => ({ ...it, auto: true }));
+      const rest = a.items.slice(pos + 1);
+      const inRound = new Set([start, ...rest].map((it) => it.match.id));
+      // A match you had queued yourself from this round plays in round order, and stays yours.
+      const mine = new Set(s.queue.filter((q) => !q.auto).map((q) => q.match.id));
+      const leftovers = rest.map((it) => ({ ...it, auto: mine.has(it.match.id) ? undefined : true }));
+      const handAdded = s.queue.filter((q) => !q.auto && !inRound.has(q.match.id));
       return {
         ...s,
         current: { ...start, auto: undefined },
-        queue: dedupe([...handAdded, ...leftovers]),
+        queue: [...leftovers, ...handAdded],
         history: pushHistory(s.history, s.current),
         failed: {},
         seq: s.seq + 1,
@@ -88,10 +81,15 @@ export function playbackReducer(s: PlaybackState, a: Action): PlaybackState {
       };
     }
     case 'enqueue': {
+      // Already queued (from a round or by hand) or playing now: left where it is.
       const added = dedupe(a.items)
-        .filter((it) => it.match.id !== s.current?.match.id && !s.queue.some((q) => !q.auto && q.match.id === it.match.id))
+        .filter((it) => it.match.id !== s.current?.match.id && !s.queue.some((q) => q.match.id === it.match.id))
         .map((it) => ({ ...it, auto: undefined }));
-      return added.length ? { ...s, queue: withHandAdded(s.queue, added) } : s;
+      // Queueing a round leftover by hand keeps its place but makes it yours (a later "Play"
+      // won't drop it).
+      const ids = new Set(a.items.map((it) => it.match.id));
+      const queue = s.queue.map((q) => (q.auto && ids.has(q.match.id) ? { ...q, auto: undefined } : q));
+      return { ...s, queue: [...queue, ...added] };
     }
     case 'dequeue':
       return { ...s, queue: s.queue.filter((q) => q.uid !== a.uid) };

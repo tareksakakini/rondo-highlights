@@ -141,7 +141,7 @@ export default function App() {
     setToast(`Queued ${matchTitle(m)}`);
   };
   const queueAll = () => {
-    const inQueue = new Set(pb.queue.filter((q) => !q.auto).map((q) => q.match.id));
+    const inQueue = new Set(pb.queue.map((q) => q.match.id));
     const adding = playable.filter((m) => !inQueue.has(m.id) && m.id !== pb.current?.match.id);
     dispatch({ type: 'enqueue', items: adding.map((m) => toItem(m, pins[m.id])) });
     setToast(adding.length ? `Queued ${adding.length} matches from ${round!.round.label}` : 'Already in your queue');
