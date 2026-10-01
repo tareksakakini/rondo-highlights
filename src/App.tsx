@@ -125,11 +125,16 @@ export default function App() {
   const roundTotal = playable.reduce((t, m) => { const c = cutFor(m); return t + (c ? cutSec(c) : 0); }, 0);
   const condensedHere = playable.filter((m) => cutFor(m)?.condensed).length;
 
-  const playFrom = (matchId: number | string, kind?: Kind) => {
-    const start = playable.findIndex((m) => m.id === matchId);
-    const items = playable.map((m) => toItem(m, m.id === matchId ? kind ?? pins[m.id] : pins[m.id]));
-    dispatch({ type: 'playRound', items, start: Math.max(0, start) });
-    requestAnimationFrame(() => stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  const toStage = () => requestAnimationFrame(() => stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  /** Play all: the round from its first match, the rest of it at the front of the queue. */
+  const playAll = () => {
+    dispatch({ type: 'playRound', items: playable.map((m) => toItem(m, pins[m.id])), start: 0 });
+    toStage();
+  };
+  /** Play on one card: just that match; the queue carries on after it. */
+  const playMatch = (m: Match, kind?: Kind) => {
+    dispatch({ type: 'playOne', item: toItem(m, kind ?? pins[m.id]) });
+    toStage();
   };
   const queueMatch = (m: Match, kind?: Kind) => {
     if (pb.queue.some((q) => q.match.id === m.id)) {
@@ -207,7 +212,7 @@ export default function App() {
       queued={queuedIds.has(m.id)}
       pinned={pins[m.id]}
       onPin={(k) => setPins((p) => ({ ...p, [m.id]: k }))}
-      onPlay={(k) => playFrom(m.id, k)}
+      onPlay={(k) => playMatch(m, k)}
       onQueue={(k) => queueMatch(m, k)}
     />
   );
@@ -385,7 +390,7 @@ export default function App() {
                     </p>
                   )}
                   <div className="round-actions">
-                    <button className="btn-primary" disabled={!playable.length} onClick={() => playFrom(playable[0].id)}>
+                    <button className="btn-primary" disabled={!playable.length} onClick={playAll}>
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
                       Play all
                     </button>

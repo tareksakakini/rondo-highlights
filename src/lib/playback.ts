@@ -4,9 +4,11 @@ import type { PlayItem } from '../types';
  * One play order:
  *  - `current` is playing; `queue` is everything that plays after it, in order.
  *  - "+" and "Queue all" add to the end of the queue, in the order you add them.
- *  - "Play" on a match plays it now and puts the rest of that round at the front of the
- *    queue (marked `auto`), ahead of what you had queued. Starting another round replaces
- *    the old round's leftovers; what you queued yourself stays, in its order.
+ *  - "Play" on one match plays just that match now; the queue is left as it was (minus
+ *    that match, so it doesn't play twice) and carries on afterwards.
+ *  - "Play all" plays the round's first match and puts the rest of the round at the front
+ *    of the queue (marked `auto`), ahead of what you had queued. Another "Play all"
+ *    replaces the old round's leftovers; what you queued yourself stays, in its order.
  *  - `history` is what played before, for Previous.
  * Clearing the queue empties it; nothing else keeps playing afterwards.
  */
@@ -22,6 +24,7 @@ export interface PlaybackState {
 
 export type Action =
   | { type: 'playRound'; items: PlayItem[]; start: number }
+  | { type: 'playOne'; item: PlayItem }
   | { type: 'playQueued'; uid: string }
   | { type: 'enqueue'; items: PlayItem[] }
   | { type: 'dequeue'; uid: string }
@@ -69,6 +72,15 @@ export function playbackReducer(s: PlaybackState, a: Action): PlaybackState {
         seq: s.seq + 1,
       };
     }
+    case 'playOne':
+      return {
+        ...s,
+        current: { ...a.item, auto: undefined },
+        queue: s.queue.filter((q) => q.match.id !== a.item.match.id),
+        history: pushHistory(s.history, s.current),
+        failed: {},
+        seq: s.seq + 1,
+      };
     case 'playQueued': {
       const item = s.queue.find((q) => q.uid === a.uid);
       if (!item) return s;

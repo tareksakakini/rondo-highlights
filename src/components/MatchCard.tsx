@@ -39,7 +39,7 @@ export function MatchCard({ match, pref, condensed, region, avoid = [], spoilerF
   return (
     <article className={`card${playing ? ' is-playing' : ''}${hl ? '' : ' is-empty'}`}>
       <button className="thumb" onClick={() => hl && onPlay(pinned)} disabled={!hl}
-        aria-label={hl ? `Play ${label} and continue with the rest of the round` : blocked ? `${label}: not available in your country` : `${label}: no highlights yet`}>
+        aria-label={hl ? `Play ${label}` : blocked ? `${label}: not available in your country` : `${label}: no highlights yet`}>
         {hl && !spoilerFree ? (
           <img src={`https://i.ytimg.com/vi/${hl.videoId}/mqdefault.jpg`} alt="" loading="lazy" />
         ) : (
