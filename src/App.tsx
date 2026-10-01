@@ -14,9 +14,13 @@ import { MatchCard } from './components/MatchCard';
 import { Player } from './components/Player';
 import { QueueSuggestions, UpNext } from './components/UpNext';
 import { Settings } from './components/Settings';
+import { isExcludedMatch } from './lib/excluded';
 
 function readQueue(): PlayItem[] {
-  try { return JSON.parse(localStorage.getItem('rondo:queue') ?? '[]'); } catch { return []; }
+  try {
+    const items: PlayItem[] = JSON.parse(localStorage.getItem('rondo:queue') ?? '[]');
+    return items.filter((it) => it?.match && !isExcludedMatch(it.match));
+  } catch { return []; }
 }
 
 /** Which kind of page the URL names: the app shows a round on all three. */

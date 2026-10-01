@@ -1,0 +1,5 @@
+{
+  "_comment": "Teams whose matches never appear on the site (not in rounds, upcoming fixtures, the queue or prerendered pages). Read by scripts/lib/excluded.mjs (ingest, prerender) and src/lib/excluded.ts (app). Matched case-insensitively against a team's name and short name; tlas against its three-letter code.",
+  "namePattern": "\\b(israel|maccabi|hapoel|beitar|bnei|ironi|kiryat shmona|sakhnin|netanya|ashdod)\\b",
+  "tlas": ["ISR"]
+}

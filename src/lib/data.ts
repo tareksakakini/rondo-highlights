@@ -1,5 +1,6 @@
 import type { DataIndex, RoundFile } from '../types';
 import type { CondensedMap } from './moments';
+import { isExcludedMatch } from './excluded';
 
 // Where highlight data lives. Set at build time by vite.config.ts:
 // - production: the repo's public `data` branch via jsDelivr's CDN, with raw.githubusercontent.com as a fallback
@@ -64,7 +65,10 @@ export const fetchIndex = () =>
 
 export const fetchRound = (code: string, key: string) => {
   const ref = pinnedRef();
-  return memo(`${ref}/${code}/${key}.json`, () => fetchFrom<RoundFile>(`${code}/${key}.json`, ref, rev != null));
+  return memo(`${ref}/${code}/${key}.json`, async () => {
+    const file = await fetchFrom<RoundFile>(`${code}/${key}.json`, ref, rev != null);
+    return { ...file, matches: file.matches.filter((m) => !isExcludedMatch(m)) };
+  });
 };
 
 /** Key moments of extended cuts, by videoId (experimental "condensed" cuts; see scripts/condense.mjs). */
