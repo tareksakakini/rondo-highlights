@@ -73,7 +73,7 @@ svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
 main { display: contents; }
 .stage { order: 1; scroll-margin-top: 72px; }
 .aside { order: 2; }
-.browse, .empty-state { order: 3; min-width: 0; }
+.browse, .empty-state { order: 3; min-width: 0; scroll-margin-top: 72px; }
 
 /* Prerendered page content (scripts/prerender.ts): shown until the app starts, and to crawlers. */
 main.pre {

@@ -75,6 +75,9 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [pb, dispatch] = useReducer(playbackReducer, undefined, () => initialPlayback(readQueue()));
   const stageRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; }, []);
+  const returnTo = useRef<{ y: number; match: Match['id'] | null }>({ y: 0, match: null });
+  const onStageEntry = useRef(false);
 
   // ---- data loading ----
   useEffect(() => {
@@ -129,7 +132,29 @@ export default function App() {
 
   useEffect(() => {
     if (!index) return;
-    const onPop = () => {
+    const onPop = (e: PopStateEvent) => {
+      // Back from the player's history entry: return to the list where the match was picked.
+      const leavingStage = onStageEntry.current && !e.state?.rondoStage;
+      const enteringStage = !onStageEntry.current && !!e.state?.rondoStage;
+      onStageEntry.current = !!e.state?.rondoStage;
+      if (enteringStage) requestAnimationFrame(() => stageRef.current?.scrollIntoView({ block: 'start' }));
+      // Back/Forward to another round: show its list from the top (we restore scroll ourselves).
+      if (!leavingStage && !enteringStage) {
+        requestAnimationFrame(() => {
+          const browse = document.querySelector<HTMLElement>('.browse');
+          if (browse && browse.getBoundingClientRect().top < 0) browse.scrollIntoView({ block: 'start' });
+        });
+      }
+      if (leavingStage) {
+        // After the next render (closing removes the player above the list): back to the
+        // card that was played, else to where the page was.
+        const { y, match } = returnTo.current;
+        requestAnimationFrame(() => {
+          const card = match != null ? document.querySelector(`.card[data-match="${CSS.escape(String(match))}"]`) : null;
+          if (card) card.scrollIntoView({ block: 'center' });
+          else window.scrollTo({ top: y });
+        });
+      }
       const route = resolvePath(index.competitions, location.pathname);
       if (!route) return;
       const c = index.competitions.find((x) => x.code === route.code);
@@ -192,7 +217,22 @@ export default function App() {
   const roundTotal = playable.reduce((t, m) => { const c = cutFor(m); return t + (c ? cutSec(c) : 0); }, 0);
   const condensedHere = playable.filter((m) => cutFor(m)?.condensed).length;
 
-  const toStage = () => requestAnimationFrame(() => stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  /**
+   * Starting a match from the list scrolls up to the player. That also adds a history
+   * entry (same URL), so Back returns to where you were in the list while the video keeps
+   * playing in the mini player, like YouTube on phones. A second Back leaves as usual.
+   */
+  const toStage = (matchId?: Match['id']) => {
+    returnTo.current = { y: window.scrollY, match: matchId ?? null };
+    if (!history.state?.rondoStage) history.pushState({ rondoStage: true }, '');
+    onStageEntry.current = true;
+    requestAnimationFrame(() => stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+  /** Closing the player from its own history entry steps back to the list too. */
+  const closePlayer = () => {
+    dispatch({ type: 'stop' });
+    if (history.state?.rondoStage) history.back();
+  };
   /** Play all: the round from its first match, the rest of it at the front of the queue. */
   const playAll = () => {
     dispatch({ type: 'playRound', items: playable.map((m) => toItem(m, pins[m.id])), start: 0 });
@@ -201,7 +241,7 @@ export default function App() {
   /** Play on one card: just that match; the queue carries on after it. */
   const playMatch = (m: Match, kind?: Kind) => {
     dispatch({ type: 'playOne', item: toItem(m, kind ?? pins[m.id]) });
-    toStage();
+    toStage(m.id);
   };
   const queueMatch = (m: Match, kind?: Kind) => {
     if (pb.queue.some((q) => q.match.id === m.id)) {
@@ -346,7 +386,7 @@ export default function App() {
                 onMoment={setMoment}
                 onEnded={onEnded}
                 onError={onError}
-                onClose={() => dispatch({ type: 'stop' })}
+                onClose={closePlayer}
               />
               <div className="now">
                 <div className="now-main">

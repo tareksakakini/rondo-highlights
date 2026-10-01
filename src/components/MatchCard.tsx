@@ -37,7 +37,7 @@ export function MatchCard({ match, pref, condensed, region, avoid = [], spoilerF
   const label = `${home.short} v ${away.short}`;
 
   return (
-    <article className={`card${playing ? ' is-playing' : ''}${hl ? '' : ' is-empty'}`}>
+    <article className={`card${playing ? ' is-playing' : ''}${hl ? '' : ' is-empty'}`} data-match={match.id}>
       <button className="thumb" onClick={() => hl && onPlay(pinned)} disabled={!hl}
         aria-label={hl ? `Play ${label}` : blocked ? `${label}: not available in your country` : `${label}: no highlights yet`}>
         {hl && !spoilerFree ? (
