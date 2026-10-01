@@ -27,9 +27,7 @@ export function Settings(p: Props) {
   }, [p.open]);
 
   if (!p.open) return null;
-  const detectedLabel = p.detected
-    ? `${flag(p.detected)} ${countryName(p.detected)}${p.detectedFrom === 'timezone' ? ', from your time zone' : ''}`
-    : 'unknown';
+  const detectedLabel = p.detected ? `${flag(p.detected)} ${countryName(p.detected)}` : 'unknown';
 
   return (
     <div className="sheet-backdrop" onClick={p.onClose}>
@@ -56,10 +54,14 @@ export function Settings(p: Props) {
         <label className="setting column">
           <div className="setting-text">
             <span className="setting-name">Your country</span>
-            <span className="setting-help">Highlights are licensed by country. We detect yours from your internet connection, the same way YouTube does, and only show videos that play there. Change it if videos won&apos;t play.</span>
+            <span className="setting-help">
+              Highlights are licensed by country, so we only show videos that play in yours.{' '}
+              {p.detectedFrom === 'timezone' ? 'We guessed it from your time zone.' : 'We detect it from your connection, as YouTube does.'}{' '}
+              Change it if videos won&apos;t play (VPN, travel).
+            </span>
           </div>
           <select className="select" value={p.override} onChange={(e) => p.setOverride(e.target.value)}>
-            <option value="">Automatic ({detectedLabel})</option>
+            <option value="">Automatic: {detectedLabel}</option>
             {allRegions().map((c) => (
               <option key={c} value={c}>{flag(c)} {countryName(c)}</option>
             ))}

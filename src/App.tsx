@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
 import { fetchCondensed, fetchIndex, fetchRound } from './lib/data';
 import type { CondensedMap } from './lib/moments';
-import { cutKind, cutLabel, cutSec, fmtDay, fmtDuration, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
+import { cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
 import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
 import { initialPlayback, playbackReducer } from './lib/playback';
 import { usePersistentState } from './lib/storage';
@@ -12,7 +12,7 @@ import { applyHead } from './lib/head';
 import { Logo } from './components/Logo';
 import { MatchCard } from './components/MatchCard';
 import { Player } from './components/Player';
-import { QueueSuggestions, UpNext } from './components/UpNext';
+import { QueueBar, QueueSuggestions, UpNext } from './components/UpNext';
 import { Settings } from './components/Settings';
 import { isExcludedMatch } from './lib/excluded';
 
@@ -21,6 +21,21 @@ function readQueue(): PlayItem[] {
     const items: PlayItem[] = JSON.parse(localStorage.getItem('rondo:queue') ?? '[]');
     return items.filter((it) => it?.match && !isExcludedMatch(it.match));
   } catch { return []; }
+}
+
+/** Below this width the queue has no column of its own: playing opens a watch view instead. */
+const NARROW = '(max-width: 1099px)';
+function useMedia(query: string) {
+  const [on, setOn] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia?.(query);
+    if (!mq) return;
+    const update = () => setOn(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, [query]);
+  return on;
 }
 
 /** Which kind of page the URL names: the app shows a round on all three. */
@@ -82,6 +97,13 @@ export default function App() {
   useEffect(() => { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; }, []);
   const returnTo = useRef<{ y: number; match: Match['id'] | null }>({ y: 0, match: null });
   const onStageEntry = useRef(false);
+  // On the player's history entry (see toStage). On narrow screens that entry is the watch
+  // view: player and queue only. Leaving it shows the matches with the video in the mini player.
+  const [stageEntry, setStageEntry] = useState(false);
+  const narrow = useMedia(NARROW);
+  const narrowRef = useRef(narrow);
+  narrowRef.current = narrow;
+  const compsRef = useRef<HTMLElement>(null);
 
   // ---- data loading ----
   useEffect(() => {
@@ -141,7 +163,9 @@ export default function App() {
       const leavingStage = onStageEntry.current && !e.state?.rondoStage;
       const enteringStage = !onStageEntry.current && !!e.state?.rondoStage;
       onStageEntry.current = !!e.state?.rondoStage;
-      if (enteringStage) requestAnimationFrame(() => stageRef.current?.scrollIntoView({ block: 'start' }));
+      setStageEntry(onStageEntry.current);
+      // Narrow screens swap views instead (see the layout effect below).
+      if (enteringStage && !narrowRef.current) requestAnimationFrame(() => stageRef.current?.scrollIntoView({ block: 'start' }));
       // Back/Forward to another round: show its list from the top (we restore scroll ourselves).
       if (!leavingStage && !enteringStage) {
         requestAnimationFrame(() => {
@@ -149,7 +173,7 @@ export default function App() {
           if (browse && browse.getBoundingClientRect().top < 0) browse.scrollIntoView({ block: 'start' });
         });
       }
-      if (leavingStage) {
+      if (leavingStage && !narrowRef.current) {
         // After the next render (closing removes the player above the list): back to the
         // card that was played, else to where the page was.
         const { y, match } = returnTo.current;
@@ -227,15 +251,26 @@ export default function App() {
    * playing in the mini player, like YouTube on phones. A second Back leaves as usual.
    */
   const toStage = (matchId?: Match['id']) => {
-    returnTo.current = { y: window.scrollY, match: matchId ?? null };
+    if (!watching) returnTo.current = { y: window.scrollY, match: matchId ?? null };
     if (!history.state?.rondoStage) history.pushState({ rondoStage: true }, '');
     onStageEntry.current = true;
-    requestAnimationFrame(() => stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    setStageEntry(true);
+    if (!narrowRef.current) requestAnimationFrame(() => stageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+  /** Narrow screens: from the watch view back to the matches; the video carries on in the mini player. */
+  const toBrowse = () => {
+    if (history.state?.rondoStage) history.back();
+    else { onStageEntry.current = false; setStageEntry(false); }
   };
   /** Closing the player from its own history entry steps back to the list too. */
   const closePlayer = () => {
     dispatch({ type: 'stop' });
     if (history.state?.rondoStage) history.back();
+  };
+  /** Play what's queued (nothing playing yet). */
+  const playQueue = () => {
+    dispatch({ type: 'next' });
+    toStage();
   };
   /** Play all: the round from its first match, the rest of it at the front of the queue. */
   const playAll = () => {
@@ -268,6 +303,21 @@ export default function App() {
   const picked = current ? resolveItem(current, pref, cmap, pb.failed[current.uid], region, avoid) : null;
   const video = picked?.h ?? null;
   const cut = picked?.condensed ?? null;
+
+  // Narrow screens: watching = player + queue; otherwise the matches, with any video docked.
+  const watching = narrow && !!current && stageEntry;
+  const docked = narrow && !!current && !stageEntry;
+  const wasWatching = useRef(watching);
+  useLayoutEffect(() => {
+    if (wasWatching.current === watching) return;
+    wasWatching.current = watching;
+    if (watching) { window.scrollTo({ top: 0 }); return; }
+    // Back to the matches (Back, "Matches", or the queue ran out): where the match was picked.
+    const { y, match } = returnTo.current;
+    const card = match != null ? document.querySelector(`.card[data-match="${CSS.escape(String(match))}"]`) : null;
+    if (card) card.scrollIntoView({ block: 'center' });
+    else window.scrollTo({ top: y });
+  }, [watching]);
 
   useEffect(() => {
     if (current && !video) {
@@ -309,6 +359,25 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    const nav = compsRef.current;
+    if (!nav) return;
+    const edges = () => {
+      nav.classList.toggle('more-l', nav.scrollLeft > 2);
+      nav.classList.toggle('more-r', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 2);
+    };
+    const on = nav.querySelector<HTMLElement>('.comp.on');
+    if (on && nav.scrollWidth > nav.clientWidth) {
+      const pad = 16;
+      const fits = on.offsetLeft >= nav.scrollLeft + pad && on.offsetLeft + on.offsetWidth <= nav.scrollLeft + nav.clientWidth - pad;
+      if (!fits) nav.scrollTo({ left: on.offsetLeft - pad });
+    }
+    edges();
+    nav.addEventListener('scroll', edges, { passive: true });
+    window.addEventListener('resize', edges);
+    return () => { nav.removeEventListener('scroll', edges); window.removeEventListener('resize', edges); };
+  }, [index, compCode, watching]);
+
   const queuedIds = new Set(pb.queue.map((q) => q.match.id));
   const renderCard = (m: Match) => (
     <MatchCard
@@ -332,13 +401,13 @@ export default function App() {
   const hasUpNext = pb.queue.length > 0;
   // While a match plays, the queue column stays on wide screens even when the queue is
   // empty, so the player keeps its size; it then suggests the rest of the browsed round.
-  const showAside = hasUpNext || !!current;
-  const suggestions = !hasUpNext && current && round
+  const showAside = narrow ? watching || (hasUpNext && !current) : hasUpNext || !!current;
+  const suggestions = !hasUpNext && current && round && round.competition === comp?.code
     ? playable.filter((m) => m.id !== current.match.id).map((m) => toItem(m, pins[m.id]))
     : [];
 
   return (
-    <div className="app">
+    <div className={`app${watching ? ' watching' : ''}${docked ? ' docked' : ''}`}>
       <header className="topbar">
         <Logo />
         <span className="tagline">Football highlights, back to back</span>
@@ -381,7 +450,13 @@ export default function App() {
       <div className={`layout${showAside ? ' with-aside' : ''}`}>
         <main>
           {current && (
-            <section className="stage" ref={stageRef} aria-label="Now playing">
+            <section className={`stage${docked ? ' is-docked' : ''}`} ref={stageRef} aria-label="Now playing">
+              {watching && (
+                <button className="watch-back" onClick={toBrowse}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z" /></svg>
+                  <span>Matches</span>
+                </button>
+              )}
               <Player
                 videoId={video?.videoId ?? null}
                 seq={pb.seq}
@@ -391,6 +466,8 @@ export default function App() {
                 onEnded={onEnded}
                 onError={onError}
                 onClose={closePlayer}
+                docked={docked}
+                onExpand={docked ? () => toStage() : watching ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : undefined}
               />
               <div className="now">
                 <div className="now-main">
@@ -455,7 +532,7 @@ export default function App() {
           {index && (
             <section className="browse" aria-label="Browse">
               <h1 className="sr-only">{heading}</h1>
-              <nav className="comps" aria-label="Competitions">
+              <nav className="comps" aria-label="Competitions" ref={compsRef}>
                 {index.competitions.map((c, i) => (
                   <span key={c.code} className="comp-wrap">
                     {i > 0 && (c.group ?? 'league') !== (index.competitions[i - 1].group ?? 'league') && <span className="comp-sep" aria-hidden="true" />}
@@ -490,7 +567,7 @@ export default function App() {
                   </div>
                   {round && round.matches.length > 0 && (
                     <p className="round-meta muted">
-                      <span>{fmtDay(round.matches[0].utcDate)} – {fmtDay(round.matches[round.matches.length - 1].utcDate)}</span>
+                      <span>{fmtRange(round.matches[0].utcDate, round.matches[round.matches.length - 1].utcDate)}</span>
                       <span>
                         {playable.length}/{round.matches.length} playable{region ? ` in ${flag(region)}` : ''}
                         {withAny > playable.length && <button className="linkish inline" onClick={() => setSettingsOpen(true)}>why?</button>}
@@ -499,9 +576,8 @@ export default function App() {
                     </p>
                   )}
                   {condensedHere > 0 && (
-                    <p className="cond-note">
-                      <sup>*</sup> {condensedHere === 1 ? '1 match has' : `${condensedHere} matches have`} no short cut here, so {condensedHere === 1 ? 'it plays' : 'they play'} auto-condensed:
-                      the key moments of the extended cut, found from YouTube&apos;s chapters. These can occasionally skip a goal.{' '}
+                    <p className="cond-note" title="These matches have no short cut here, so they play the key moments of the extended cut, found from YouTube's chapters.">
+                      <sup>*</sup> {condensedHere === 1 ? '1 match' : `${condensedHere} matches`} auto-condensed: key moments only, may skip a goal.
                       <button className="linkish inline" onClick={() => setAutoCondense(false)}>Turn off</button>
                     </p>
                   )}
@@ -542,7 +618,9 @@ export default function App() {
 
         {showAside && (
           <aside className={`aside${hasUpNext ? '' : ' aside-suggest'}`}>
-            {hasUpNext ? (
+            {narrow && !current ? (
+              <QueueBar state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} onPlay={playQueue} onClear={() => dispatch({ type: 'clearQueue' })} />
+            ) : hasUpNext ? (
               <UpNext state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} dispatch={dispatch} />
             ) : (
               <QueueSuggestions
@@ -553,6 +631,12 @@ export default function App() {
                 onQueue={(it) => { dispatch({ type: 'enqueue', items: [it] }); setToast(`Queued ${matchTitle(it.match)}`); }}
                 onQueueAll={queueAll}
               />
+            )}
+            {watching && (
+              <button className="btn-ghost browse-more" onClick={toBrowse}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h4v4H4zm6 0h10v4H10zM4 10h4v4H4zm6 0h10v4H10zm-6 5h4v4H4zm6 0h10v4H10z" /></svg>
+                Browse matches
+              </button>
             )}
           </aside>
         )}

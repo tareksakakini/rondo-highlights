@@ -18,7 +18,20 @@ export function fmtDay(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-export const kindLabel = (k: Kind) => (k === 'short' ? 'Short' : 'Extended');
+/** A round's dates, short: "Sep 18 – 20", "Sep 29 – Oct 1", or one day: "Sun, Jul 19". */
+export function fmtRange(fromIso: string, toIso: string) {
+  const a = new Date(fromIso);
+  const b = new Date(toIso);
+  if (a.toDateString() === b.toDateString()) return fmtDay(fromIso);
+  const f = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
+  try {
+    return f.formatRange(a, b);
+  } catch {
+    return `${f.format(a)} – ${f.format(b)}`;
+  }
+}
+
+export const kindLabel =(k: Kind) => (k === 'short' ? 'Short' : 'Extended');
 
 /** Can this video play in `region`? (YouTube country restrictions recorded at ingest.) */
 export function availableIn(h: Highlight, region: string | null) {

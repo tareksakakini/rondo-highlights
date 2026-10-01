@@ -1,4 +1,4 @@
-import { useState, type Dispatch } from 'react';
+import type { Dispatch } from 'react';
 import type { Kind, PlayItem } from '../types';
 import type { Action, PlaybackState } from '../lib/playback';
 import { cutKind, cutLabel, cutSec, fmtDuration, fmtTotal, matchTitle, resolveItem } from '../lib/format';
@@ -22,11 +22,11 @@ function Row({ item, pref, condensed, region, avoid, onPlay, children }: { item:
       <button className="row-main" onClick={onPlay} disabled={!hl}>
         <span className="row-badges"><TeamBadge team={home} size={22} /><TeamBadge team={away} size={22} /></span>
         <span className="row-text">
-          <span className="row-title">{home.short} v {away.short}</span>
+          <span className="row-title">{home.short} <span className="v">v</span> {away.short}</span>
           <span className="row-sub">
             <i className="comp-dot" style={{ background: item.comp.color }} />
-            {item.comp.name}
-            {hl ? ` · ${cutLabel(cutKind(hl))} ${fmtDuration(cutSec(hl))}` : ' · not available here'}
+            {hl ? `${cutLabel(cutKind(hl))} ${fmtDuration(cutSec(hl))}` : 'Not available here'}
+            <span className="row-comp"> · {item.comp.name}</span>
             {item.kind && <span className="pin" title="Length pinned for this match">pinned</span>}
           </span>
         </span>
@@ -36,27 +36,24 @@ function Row({ item, pref, condensed, region, avoid, onPlay, children }: { item:
   );
 }
 
-const wide = () => typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1100px)').matches;
+const queueTotal = (queue: PlayItem[], pref: Kind, condensed: CondensedMap | null, region: string | null, avoid: string[]) =>
+  queue.reduce((t, it) => { const c = resolveItem(it, pref, condensed, [], region, avoid); return t + (c ? cutSec(c) : 0); }, 0);
 
 /** The queue: everything that plays after the current match, as one list. Hidden when empty. */
 export function UpNext({ state, pref, condensed, region, avoid = [], dispatch }: Props) {
-  const [open, setOpen] = useState(wide);
   const { queue } = state;
   if (!queue.length) return null;
-  const total = queue.reduce((t, it) => { const c = resolveItem(it, pref, condensed, [], region, avoid); return t + (c ? cutSec(c) : 0); }, 0);
-  const next = queue[0];
+  const total = queueTotal(queue, pref, condensed, region, avoid);
 
   return (
-    <div className={`upnext${open ? ' open' : ''}`}>
+    <div className="upnext">
       <div className="panel-bar">
-        <button className="panel-head" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <div className="panel-head">
           <span className="panel-title">
             <h2>Up next <span className="count">{queue.length}</span></h2>
-            {!open && <span className="peek">{matchTitle(next.match)}{queue.length > 1 ? ` +${queue.length - 1}` : ''}</span>}
           </span>
           {total > 0 && <span className="muted">{fmtTotal(total)}</span>}
-          <svg className="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5z" /></svg>
-        </button>
+        </div>
         <span className="section-actions">
           {!state.current && (
             <button className="btn-ghost sm" onClick={() => dispatch({ type: 'next' })}>Play</button>
@@ -90,8 +87,33 @@ export function UpNext({ state, pref, condensed, region, avoid = [], dispatch }:
 }
 
 /**
- * Wide screens, something playing, nothing queued: the queue column stays (so the
- * player keeps the same size) and offers the rest of the round being browsed.
+ * Narrow screens, nothing playing, a queue saved from last time: one line to pick it up
+ * again (the full list shows while watching).
+ */
+export function QueueBar({ state, pref, condensed, region, avoid = [], onPlay, onClear }: {
+  state: PlaybackState; pref: Kind; condensed: CondensedMap | null; region: string | null; avoid?: string[];
+  onPlay: () => void; onClear: () => void;
+}) {
+  const { queue } = state;
+  if (!queue.length) return null;
+  const total = queueTotal(queue, pref, condensed, region, avoid);
+  return (
+    <div className="queue-bar">
+      <button className="queue-bar-main" onClick={onPlay}>
+        <span className="queue-bar-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span>
+        <span className="row-text">
+          <span className="row-title">Your queue <span className="count">{queue.length}</span>{total > 0 && <span className="queue-bar-total"> · {fmtTotal(total)}</span>}</span>
+          <span className="row-sub">Next: {matchTitle(queue[0].match)}</span>
+        </span>
+      </button>
+      <button className="btn-ghost sm" onClick={onClear}>Clear</button>
+    </div>
+  );
+}
+
+/**
+ * Something playing, nothing queued: offers the rest of the round being browsed (in the
+ * queue column on wide screens, which also keeps the player's size; under the player otherwise).
  */
 export function QueueSuggestions({ items, roundName, pref, condensed, region, avoid = [], onPlay, onQueue, onQueueAll }: {
   items: PlayItem[];
@@ -113,7 +135,7 @@ export function QueueSuggestions({ items, roundName, pref, condensed, region, av
         {items.length > 0 && <span className="section-actions"><button className="btn-ghost sm" onClick={onQueueAll}>+ Queue all</button></span>}
       </div>
       <p className="suggest-note muted">
-        Your queue is empty.{items.length > 0 ? <> More from <strong>{roundName}</strong>:</> : ' Add matches with + on any card.'}
+        Your queue is empty.{items.length > 0 ? <> More from <strong>{roundName}</strong>:</> : ' Add matches from any round.'}
       </p>
       {items.length > 0 && (
         <ol className="rows" aria-label={`More from ${roundName}`}>
