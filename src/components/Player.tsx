@@ -16,6 +16,10 @@ interface Props {
   onEnded: () => void;
   onError: (code: number) => void;
   onClose: () => void;
+  /** Keep it in the mini player (narrow screens, while browsing the matches). */
+  docked?: boolean;
+  /** What the mini player's Expand does; by default, scroll back to the full player. */
+  onExpand?: () => void;
 }
 
 interface Run {
@@ -44,7 +48,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * each one ends it fades the sound out, seeks to the next and fades back in. If the
  * viewer scrubs to somewhere between moments, it stops steering for that video.
  */
-export function Player({ videoId, seq, label, moments = null, onMoment, onEnded, onError, onClose }: Props) {
+export function Player({ videoId, seq, label, moments = null, onMoment, onEnded, onError, onClose, docked = false, onExpand }: Props) {
   const slotRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const player = useRef<YTPlayer | null>(null);
@@ -54,7 +58,8 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
   cb.current = { onEnded, onError, onMoment };
   const gen = useRef(0);
   const run = useRef<Run>({ moments: null, idx: 0, free: false, busy: false, lastT: 0, settleUntil: 0, base: null });
-  const [mini, setMini] = useState(false);
+  const [scrolledAway, setScrolledAway] = useState(false);
+  const mini = docked || scrolledAway;
   const [apiError, setApiError] = useState<string | null>(null);
 
   const load = () => {
@@ -191,19 +196,20 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
   useEffect(() => {
     const el = slotRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => setMini(e.intersectionRatio < 0.5), { threshold: [0, 0.5, 1] });
+    const io = new IntersectionObserver(([e]) => setScrolledAway(e.intersectionRatio < 0.5), { threshold: [0, 0.5, 1] });
     io.observe(el);
     return () => io.disconnect();
   }, []);
+
+  const expand = onExpand ?? (() => slotRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 
   return (
     <div className="player-slot" ref={slotRef}>
       <div className={`player-shell${mini ? ' mini' : ''}`}>
         {mini && (
           <div className="mini-bar">
-            <span className="mini-title">{label}</span>
-            <button className="btn-ghost sm" onClick={() => slotRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-              aria-label="Back to full player">Expand</button>
+            <button className="mini-title linkish" onClick={expand} tabIndex={-1}>{label}</button>
+            <button className="btn-ghost sm" onClick={expand} aria-label="Back to full player">Expand</button>
             <button className="btn-ghost sm" onClick={onClose} aria-label="Stop and close player">✕</button>
           </div>
         )}

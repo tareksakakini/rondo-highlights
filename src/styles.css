@@ -15,6 +15,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+html { -webkit-tap-highlight-color: transparent; }
+button, a, select, label { touch-action: manipulation; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -43,7 +45,8 @@ svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
 .logo svg { width: 32px; height: 32px; }
 .wordmark { display: flex; align-items: baseline; gap: 7px; font-weight: 850; font-stretch: 125%; font-size: 24px; letter-spacing: -0.02em; line-height: 1; }
 .wordmark-sub { font-weight: 600; font-stretch: 100%; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
-.tagline { color: var(--muted); font-size: 13px; }
+.tagline { color: var(--muted); font-size: 13px; white-space: nowrap; }
+@media (max-width: 1099px) { .tagline { display: none; } }
 .prefs { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 
 .seg { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
@@ -51,7 +54,7 @@ svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
 .seg button.on { background: var(--accent); color: var(--accent-ink); }
 
 .toggle {
-  display: flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 13px; font-weight: 600;
+  display: flex; white-space: nowrap; align-items: center; gap: 6px; padding: 7px 12px; font-size: 13px; font-weight: 600;
   border: 1px solid var(--line); background: var(--surface); border-radius: 999px; color: var(--muted);
 }
 .toggle.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
@@ -115,10 +118,18 @@ main.pre {
 }
 .player-shell.mini .player-frame { position: relative; aspect-ratio: 16 / 9; }
 .mini-bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 12px; font-size: 13px; font-weight: 600; }
-.mini-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini-title { flex: 1; min-width: 0; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 @media (max-width: 700px) {
   .player-shell.mini { inset: 0 0 auto 0; width: 100%; border-radius: 0; border-width: 0 0 1px; padding-top: env(safe-area-inset-top); }
-  .mini-bar { padding: 4px 6px 4px 12px; }
+  .mini-bar { height: 46px; padding: 0 6px 0 14px; gap: 6px; font-size: 14px; }
+  .mini-bar .btn-ghost.sm { padding: 7px 14px; font-size: 13px; }
+  /* Browsing the matches while a video plays: it stays docked at the top, so start the page below it. */
+  .app.docked { padding-top: calc(env(safe-area-inset-top) + 46px + 56.25vw); }
+  .app.docked .topbar { position: static; }
+  .app.docked .card { scroll-margin-top: calc(env(safe-area-inset-top) + 46px + 56.25vw); }
+}
+@media (min-width: 701px) and (max-width: 1099px) {
+  .app.docked .foot { padding-bottom: 300px; }
 }
 
 .now { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; padding: 14px 2px 4px; flex-wrap: wrap; }
@@ -167,7 +178,7 @@ main.pre {
 .btn-icon.done { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 
 /* ---------- browse ---------- */
-.comps { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.comps { position: relative; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .comp-wrap { display: contents; }
 .comp-sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; flex: none; }
 .comp {
@@ -256,48 +267,75 @@ a.comp { text-decoration: none; }
 
 /* ---------- up next ---------- */
 .upnext { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
-.panel-head { display: flex; width: 100%; align-items: center; gap: 10px; border: 0; background: none; padding: 0; text-align: left; min-height: 28px; }
+.panel-head { display: flex; width: 100%; align-items: center; gap: 10px; min-height: 28px; }
 .panel-title { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
 .panel-head h2 { margin: 0; font-size: 18px; font-weight: 800; font-stretch: 112%; white-space: nowrap; }
-.peek { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .panel-head .muted { font-size: 12px; white-space: nowrap; }
-.chev { color: var(--muted); transition: rotate .2s; }
-.upnext.open .chev { rotate: 180deg; }
-.upnext-body { display: none; }
-.upnext.open .upnext-body { display: block; }
-@media (max-width: 1099px) {
-  .upnext { padding: 12px 14px; }
-  .upnext.open .upnext-body { max-height: 55vh; overflow: auto; overscroll-behavior: contain; }
-}
-@media (min-width: 1100px) {
-  .panel-head { cursor: default; pointer-events: none; }
-  .chev, .peek { display: none; }
-  .upnext-body { display: block; }
-}
 .panel-bar { display: flex; align-items: center; gap: 8px; }
 .panel-bar .panel-head { flex: 1; min-width: 0; }
 .panel-head h2 .count { font-size: 12px; font-weight: 700; vertical-align: 3px; }
 .upnext .rows { margin-top: 10px; }
 .suggest-note { margin: 8px 0 0; font-size: 13px; }
 .suggest-note strong { color: var(--text); font-weight: 650; }
-/* The empty-queue column only exists to keep the player's size on wide screens. */
-@media (max-width: 1099px) { .aside-suggest { display: none; } }
 .section-actions { display: flex; gap: 6px; }
 .count { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--surface-2); color: var(--text); }
 .rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .row { display: flex; align-items: center; gap: 4px; border-radius: 10px; }
-.row:hover { background: var(--surface-2); }
+@media (hover: hover) { .row:hover { background: var(--surface-2); } }
 .row-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 7px 6px; text-align: left; border-radius: 10px; }
 .row-badges { display: flex; }
 .row-badges > :last-child { margin-left: -6px; }
 .row-text { display: flex; flex-direction: column; min-width: 0; }
 .row-title { font-weight: 650; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-title .v { color: var(--muted); font-weight: 500; }
 .row-sub { font-size: 12px; color: var(--muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-sub .comp-dot { margin-right: 5px; vertical-align: 1px; }
 .row-sub .pin { margin-left: 5px; }
 .pin { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; }
 .row-actions { display: flex; gap: 2px; padding-right: 4px; }
 .row-actions .btn-icon { border-color: transparent; background: none; }
+
+/* Narrow screens: a saved queue, nothing playing (QueueBar). */
+.queue-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.queue-bar-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: none; padding: 0; text-align: left; }
+.queue-bar-play { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); flex: none; }
+.queue-bar .count { font-size: 12px; }
+.queue-bar-total { color: var(--muted); font-weight: 500; }
+.queue-bar .btn-ghost.sm { padding: 7px 14px; font-size: 13px; }
+
+/* ---------- narrow screens: a watch view (player + queue) and a browse view ---------- */
+.watch-back {
+  display: flex; align-items: center; gap: 2px; max-width: 100%; margin: -4px 0 8px -8px; padding: 6px 10px 6px 2px;
+  border: 0; background: none; border-radius: 999px; color: var(--muted); font-weight: 650; font-size: 14px;
+}
+.watch-back span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watch-back svg { width: 24px; height: 24px; }
+@media (hover: hover) { .watch-back:hover { color: var(--text); } }
+.browse-more { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 12px; padding: 12px 16px; font-size: 15px; }
+.browse-more svg { width: 18px; height: 18px; color: var(--muted); }
+@media (max-width: 1099px) {
+  .app.watching .browse, .app.watching .foot, .app.watching .notice { display: none; }
+  .app.watching .layout { padding-top: 12px; gap: 14px; }
+  /* Docked: only the mini player shows, fixed; nothing of the stage stays in the page. */
+  .stage.is-docked { position: absolute; }
+  .stage.is-docked .player-slot { aspect-ratio: auto; height: 0; overflow: visible; background: none; }
+  .stage.is-docked > :not(.player-slot) { display: none; }
+
+  .upnext { padding: 12px 12px 8px; }
+  .upnext .rows { margin-top: 8px; }
+  .panel-bar .btn-ghost.sm { padding: 7px 14px; font-size: 13px; }
+  .row-main { padding: 8px 4px; gap: 12px; }
+  .upnext .row-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
+  .row-actions { gap: 0; padding-right: 0; }
+  .row-actions .btn-icon.sm { width: 40px; height: 40px; }
+  .row-actions .btn-icon.sm svg { width: 20px; height: 20px; }
+}
+@media (max-width: 420px) {
+  .row-comp { display: none; }
+  .row-actions .btn-icon.sm { width: 36px; height: 36px; }
+  .row-main { gap: 10px; }
+  .queue-bar-total { display: none; }
+}
 
 /* ---------- misc ---------- */
 .empty-state { grid-area: browse; text-align: center; padding: 64px 16px; color: var(--muted); }
@@ -361,9 +399,15 @@ a.comp { text-decoration: none; }
   .wordmark-sub { font-size: 8.5px; letter-spacing: 0.22em; }
   .logo svg { width: 28px; height: 28px; }
 
+  /* One scrolling row, edge to edge. Snap points keep the page's 16px inset (so the first chip
+     isn't pulled under the edge), and each side fades only when there's more to scroll to. */
   .comps { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity;
     margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); padding: 2px max(16px, env(safe-area-inset-left));
-    mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 24px), transparent); }
+    scroll-padding-inline: max(16px, env(safe-area-inset-left));
+    --fl: 0px; --fr: 0px;
+    mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%); }
+  .comps.more-l { --fl: 16px; }
+  .comps.more-r { --fr: 32px; }
   .comps::-webkit-scrollbar { display: none; }
   .comp { scroll-snap-align: start; padding: 9px 14px; }
 
