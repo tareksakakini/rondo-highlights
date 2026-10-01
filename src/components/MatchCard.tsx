@@ -44,9 +44,9 @@ export function MatchCard({ match, pref, condensed, region, avoid = [], spoilerF
           <img src={`https://i.ytimg.com/vi/${hl.videoId}/mqdefault.jpg`} alt="" loading="lazy" />
         ) : (
           <span className="thumb-teams">
-            <TeamBadge team={home} size={40} />
+            <TeamBadge team={home} size={56} />
             <span className="vs">v</span>
-            <TeamBadge team={away} size={40} />
+            <TeamBadge team={away} size={56} />
           </span>
         )}
         {picked && <span className="dur">{fmtDuration(cutSec(picked))}</span>}
