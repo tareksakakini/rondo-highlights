@@ -88,3 +88,44 @@ export function UpNext({ state, pref, condensed, region, avoid = [], dispatch }:
     </div>
   );
 }
+
+/**
+ * Wide screens, something playing, nothing queued: the queue column stays (so the
+ * player keeps the same size) and offers the rest of the round being browsed.
+ */
+export function QueueSuggestions({ items, roundName, pref, condensed, region, avoid = [], onPlay, onQueue, onQueueAll }: {
+  items: PlayItem[];
+  roundName: string;
+  pref: Kind;
+  condensed: CondensedMap | null;
+  region: string | null;
+  avoid?: string[];
+  onPlay: (item: PlayItem) => void;
+  onQueue: (item: PlayItem) => void;
+  onQueueAll: () => void;
+}) {
+  return (
+    <div className="upnext open suggest">
+      <div className="panel-bar">
+        <div className="panel-head">
+          <span className="panel-title"><h2>Up next</h2></span>
+        </div>
+        {items.length > 0 && <span className="section-actions"><button className="btn-ghost sm" onClick={onQueueAll}>+ Queue all</button></span>}
+      </div>
+      <p className="suggest-note muted">
+        Your queue is empty.{items.length > 0 ? <> More from <strong>{roundName}</strong>:</> : ' Add matches with + on any card.'}
+      </p>
+      {items.length > 0 && (
+        <ol className="rows" aria-label={`More from ${roundName}`}>
+          {items.map((item) => (
+            <Row key={item.match.id} item={item} pref={pref} condensed={condensed} region={region} avoid={avoid} onPlay={() => onPlay(item)}>
+              <button className="btn-icon sm" aria-label="Add to queue" title="Add to queue" onClick={() => onQueue(item)}>
+                <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" /></svg>
+              </button>
+            </Row>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}

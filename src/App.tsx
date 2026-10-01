@@ -12,7 +12,7 @@ import { applyHead } from './lib/head';
 import { Logo } from './components/Logo';
 import { MatchCard } from './components/MatchCard';
 import { Player } from './components/Player';
-import { UpNext } from './components/UpNext';
+import { QueueSuggestions, UpNext } from './components/UpNext';
 import { Settings } from './components/Settings';
 
 function readQueue(): PlayItem[] {
@@ -286,6 +286,12 @@ export default function App() {
 
   const roundIdx = comp?.rounds.findIndex((r) => r.key === roundKey) ?? -1;
   const hasUpNext = pb.queue.length > 0;
+  // While a match plays, the queue column stays on wide screens even when the queue is
+  // empty, so the player keeps its size; it then suggests the rest of the browsed round.
+  const showAside = hasUpNext || !!current;
+  const suggestions = !hasUpNext && current && round
+    ? playable.filter((m) => m.id !== current.match.id).map((m) => toItem(m, pins[m.id]))
+    : [];
 
   return (
     <div className="app">
@@ -328,7 +334,7 @@ export default function App() {
         </div>
       )}
 
-      <div className={`layout${hasUpNext ? ' with-aside' : ''}`}>
+      <div className={`layout${showAside ? ' with-aside' : ''}`}>
         <main>
           {current && (
             <section className="stage" ref={stageRef} aria-label="Now playing">
@@ -490,9 +496,20 @@ export default function App() {
           )}
         </main>
 
-        {hasUpNext && (
-          <aside className="aside">
-            <UpNext state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} dispatch={dispatch} />
+        {showAside && (
+          <aside className={`aside${hasUpNext ? '' : ' aside-suggest'}`}>
+            {hasUpNext ? (
+              <UpNext state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} dispatch={dispatch} />
+            ) : (
+              <QueueSuggestions
+                items={suggestions}
+                roundName={comp && round ? `${comp.short ?? comp.name} · ${round.round.label}` : 'this round'}
+                pref={pref} condensed={cmap} region={region} avoid={avoid}
+                onPlay={(it) => dispatch({ type: 'playOne', item: it })}
+                onQueue={(it) => { dispatch({ type: 'enqueue', items: [it] }); setToast(`Queued ${matchTitle(it.match)}`); }}
+                onQueueAll={queueAll}
+              />
+            )}
           </aside>
         )}
       </div>
