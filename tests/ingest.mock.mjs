@@ -74,6 +74,15 @@ globalThis.fetch = async (input, init) => {
 const realSetTimeout = globalThis.setTimeout;
 globalThis.setTimeout = (fn, ms, ...a) => realSetTimeout(fn, Math.min(ms, 5), ...a);
 
+// Pin the clock to just after the seed was made (2026-09-28), so the result doesn't depend on
+// the day the tests run: the seed's upcoming fixtures (Oct 1) stay in the future.
+const RealDate = Date;
+const FROZEN = RealDate.parse('2026-09-28T12:00:00Z');
+globalThis.Date = class extends RealDate {
+  constructor(...a) { super(...(a.length ? a : [FROZEN])); }
+  static now() { return FROZEN; }
+};
+
 process.env.FOOTBALL_DATA_KEY = 'x';
 process.env.YOUTUBE_API_KEY = 'y';
 process.env.HIGHLIGHTLY_API_KEY = 'z';
