@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-09-30T04:09:20.396Z",
+ "generatedAt": "2026-10-02T15:28:53.998Z",
  "source": "live",
- "rev": "13a2ad18c393208d8d82e5bf6ed8a7d4861becb9",
+ "rev": "8ced236e85b8d43c6331666554f8c0b31e410162",
  "competitions": [
   {
    "code": "PL",
@@ -1432,56 +1432,56 @@
      "key": "md-1",
      "label": "League phase · MD 1",
      "firstDate": "2026-09-16T16:45:00Z",
-     "matches": 18,
-     "withHighlights": 18
+     "matches": 17,
+     "withHighlights": 17
     },
     {
      "key": "md-2",
      "label": "League phase · MD 2",
      "firstDate": "2026-10-15T16:45:00Z",
-     "matches": 18,
+     "matches": 17,
      "withHighlights": 0
     },
     {
      "key": "md-3",
      "label": "League phase · MD 3",
      "firstDate": "2026-10-22T16:45:00Z",
-     "matches": 18,
+     "matches": 17,
      "withHighlights": 0
     },
     {
      "key": "md-4",
      "label": "League phase · MD 4",
      "firstDate": "2026-11-05T17:45:00Z",
-     "matches": 18,
+     "matches": 17,
      "withHighlights": 0
     },
     {
      "key": "md-5",
      "label": "League phase · MD 5",
      "firstDate": "2026-11-26T17:45:00Z",
-     "matches": 18,
+     "matches": 17,
      "withHighlights": 0
     },
     {
      "key": "md-6",
      "label": "League phase · MD 6",
      "firstDate": "2026-12-10T17:45:00Z",
-     "matches": 18,
+     "matches": 17,
      "withHighlights": 0
     },
     {
      "key": "md-7",
      "label": "League phase · MD 7",
      "firstDate": "2027-01-21T17:45:00Z",
-     "matches": 18,
+     "matches": 17,
      "withHighlights": 0
     },
     {
      "key": "md-8",
      "label": "League phase · MD 8",
      "firstDate": "2027-01-28T20:00:00Z",
-     "matches": 18,
+     "matches": 17,
      "withHighlights": 0
     }
    ],
@@ -1496,48 +1496,48 @@
    "color": "#14B8A6",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-2",
+   "currentRound": "md-3",
    "rounds": [
     {
      "key": "md-1",
      "label": "League phase · MD 1",
      "firstDate": "2026-09-24T16:00:00Z",
-     "matches": 26,
-     "withHighlights": 25
+     "matches": 25,
+     "withHighlights": 24
     },
     {
      "key": "md-2",
      "label": "League phase · MD 2",
      "firstDate": "2026-09-27T13:00:00Z",
-     "matches": 26,
-     "withHighlights": 25
+     "matches": 25,
+     "withHighlights": 24
     },
     {
      "key": "md-3",
      "label": "League phase · MD 3",
      "firstDate": "2026-10-01T16:00:00Z",
-     "matches": 26,
-     "withHighlights": 0
+     "matches": 25,
+     "withHighlights": 7
     },
     {
      "key": "md-4",
      "label": "League phase · MD 4",
      "firstDate": "2026-10-04T13:00:00Z",
-     "matches": 26,
+     "matches": 25,
      "withHighlights": 0
     },
     {
      "key": "md-5",
      "label": "League phase · MD 5",
      "firstDate": "2026-11-12T17:00:00Z",
-     "matches": 26,
+     "matches": 25,
      "withHighlights": 0
     },
     {
      "key": "md-6",
      "label": "League phase · MD 6",
      "firstDate": "2026-11-15T14:00:00Z",
-     "matches": 26,
+     "matches": 25,
      "withHighlights": 0
     }
    ],
