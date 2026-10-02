@@ -87,8 +87,11 @@ process.env.FOOTBALL_DATA_KEY = 'x';
 process.env.YOUTUBE_API_KEY = 'y';
 process.env.HIGHLIGHTLY_API_KEY = 'z';
 process.argv = [process.argv[0], 'ingest', '--since=2026-09-01'];
+// ingest.mjs starts main() without awaiting it, so report once everything it started has
+// finished: 'beforeExit' fires when the event loop is empty. (A fixed wait was too short on
+// busy CI runners.) If ingest fails it calls process.exit(1), which skips this.
+process.once('beforeExit', () => {
+  const index = JSON.parse(fs.readFileSync(path.join(tmp, 'public/data/index.json'), 'utf8'));
+  console.log('\nRESULT', JSON.stringify(index.competitions.map((c) => [c.code, c.currentRound, c.rounds.reduce((a, r) => a + r.withHighlights, 0)])), JSON.stringify(calls).replace(/"(\w+)":/g, '$1: '));
+});
 await import(path.join(tmp, 'scripts/ingest.mjs'));
-await new Promise((r) => realSetTimeout(r, 500));
-
-const index = JSON.parse(fs.readFileSync(path.join(tmp, 'public/data/index.json'), 'utf8'));
-console.log('\nRESULT', JSON.stringify(index.competitions.map((c) => [c.code, c.currentRound, c.rounds.reduce((a, r) => a + r.withHighlights, 0)])), JSON.stringify(calls).replace(/"(\w+)":/g, '$1: '));
