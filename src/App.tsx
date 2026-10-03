@@ -410,7 +410,6 @@ export default function App() {
     <div className={`app${watching ? ' watching' : ''}${docked ? ' docked' : ''}`}>
       <header className="topbar">
         <Logo />
-        <span className="tagline">Football highlights, back to back</span>
         <div className="prefs">
           <div className="seg" role="radiogroup" aria-label="Preferred highlight length">
             {(['short', 'extended'] as Kind[]).map((k) => (
@@ -532,6 +531,7 @@ export default function App() {
           {index && (
             <section className="browse" aria-label="Browse">
               <h1 className="sr-only">{heading}</h1>
+              {!current && <p className="tagline">The whole match week, <span>back to back</span></p>}
               <nav className="comps" aria-label="Competitions" ref={compsRef}>
                 {index.competitions.map((c, i) => (
                   <span key={c.code} className="comp-wrap">

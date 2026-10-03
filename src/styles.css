@@ -45,8 +45,6 @@ svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
 .logo svg { width: 32px; height: 32px; }
 .wordmark { display: flex; align-items: baseline; gap: 6px; font-weight: 800; font-stretch: 112%; font-size: 24px; letter-spacing: -0.02em; line-height: 1; }
 .wordmark-sub { font-weight: 500; font-stretch: 100%; font-size: 15px; letter-spacing: 0; color: var(--muted); }
-.tagline { color: var(--muted); font-size: 13px; white-space: nowrap; }
-@media (max-width: 1099px) { .tagline { display: none; } }
 .prefs { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 
 .seg { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
@@ -178,6 +176,10 @@ main.pre {
 .btn-icon.done { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 
 /* ---------- browse ---------- */
+/* The tagline: one line over the competitions while nothing is playing. */
+.tagline { margin: 2px 0 14px; font-size: 17px; font-weight: 650; letter-spacing: -0.005em; color: var(--text); }
+.tagline span { color: var(--accent); }
+@media (max-width: 760px) { .tagline { font-size: 15px; margin: 0 0 10px; } }
 .comps { position: relative; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .comp-wrap { display: contents; }
 .comp-sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; flex: none; }
@@ -405,7 +407,7 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
 
 /* ---------- tablets & phones ---------- */
 @media (max-width: 760px) {
-  .tagline, .desktop-only, .spoiler-toggle .toggle-text { display: none; }
+  .desktop-only, .spoiler-toggle .toggle-text { display: none; }
   .spoiler-toggle { padding: 7px 9px; }
   .topbar { gap: 10px; }
   .seg button { padding: 7px 11px; }
