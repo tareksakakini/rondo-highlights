@@ -60,6 +60,8 @@ export interface DataIndex {
   source: 'live' | 'sample' | 'mixed';
   /** Data-branch commit holding the round files and crests (set by the refresh workflow). */
   rev?: string;
+  /** Data-branch commit to read crests at: the last one that added a crest (they never change). */
+  crestsRev?: string;
   competitions: Competition[];
 }
 

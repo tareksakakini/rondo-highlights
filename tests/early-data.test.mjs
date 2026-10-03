@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { withRev } from '../scripts/stamp-rev.mjs';
 
 // scripts/early-data.js runs inline in <head> before the app. Run it against a fake page.
 const SRC = fs.readFileSync(new URL('../scripts/early-data.js', import.meta.url), 'utf8');
@@ -79,4 +80,12 @@ test('a saved index older than 12 hours is ignored', async () => {
   const { fetched, window } = await run({ route: 'PL', stored: { 'rondo:indexCache': saved } });
   assert.equal(window.__rondoSavedIndex, undefined);
   assert.ok(!fetched.some((u) => u.includes(OLD)));
+});
+
+test('stamp-rev names the crest commit, defaulting to the data commit', () => {
+  const index = { generatedAt: 'x', source: 'live', rev: OLD, crestsRev: OLD, competitions: [] };
+  assert.deepEqual(Object.keys(withRev(index, REV)), ['generatedAt', 'source', 'rev', 'crestsRev', 'competitions']);
+  assert.equal(withRev(index, REV).crestsRev, REV);
+  assert.equal(withRev(index, REV, OLD).crestsRev, OLD);
+  assert.throws(() => withRev(index, REV, 'nope'));
 });

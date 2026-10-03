@@ -106,17 +106,29 @@ jobs:
           if ! git diff --cached --quiet; then
             commit "data: refresh highlights $stamp"
           fi
+          # What the index on the branch names now (index.json isn't in the commit above).
+          named() {
+            git show HEAD:index.json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s)[process.argv[1]]||"")}catch{}})' "$1"
+          }
           if [ "$visible" = yes ]; then
             rev=$(git rev-parse HEAD)
           else
             # Nothing the site reads changed: keep the commit the index already names,
             # so visitors' cached round files stay valid.
-            rev=$(git show HEAD:index.json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).rev||"")}catch{}})')
+            rev=$(named rev)
             [ -n "$rev" ] || rev=$(git rev-parse HEAD)
           fi
+          # Crests never change once stored, so the site reads them at the last commit that
+          # added one: refreshes that add none keep their URLs, and visitors' caches.
+          if [ "$start" = none ] || ! git diff --quiet "$start" HEAD -- crests; then
+            crests_rev=$(git rev-parse HEAD)
+          else
+            crests_rev=$(named crestsRev)
+            [ -n "$crests_rev" ] || crests_rev=$rev
+          fi
 
-          # 2. index.json names that commit. It is the only file read from the moving branch.
-          node ../../scripts/stamp-rev.mjs index.json "$rev"
+          # 2. index.json names those commits. It is the only file read from the moving branch.
+          node ../../scripts/stamp-rev.mjs index.json "$rev" "$crests_rev"
           git add index.json
           index_changed=no
           if ! git diff --cached --quiet; then

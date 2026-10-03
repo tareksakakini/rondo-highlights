@@ -24,6 +24,7 @@ declare global {
 
 let active = 0; // index into BASES that last worked
 let rev: string | null = null; // data-branch commit named by index.json
+let crestsRev: string | null = null; // where crests are read (see scripts/stamp-rev.mjs)
 const cache = new Map<string, Promise<unknown>>();
 
 const baseAt = (i: number, ref: string) => BASES[i].replace('{ref}', ref);
@@ -63,9 +64,11 @@ function memo<T>(key: string, load: () => Promise<T>): Promise<T> {
   return cache.get(key) as Promise<T>;
 }
 
-const validRev = (idx: DataIndex) => (typeof idx.rev === 'string' && /^[0-9a-f]{40}$/.test(idx.rev) ? idx.rev : null);
+const sha = (s: unknown) => (typeof s === 'string' && /^[0-9a-f]{40}$/.test(s) ? s : null);
+const validRev = (idx: DataIndex) => sha(idx.rev);
 function adopt(idx: DataIndex) {
   rev = validRev(idx);
+  crestsRev = sha(idx.crestsRev) ?? rev;
 }
 
 const SAVED = 'rondo:indexCache';
@@ -130,5 +133,6 @@ export const fetchCondensed = () => {
 
 /** URL for a file stored alongside the data (e.g. `crests/1a2b….webp`); absolute URLs pass through. */
 export function dataAsset(path: string): string {
-  return /^(https?:)?\/\//.test(path) ? path : `${baseAt(active, pinnedRef())}/${path}`;
+  if (/^(https?:)?\/\//.test(path)) return path;
+  return `${baseAt(active, path.startsWith('crests/') ? crestsRev ?? pinnedRef() : pinnedRef())}/${path}`;
 }
