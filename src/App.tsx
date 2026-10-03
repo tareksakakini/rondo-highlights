@@ -10,6 +10,7 @@ import { describeYtError } from './lib/youtube';
 import { compHead, compHeading, compPath, homeHead, legacyHash, resolvePath, roundHead, roundHeading, roundPath } from './lib/routes';
 import { applyHead } from './lib/head';
 import { Logo } from './components/Logo';
+import { CompSwitcher } from './components/CompSwitcher';
 import { MatchCard } from './components/MatchCard';
 import { Player } from './components/Player';
 import { QueueBar, QueueSuggestions, UpNext } from './components/UpNext';
@@ -45,6 +46,9 @@ type Page = 'home' | 'comp' | 'round';
 /** A round's URL; rounds without fixtures have no page of their own, so they use the competition's. */
 const pathFor = (c: Competition, key: string | null) =>
   key && c.rounds.find((r) => r.key === key)?.matches ? roundPath(c, key) : compPath(c);
+
+/** A competition's state for the "new highlights" dot: its current round and how many matches have highlights. */
+const seenSig = (c: Competition) => `${c.currentRound}:${c.rounds.find((r) => r.key === c.currentRound)?.withHighlights ?? 0}`;
 
 function onNav(e: React.MouseEvent, go: () => void) {
   if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -103,7 +107,9 @@ export default function App() {
   const narrow = useMedia(NARROW);
   const narrowRef = useRef(narrow);
   narrowRef.current = narrow;
-  const compsRef = useRef<HTMLElement>(null);
+  // What the viewer last saw of each competition (current round + highlight count), for the
+  // "new highlights" dots in the competition picker.
+  const [seen, setSeen] = usePersistentState<Record<string, string>>('seen', {});
 
   // ---- data loading ----
   useEffect(() => {
@@ -137,6 +143,18 @@ export default function App() {
   }, []);
 
   const comp: Competition | undefined = index?.competitions.find((c) => c.code === compCode);
+
+  // The competition on screen counts as seen; ones never seen before start from now (no dot).
+  useEffect(() => {
+    if (!index) return;
+    setSeen((prev) => {
+      const next = { ...prev };
+      for (const c of index.competitions) {
+        if (next[c.code] == null || c.code === compCode) next[c.code] = seenSig(c);
+      }
+      return Object.keys(next).length === Object.keys(prev).length && Object.keys(next).every((k) => next[k] === prev[k]) ? prev : next;
+    });
+  }, [index, compCode, setSeen]);
 
   useEffect(() => {
     if (!comp || !roundKey) return;
@@ -359,24 +377,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  useEffect(() => {
-    const nav = compsRef.current;
-    if (!nav) return;
-    const edges = () => {
-      nav.classList.toggle('more-l', nav.scrollLeft > 2);
-      nav.classList.toggle('more-r', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 2);
-    };
-    const on = nav.querySelector<HTMLElement>('.comp.on');
-    if (on && nav.scrollWidth > nav.clientWidth) {
-      const pad = 16;
-      const fits = on.offsetLeft >= nav.scrollLeft + pad && on.offsetLeft + on.offsetWidth <= nav.scrollLeft + nav.clientWidth - pad;
-      if (!fits) nav.scrollTo({ left: on.offsetLeft - pad });
-    }
-    edges();
-    nav.addEventListener('scroll', edges, { passive: true });
-    window.addEventListener('resize', edges);
-    return () => { nav.removeEventListener('scroll', edges); window.removeEventListener('resize', edges); };
-  }, [index, compCode, watching]);
 
   const queuedIds = new Set(pb.queue.map((q) => q.match.id));
   const renderCard = (m: Match) => (
@@ -398,6 +398,8 @@ export default function App() {
   );
 
   const roundIdx = comp?.rounds.findIndex((r) => r.key === roundKey) ?? -1;
+  const fresh = useMemo(() => new Set(
+    (index?.competitions ?? []).filter((c) => seen[c.code] != null && seen[c.code] !== seenSig(c)).map((c) => c.code)), [index, seen]);
   const hasUpNext = pb.queue.length > 0;
   // While a match plays, the queue column stays on wide screens even when the queue is
   // empty, so the player keeps its size; it then suggests the rest of the browsed round.
@@ -532,18 +534,10 @@ export default function App() {
             <section className="browse" aria-label="Browse">
               <h1 className="sr-only">{heading}</h1>
               {!current && <p className="tagline">The whole match week, <span>back to back</span></p>}
-              <nav className="comps" aria-label="Competitions" ref={compsRef}>
-                {index.competitions.map((c, i) => (
-                  <span key={c.code} className="comp-wrap">
-                    {i > 0 && (c.group ?? 'league') !== (index.competitions[i - 1].group ?? 'league') && <span className="comp-sep" aria-hidden="true" />}
-                    <a className={`comp${c.code === compCode ? ' on' : ''}`} style={{ '--c': c.color } as React.CSSProperties}
-                      href={compPath(c)} aria-current={c.code === compCode ? 'page' : undefined}
-                      onClick={(e) => onNav(e, () => navigate(c, null))}>
-                      <i className="comp-dot" />{c.short ?? c.name}
-                    </a>
-                  </span>
-                ))}
-              </nav>
+              {comp && (
+                <CompSwitcher comps={index.competitions} current={comp} fresh={fresh}
+                  onPick={(c, e) => onNav(e, () => navigate(c, null))} />
+              )}
 
               {comp && (
                 <div className="round-bar">
