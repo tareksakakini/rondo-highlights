@@ -277,6 +277,13 @@ a.comp { text-decoration: none; }
 .upnext .rows { margin-top: 10px; }
 .suggest-note { margin: 8px 0 0; font-size: 13px; }
 .suggest-note strong { color: var(--text); font-weight: 650; }
+.suggest-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.suggest-head { display: flex; align-items: center; gap: 8px; }
+.suggest-title { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.suggest-title h3 { margin: 0; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); white-space: nowrap; }
+.suggest-title .muted { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest-title strong { color: var(--text); font-weight: 650; }
+.suggest-section .rows { margin-top: 6px; }
 .section-actions { display: flex; gap: 6px; }
 .count { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--surface-2); color: var(--text); }
 .rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }

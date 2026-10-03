@@ -132,21 +132,29 @@ export function QueueSuggestions({ items, roundName, pref, condensed, region, av
         <div className="panel-head">
           <span className="panel-title"><h2>Up next</h2></span>
         </div>
-        {items.length > 0 && <span className="section-actions"><button className="btn-ghost sm" onClick={onQueueAll}>+ Queue all</button></span>}
       </div>
       <p className="suggest-note muted">
-        Your queue is empty.{items.length > 0 ? <> More from <strong>{roundName}</strong>:</> : ' Add matches from any round.'}
+        Your queue is empty.{items.length === 0 && ' Add matches from any round.'}
       </p>
       {items.length > 0 && (
-        <ol className="rows" aria-label={`More from ${roundName}`}>
-          {items.map((item) => (
-            <Row key={item.match.id} item={item} pref={pref} condensed={condensed} region={region} avoid={avoid} onPlay={() => onPlay(item)}>
-              <button className="btn-icon sm" aria-label="Add to queue" title="Add to queue" onClick={() => onQueue(item)}>
-                <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" /></svg>
-              </button>
-            </Row>
-          ))}
-        </ol>
+        <section className="suggest-section" aria-labelledby="suggest-title">
+          <div className="suggest-head">
+            <span className="suggest-title">
+              <h3 id="suggest-title">Suggestions</h3>
+              <span className="muted">More from <strong>{roundName}</strong></span>
+            </span>
+            <button className="btn-ghost sm" onClick={onQueueAll}>+ Queue all</button>
+          </div>
+          <ol className="rows" aria-label={`Suggestions: more from ${roundName}`}>
+            {items.map((item) => (
+              <Row key={item.match.id} item={item} pref={pref} condensed={condensed} region={region} avoid={avoid} onPlay={() => onPlay(item)}>
+                <button className="btn-icon sm" aria-label="Add to queue" title="Add to queue" onClick={() => onQueue(item)}>
+                  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" /></svg>
+                </button>
+              </Row>
+            ))}
+          </ol>
+        </section>
       )}
     </div>
   );
