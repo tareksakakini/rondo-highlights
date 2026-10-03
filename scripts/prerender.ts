@@ -44,15 +44,14 @@ function setHead(html: string, head: Head, opts: { noindex?: boolean } = {}): st
 
 const LOGO =
   '<svg width="32" height="32" viewBox="0 0 48 48" fill="none" aria-hidden="true">' +
-  '<circle cx="24" cy="24" r="18" stroke="#c8f550" stroke-width="3" stroke-linecap="round" stroke-dasharray="14.62 8" stroke-dashoffset="1.66"/>' +
-  '<g fill="#e8eef4"><circle cx="24" cy="6" r="2.8"/><circle cx="41.12" cy="18.44" r="2.8"/><circle cx="34.58" cy="38.56" r="2.8"/>' +
-  '<circle cx="13.42" cy="38.56" r="2.8"/><circle cx="6.88" cy="18.44" r="2.8"/></g>' +
-  '<path d="M20.5 17.5 L31 24 L20.5 30.5 Z" fill="#c8f550" stroke="#c8f550" stroke-width="2.5" stroke-linejoin="round"/></svg>';
+  '<path d="M39.59 15A18 18 0 1 1 11.96 10.62" fill="none" stroke="#e8eef4" stroke-width="3.6" stroke-linecap="round"/>' +
+  '<circle cx="32.45" cy="8.11" r="4.6" fill="#c8f550"/>' +
+  '<path d="M19.5 16.5 32 24 19.5 31.5Z" fill="#c8f550" stroke="#c8f550" stroke-width="3" stroke-linejoin="round"/></svg>';
 
 const HEADER =
   `<header class="topbar"><a class="logo" href="/" aria-label="Rondo Highlights home">${LOGO}` +
-  '<span class="wordmark">rondo<span class="wordmark-sub">highlights</span></span></a>' +
-  '<span class="tagline">Football highlights, back to back</span></header>';
+  '<span class="wordmark">rondo<span class="wordmark-sub">highlights</span></span></a></header>';
+const TAGLINE = '<p class="tagline">The whole match week, <span>back to back</span></p>';
 
 function compNav(comps: ModelComp[], current?: string): string {
   const links = comps.map((c, i) => {
@@ -64,7 +63,7 @@ function compNav(comps: ModelComp[], current?: string): string {
 }
 
 const page = (comps: ModelComp[], current: string | undefined, body: string) =>
-  `${HEADER}<main class="pre">${compNav(comps, current)}${body}</main>`;
+  `${HEADER}<main class="pre">${TAGLINE}${compNav(comps, current)}${body}</main>`;
 
 function homeBody(comps: ModelComp[]): string {
   const items = comps.map((c) =>
