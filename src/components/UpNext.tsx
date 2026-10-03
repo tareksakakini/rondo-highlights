@@ -141,7 +141,6 @@ export function QueueSuggestions({ items, roundName, pref, condensed, region, av
           <div className="suggest-head">
             <span className="suggest-title">
               <h3 id="suggest-title">Suggestions</h3>
-              <span className="muted">More from <strong>{roundName}</strong></span>
             </span>
             <button className="btn-ghost sm" onClick={onQueueAll}>+ Queue all</button>
           </div>
