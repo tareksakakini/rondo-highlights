@@ -1,17 +1,16 @@
-/** Rondo mark: five players in a passing circle around a play button. */
+/**
+ * Rondo mark: one pass going round the circle, the ball at its end, around a play button.
+ * The same shapes are in public/logo.svg (favicon), the app icons and the share card.
+ */
+const ARC = 'M39.59 15A18 18 0 1 1 11.96 10.62';
+const PLAY = 'M19.5 16.5 32 24 19.5 31.5Z';
+
 export function LogoMark({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <circle cx="24" cy="24" r="18" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round"
-        strokeDasharray="14.62 8" strokeDashoffset="1.66" />
-      <g fill="var(--text)">
-        <circle cx="24" cy="6" r="2.8" />
-        <circle cx="41.12" cy="18.44" r="2.8" />
-        <circle cx="34.58" cy="38.56" r="2.8" />
-        <circle cx="13.42" cy="38.56" r="2.8" />
-        <circle cx="6.88" cy="18.44" r="2.8" />
-      </g>
-      <path d="M20.5 17.5 L31 24 L20.5 30.5 Z" fill="var(--accent)" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d={ARC} fill="none" stroke="var(--text)" strokeWidth="3.6" strokeLinecap="round" />
+      <circle cx="32.45" cy="8.11" r="4.6" fill="var(--accent)" />
+      <path d={PLAY} fill="var(--accent)" stroke="var(--accent)" strokeWidth="3" strokeLinejoin="round" />
     </svg>
   );
 }
