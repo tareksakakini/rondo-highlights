@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
-import { fetchCondensed, fetchIndex, fetchRound } from './lib/data';
+import { fetchCondensed, fetchRound, loadIndex } from './lib/data';
 import type { CondensedMap } from './lib/moments';
 import { cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
 import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
@@ -112,9 +112,18 @@ export default function App() {
   const [seen, setSeen] = usePersistentState<Record<string, string>>('seen', {});
 
   // ---- data loading ----
+  // Latest values for the index loader, which outlives the render that started it.
+  const live = useRef({ page, compCode, roundKey });
+  live.current = { page, compCode, roundKey };
   useEffect(() => {
-    fetchIndex()
-      .then((idx) => {
+    let alive = true;
+    const load = loadIndex();
+    load.first
+      .then(async (shown) => {
+        // A page newer than the saved index (a round added since): wait for the fresh one.
+        let idx = shown;
+        if (load.saved && !resolvePath(idx.competitions, location.pathname)) idx = await load.fresh.catch(() => shown);
+        if (!alive) return;
         setIndex(idx);
         const byCode = (code: string | null | undefined) => idx.competitions.find((c) => c.code === code);
         // The URL decides (/premier-league/matchweek-5/); an unknown path (404 page) goes home.
@@ -137,8 +146,29 @@ export default function App() {
           setRoundKey(route.round ?? comp.currentRound);
         }
         setPage(route.round ? 'round' : route.code ? 'comp' : 'home');
+        if (idx !== shown || !load.saved) return;
+
+        // Showing last visit's index: swap in the network's when it arrives.
+        const fresh = await load.fresh.catch(() => null);
+        if (!alive || !fresh || JSON.stringify(fresh) === JSON.stringify(shown)) return;
+        setIndex(fresh);
+        const { page: p, compCode: code, roundKey: key } = live.current;
+        const before = shown.competitions.find((c) => c.code === code);
+        const now = fresh.competitions.find((c) => c.code === code);
+        if (!now) {
+          // The competition left the data: show the first one instead.
+          const first = fresh.competitions[0];
+          if (first) { setCompCode(first.code); setRoundKey(first.currentRound); }
+          return;
+        }
+        // Still on the round shown by default (home and competition pages) and the
+        // competition has moved on to a new round: follow it.
+        if (p !== 'round' && before && key === before.currentRound && now.currentRound !== before.currentRound) {
+          setRoundKey(now.currentRound);
+        }
       })
       .catch((e: Error) => setLoadError(e.message));
+    return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,11 +186,17 @@ export default function App() {
     });
   }, [index, compCode, setSeen]);
 
+  // The round on screen. A newer index for the same round (fresh data replacing last
+  // visit's) swaps the matches in place instead of going back to loading placeholders.
+  const shownRound = useRef<string | null>(null);
   useEffect(() => {
     if (!comp || !roundKey) return;
     let stale = false;
-    setRound(null);
-    fetchRound(comp.code, roundKey).then((r) => { if (!stale) setRound(r); }).catch((e: Error) => setToast(e.message));
+    const id = `${comp.code}/${roundKey}`;
+    if (shownRound.current !== id) setRound(null);
+    fetchRound(comp.code, roundKey)
+      .then((r) => { if (!stale) { shownRound.current = id; setRound(r); } })
+      .catch((e: Error) => setToast(e.message));
     return () => { stale = true; };
   }, [comp, roundKey]);
 
@@ -239,12 +275,15 @@ export default function App() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Read at the data commit the index names, so again when a fresher index arrives.
+  const dataRev = index?.rev ?? null;
   useEffect(() => {
-    if (!autoCondense || !index || condensed) return;
+    if (!autoCondense || !index) return;
     let alive = true;
     fetchCondensed().then((c) => { if (alive) setCondensed(c); }).catch(() => { /* not generated yet */ });
     return () => { alive = false; };
-  }, [autoCondense, index, condensed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCondense, !!index, dataRev]);
 
   // ---- helpers ----
   const toItem = useCallback(
@@ -379,10 +418,12 @@ export default function App() {
 
 
   const queuedIds = new Set(pb.queue.map((q) => q.match.id));
-  const renderCard = (m: Match) => (
+  /** `first`: one of the first cards on screen, whose thumbnail loads ahead of the rest. */
+  const renderCard = (m: Match, first = false) => (
     <MatchCard
       key={m.id}
       match={m}
+      first={first}
       pref={pref}
       condensed={cmap}
       region={region}
@@ -597,7 +638,7 @@ export default function App() {
 
               <div className="grid">
                 {!round && comp && Array.from({ length: 6 }, (_, i) => <div key={i} className="card skeleton" />)}
-                {[...playable, ...notYet].map(renderCard)}
+                {[...playable, ...notYet].map((m, i) => renderCard(m, i < 2))}
               </div>
 
               {blockedHere.length > 0 && playable.length > 0 && (
@@ -605,10 +646,10 @@ export default function App() {
                   <summary>
                     Not available in {region ? `${flag(region)} ${countryName(region)}` : 'your country'} <span className="count">{blockedHere.length}</span>
                   </summary>
-                  <div className="grid">{blockedHere.map(renderCard)}</div>
+                  <div className="grid">{blockedHere.map((m) => renderCard(m))}</div>
                 </details>
               )}
-              {blockedHere.length > 0 && !playable.length && <div className="grid">{blockedHere.map(renderCard)}</div>}
+              {blockedHere.length > 0 && !playable.length && <div className="grid">{blockedHere.map((m) => renderCard(m))}</div>}
             </section>
           )}
         </main>

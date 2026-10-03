@@ -99,8 +99,19 @@ function roundBody(c: ModelComp, i: number): string {
     `<nav class="pre-rounds" aria-label="Rounds">${nav.join('')}</nav>`;
 }
 
-function fill(template: string, head: Head, body: string, opts?: { noindex?: boolean }): string {
-  const html = setHead(template, head, opts);
+/**
+ * `route` tells scripts/early-data.js which round the app will open, so it can start
+ * loading it before the app's JS arrives: "CODE ROUNDKEY", "CODE" (its current round),
+ * "" (home: the last competition viewed, else the first), or null (no early load).
+ */
+function fill(template: string, head: Head, body: string, route: string | null, opts?: { noindex?: boolean }): string {
+  let html = setHead(template, head, opts);
+  if (route != null) {
+    // Before the early-data script, which follows the charset.
+    const charset = '<meta charset="UTF-8" />';
+    if (!html.includes(charset)) throw new Error('prerender: index.html has no charset meta');
+    html = html.replace(charset, `${charset}\n    <meta name="rondo-route" content="${esc(route)}" />`);
+  }
   if (!html.includes('<div id="root"></div>')) throw new Error('prerender: no empty #root in index.html');
   return html.replace('<div id="root"></div>', `<div id="root">${body}</div>`);
 }
@@ -142,13 +153,13 @@ export function prerenderPages(): Plugin {
       };
 
       const urls: string[] = ['/'];
-      write('/', fill(template, homeHead(), page(comps, undefined, homeBody(comps))));
+      write('/', fill(template, homeHead(), page(comps, undefined, homeBody(comps)), ''));
       for (const c of comps) {
-        write(compPath(c), fill(template, compHead(c), page(comps, c.code, compBody(c))));
+        write(compPath(c), fill(template, compHead(c), page(comps, c.code, compBody(c)), c.code));
         urls.push(compPath(c));
         c.rounds.forEach((r, i) => {
           const head = roundHead(c, r, r.fixtures);
-          write(head.path, fill(template, head, page(comps, c.code, roundBody(c, i))));
+          write(head.path, fill(template, head, page(comps, c.code, roundBody(c, i)), `${c.code} ${r.key}`));
           urls.push(head.path);
         });
       }
@@ -157,6 +168,7 @@ export function prerenderPages(): Plugin {
         template,
         { title: 'Page not found | Rondo Highlights', description: 'This page does not exist.', path: '/' },
         page(comps, undefined, '<h1 class="pre-title">Page not found</h1><p class="pre-lede muted">That page doesn&#39;t exist. <a href="/">Go to the home page</a>.</p>'),
+        null,
         { noindex: true },
       ));
 

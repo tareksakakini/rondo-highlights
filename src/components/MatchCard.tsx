@@ -6,6 +6,8 @@ import { TeamBadge } from './TeamBadge';
 
 interface Props {
   match: Match;
+  /** One of the first cards on screen: its thumbnail is the page's main image, so fetch it first. */
+  first?: boolean;
   pref: Kind;
   /** key moments by videoId, or null when Auto-condense is off */
   condensed: CondensedMap | null;
@@ -22,7 +24,7 @@ interface Props {
 
 const KINDS: Kind[] = ['short', 'extended'];
 
-export function MatchCard({ match, pref, condensed, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue }: Props) {
+export function MatchCard({ match, first = false, pref, condensed, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue }: Props) {
   const picked = pickCut(match, pinned ?? pref, condensed, [], region, avoid);
   const hl = picked?.h ?? null;
   // The "short" slot holds the official short cut, or else the auto-condensed extended cut.
@@ -41,7 +43,8 @@ export function MatchCard({ match, pref, condensed, region, avoid = [], spoilerF
       <button className="thumb" onClick={() => hl && onPlay(pinned)} disabled={!hl}
         aria-label={hl ? `Play ${label}` : blocked ? `${label}: not available in your country` : `${label}: no highlights yet`}>
         {hl && !spoilerFree ? (
-          <img src={`https://i.ytimg.com/vi/${hl.videoId}/mqdefault.jpg`} alt="" loading="lazy" />
+          <img src={`https://i.ytimg.com/vi/${hl.videoId}/mqdefault.jpg`} alt="" width={320} height={180}
+            loading={first ? 'eager' : 'lazy'} fetchPriority={first ? 'high' : 'auto'} decoding="async" />
         ) : (
           <span className="thumb-teams">
             <TeamBadge team={home} size={56} />

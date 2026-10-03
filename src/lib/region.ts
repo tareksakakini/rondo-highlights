@@ -31,6 +31,10 @@ export function flag(code: string) {
   return /^[A-Z]{2}$/.test(code) ? String.fromCodePoint(...[...code].map((c) => 0x1f1a5 + c.charCodeAt(0))) : '🌐';
 }
 
+declare global {
+  interface Window { __rondoGeo?: Promise<{ country: string | null }> }
+}
+
 let all: string[] | null = null;
 /** Every country we can name, sorted by display name. */
 export function allRegions() {
@@ -50,10 +54,16 @@ export async function fetchNetworkRegion(timeoutMs = 2500): Promise<string | nul
   } catch { /* ignore */ }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  // Usually already on its way: scripts/early-data.js asks as the page starts loading.
+  const early = window.__rondoGeo;
+  window.__rondoGeo = undefined;
   try {
-    const res = await fetch(`${import.meta.env.BASE_URL}geo.json`, { cache: 'no-store', signal: ctrl.signal });
-    if (!res.ok) return null;
-    const { country } = (await res.json()) as { country: string | null };
+    const timeout = new Promise<never>((_, reject) => ctrl.signal.addEventListener('abort', () => reject(new Error('timeout'))));
+    const load = early ?? fetch(`${import.meta.env.BASE_URL}geo.json`, { cache: 'no-store', signal: ctrl.signal }).then((res) => {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json() as Promise<{ country: string | null }>;
+    });
+    const { country } = await Promise.race([load, timeout]);
     const code = typeof country === 'string' && /^[A-Z]{2}$/.test(country) ? country : null;
     try { sessionStorage.setItem('rondo:netRegion', code ?? '-'); } catch { /* ignore */ }
     return code;

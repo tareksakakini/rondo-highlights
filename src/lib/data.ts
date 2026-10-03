@@ -13,8 +13,13 @@ import { isExcludedMatch } from './excluded';
 // CDN and the browser cache them for good and repeat visits cost no round trips.
 const BASES: string[] = __DATA_BASES__.map((b) => (b.startsWith('/') ? `${import.meta.env.BASE_URL}${b.slice(1)}` : b));
 
+// Requests started by scripts/early-data.js (inlined in index.html) before this code arrived.
 declare global {
-  interface Window { __rondoIndex?: Promise<DataIndex> }
+  interface Window {
+    __rondoIndex?: Promise<DataIndex>;
+    __rondoSavedIndex?: DataIndex;
+    __rondoEarly?: Record<string, Promise<unknown>>;
+  }
 }
 
 let active = 0; // index into BASES that last worked
@@ -24,8 +29,19 @@ const cache = new Map<string, Promise<unknown>>();
 const baseAt = (i: number, ref: string) => BASES[i].replace('{ref}', ref);
 const pinnedRef = () => rev ?? 'data';
 
+/** A request scripts/early-data.js already started for this URL, if any (used once). */
+function takeEarly<T>(url: string): Promise<T> | undefined {
+  const early = window.__rondoEarly?.[url] as Promise<T> | undefined;
+  if (early) delete window.__rondoEarly![url];
+  return early;
+}
+
 async function fetchFrom<T>(path: string, ref: string, pinned: boolean): Promise<T> {
   let lastError: unknown;
+  const early = takeEarly<T>(`${baseAt(active, ref)}/${path}`);
+  if (early) {
+    try { return await early; } catch { /* fetch it again below */ }
+  }
   for (let i = active; i < BASES.length; i++) {
     try {
       const r = await fetch(`${baseAt(i, ref)}/${path}`, { cache: pinned ? 'default' : 'no-cache' });
@@ -47,21 +63,56 @@ function memo<T>(key: string, load: () => Promise<T>): Promise<T> {
   return cache.get(key) as Promise<T>;
 }
 
-function adoptIndex(idx: DataIndex): DataIndex {
-  rev = typeof idx.rev === 'string' && /^[0-9a-f]{40}$/.test(idx.rev) ? idx.rev : null;
-  return idx;
+const validRev = (idx: DataIndex) => (typeof idx.rev === 'string' && /^[0-9a-f]{40}$/.test(idx.rev) ? idx.rev : null);
+function adopt(idx: DataIndex) {
+  rev = validRev(idx);
 }
 
-export const fetchIndex = () =>
+const SAVED = 'rondo:indexCache';
+function save(idx: DataIndex) {
+  try { localStorage.setItem(SAVED, JSON.stringify({ t: Date.now(), idx })); } catch { /* full or unavailable */ }
+}
+
+/** The index from the network (memoized); round files are read at the commit it names from then on. */
+const fetchFreshIndex = () =>
   memo('index.json', async () => {
     // Started by an inline script in index.html while the page was still loading.
     const early = window.__rondoIndex;
     window.__rondoIndex = undefined;
+    let idx: DataIndex | null = null;
     if (early) {
-      try { return adoptIndex(await early); } catch { /* fall back to the normal path */ }
+      try { idx = await early; } catch { /* fall back to the normal path */ }
     }
-    return adoptIndex(await fetchFrom<DataIndex>('index.json', 'data', false));
+    idx ??= await fetchFrom<DataIndex>('index.json', 'data', false);
+    adopt(idx);
+    save(idx);
+    return idx;
   });
+
+export interface IndexLoad {
+  /** What to show now: the index saved on the last visit when it is recent, else the network's. */
+  first: Promise<DataIndex>;
+  /** True when `first` is the saved copy. */
+  saved: boolean;
+  /** The network's index (the same object as `first` when nothing was saved). */
+  fresh: Promise<DataIndex>;
+}
+
+/**
+ * Load the data index. On a repeat visit the copy saved last time (if under 12 hours
+ * old, see vite.config.ts) is shown at once: its round files are already in the
+ * browser's cache. The caller swaps in `fresh` when it arrives and differs.
+ */
+export function loadIndex(): IndexLoad {
+  const fresh = fetchFreshIndex();
+  const saved = window.__rondoSavedIndex;
+  window.__rondoSavedIndex = undefined;
+  if (saved && Array.isArray(saved.competitions) && validRev(saved)) {
+    if (!rev) adopt(saved);
+    return { first: Promise.resolve(saved), saved: true, fresh };
+  }
+  return { first: fresh, saved: false, fresh };
+}
 
 export const fetchRound = (code: string, key: string) => {
   const ref = pinnedRef();

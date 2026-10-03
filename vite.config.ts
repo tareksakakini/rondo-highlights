@@ -1,4 +1,6 @@
-import { defineConfig, type HtmlTagDescriptor, type Plugin } from 'vite';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { defineConfig, transformWithEsbuild, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { prerenderPages } from './scripts/prerender';
 
@@ -23,32 +25,43 @@ function dataBases(): string[] {
   return ['/data'];
 }
 
+/** How old a saved index may be and still be shown while the fresh one loads. */
+const SAVED_INDEX_MAX_AGE = 12 * 3600e3;
+
 /**
- * Start loading index.json while the HTML is still being parsed, instead of
- * after the JS bundle has downloaded and React has mounted (src/lib/data.ts
- * picks the promise up), and warm up the connections the first screen needs.
+ * Start loading the first screen's data while the HTML is still being parsed,
+ * instead of after the JS bundle has downloaded and the app has started
+ * (scripts/early-data.js; src/lib/data.ts picks the requests up), and warm up the
+ * connections the first screen needs.
  */
 function earlyData(bases: string[]): Plugin {
   const first = bases[0].replace('{ref}', 'data');
   const origin = /^https?:\/\//.test(first) ? new URL(first).origin : null;
-  const tag = (t: Omit<HtmlTagDescriptor, 'injectTo'>): HtmlTagDescriptor => ({ ...t, injectTo: 'head' });
-  const tags: HtmlTagDescriptor[] = [
-    tag({
-      tag: 'script',
-      children:
-        `window.__rondoIndex=fetch(${JSON.stringify(`${first}/index.json`)},{cache:'no-cache'})` +
-        `.then(function(r){if(!r.ok)throw new Error(r.status);return r.json()});window.__rondoIndex.catch(function(){});`,
-    }),
-    // fetch() uses the CORS connection pool and <img> the plain one, so warm both.
-    ...(origin
-      ? [
-          tag({ tag: 'link', attrs: { rel: 'preconnect', href: origin, crossorigin: '' } }),
-          tag({ tag: 'link', attrs: { rel: 'preconnect', href: origin } }),
-        ]
-      : []),
-    tag({ tag: 'link', attrs: { rel: 'preconnect', href: 'https://i.ytimg.com' } }),
-  ];
-  return { name: 'rondo-early-data', transformIndexHtml: () => tags };
+  let script: Promise<string> | null = null;
+  const build = async () => {
+    const src = fs.readFileSync(fileURLToPath(new URL('./scripts/early-data.js', import.meta.url)), 'utf8')
+      .replace('__BASES__', JSON.stringify(bases))
+      .replace('__MAX_AGE__', String(SAVED_INDEX_MAX_AGE));
+    const out = await transformWithEsbuild(src, 'early-data.js', { minify: true, target: 'es2017' });
+    return out.code.trim();
+  };
+  const CHARSET = '<meta charset="UTF-8" />';
+  return {
+    name: 'rondo-early-data',
+    // Right after the charset, ahead of the stylesheet: an inline script placed after a
+    // stylesheet waits for it to download before it runs.
+    async transformIndexHtml(html) {
+      if (!html.includes(CHARSET)) throw new Error(`early-data: index.html has no ${CHARSET}`);
+      script ??= build();
+      const tags = [
+        `<script>${await script}</script>`,
+        // fetch() uses the CORS connection pool and <img> the plain one, so warm both.
+        ...(origin ? [`<link rel="preconnect" href="${origin}" crossorigin />`, `<link rel="preconnect" href="${origin}" />`] : []),
+        '<link rel="preconnect" href="https://i.ytimg.com" />',
+      ];
+      return html.replace(CHARSET, `${CHARSET}\n    ${tags.join('\n    ')}`);
+    },
+  };
 }
 
 const bases = dataBases();
