@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, transformWithEsbuild, type Plugin } from 'vite';
-import react from '@vitejs/plugin-react';
+import preact from '@preact/preset-vite';
 import { prerenderPages } from './scripts/prerender';
 
 // Production builds read highlight data from the GitHub repo's `data` branch
@@ -67,7 +67,9 @@ function earlyData(bases: string[]): Plugin {
 const bases = dataBases();
 
 export default defineConfig({
-  plugins: [react(), earlyData(bases), prerenderPages()],
+  // Preact runs the React code (react and react-dom are aliased to preact/compat): the
+  // same components in a bundle about a third the size, which starts faster on phones.
+  plugins: [preact(), earlyData(bases), prerenderPages()],
   server: { host: true, port: 5173 },
   define: { __DATA_BASES__: JSON.stringify(bases) },
 });

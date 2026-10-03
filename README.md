@@ -86,7 +86,7 @@ To try it locally against the live data: `npm run dev:live`.
 ```
 scripts/        config.mjs (competitions + channels), ingest.mjs, build-sample.mjs, prerender.ts (pages), check-pages.mjs, lib/
 public/data/    generated JSON (index.json + <CODE>/<round>.json, condensed.json)
-src/            React app: App.tsx, components/, lib/playback.ts (queue/autoplay), lib/region.ts (country detection)
+src/            React app (built with Preact, see below): App.tsx, components/, lib/playback.ts (queue/autoplay), lib/region.ts (country detection)
 docs/           landscape.md (competitor comparison)
 ```
 
@@ -115,6 +115,7 @@ data branch ◀──(every 2 h)── GitHub Actions: npm run ingest           
 - **Fast first load:**
   - `scripts/early-data.js` is inlined at the top of every page. While the HTML is still loading it fetches `index.json`, then the round the page will show (prerendered pages name it in `<meta name="rondo-route">`) and `condensed.json`, plus `/geo.json`. Without it, those waited for the JS bundle to download and start.
   - Repeat visits: the last index (if under 12 hours old) is kept in localStorage, so the round shows straight from the browser cache; the fresh index replaces it when it arrives.
+  - The app is written with React but bundled with Preact (`@preact/preset-vite` aliases `react` and `react-dom` to `preact/compat`): 31 KB of JS gzipped instead of 93 KB. Types still come from `@types/react`.
   - Archivo is self-hosted from `src/fonts/` (no connections to Google), trimmed to the widths and weights the design uses (53 KB instead of 88 KB). See `src/fonts/README.md`.
   - The first two thumbnails load ahead of the rest; the web font never blocks the first paint.
 - **Pages and URLs:** every competition and round has its own URL (`/premier-league/`, `/premier-league/matchweek-5/`; slugs in `src/lib/routes.ts`), and old `#/PL/md-5` links redirect there. At build time `scripts/prerender.ts` writes one HTML page per URL with its own title, description, heading and fixture list (no scores or dates), plus `sitemap.xml`, `404.html` and `pages.json`, reading the data from GitHub. The app replaces that content when it starts and keeps the title and canonical URL in step as you browse.
