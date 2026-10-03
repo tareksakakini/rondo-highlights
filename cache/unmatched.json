@@ -1,6 +1,12 @@
 {
  "BL1": [
   {
+   "videoId": "7lbT56k3wLQ",
+   "title": "Backstage | #VóleiBenfica 3-1 Leixões SC | Jogo de Apresentação",
+   "channel": "Sport Lisboa e Benfica",
+   "publishedAt": "2026-10-03T11:02:41Z"
+  },
+  {
    "videoId": "1cBh7MDY2fE",
    "title": "Fenerbahçe Tarfin 76-66 Dubai Basketball | EuroLeague 3. hafta",
    "channel": "Fenerbahçe SK",
@@ -189,6 +195,12 @@
  ],
  "CL": [
   {
+   "videoId": "7lbT56k3wLQ",
+   "title": "Backstage | #VóleiBenfica 3-1 Leixões SC | Jogo de Apresentação",
+   "channel": "Sport Lisboa e Benfica",
+   "publishedAt": "2026-10-03T11:02:41Z"
+  },
+  {
    "videoId": "1cBh7MDY2fE",
    "title": "Fenerbahçe Tarfin 76-66 Dubai Basketball | EuroLeague 3. hafta",
    "channel": "Fenerbahçe SK",
@@ -373,16 +385,16 @@
    "title": "SD Huesca 0-0 Atlético Madrileño | HIGHLIGHTS, Primera RFEF 2026/27 - MD4",
    "channel": "Atlético de Madrid",
    "publishedAt": "2026-09-23T12:00:15Z"
-  },
-  {
-   "videoId": "yRcJ-6H1II0",
-   "title": "A Peter Crouch hat-trick in a 5-1 against Preston ⏪",
-   "channel": "Tottenham Hotspur",
-   "publishedAt": "2026-09-23T07:00:06Z"
   }
  ],
  "EL": [
   {
+   "videoId": "7lbT56k3wLQ",
+   "title": "Backstage | #VóleiBenfica 3-1 Leixões SC | Jogo de Apresentação",
+   "channel": "Sport Lisboa e Benfica",
+   "publishedAt": "2026-10-03T11:02:41Z"
+  },
+  {
    "videoId": "1cBh7MDY2fE",
    "title": "Fenerbahçe Tarfin 76-66 Dubai Basketball | EuroLeague 3. hafta",
    "channel": "Fenerbahçe SK",
@@ -567,15 +579,15 @@
    "title": "SD Huesca 0-0 Atlético Madrileño | HIGHLIGHTS, Primera RFEF 2026/27 - MD4",
    "channel": "Atlético de Madrid",
    "publishedAt": "2026-09-23T12:00:15Z"
-  },
-  {
-   "videoId": "yRcJ-6H1II0",
-   "title": "A Peter Crouch hat-trick in a 5-1 against Preston ⏪",
-   "channel": "Tottenham Hotspur",
-   "publishedAt": "2026-09-23T07:00:06Z"
   }
  ],
  "FL1": [
+  {
+   "videoId": "7lbT56k3wLQ",
+   "title": "Backstage | #VóleiBenfica 3-1 Leixões SC | Jogo de Apresentação",
+   "channel": "Sport Lisboa e Benfica",
+   "publishedAt": "2026-10-03T11:02:41Z"
+  },
   {
    "videoId": "1cBh7MDY2fE",
    "title": "Fenerbahçe Tarfin 76-66 Dubai Basketball | EuroLeague 3. hafta",
@@ -764,6 +776,12 @@
   }
  ],
  "PD": [
+  {
+   "videoId": "7lbT56k3wLQ",
+   "title": "Backstage | #VóleiBenfica 3-1 Leixões SC | Jogo de Apresentação",
+   "channel": "Sport Lisboa e Benfica",
+   "publishedAt": "2026-10-03T11:02:41Z"
+  },
   {
    "videoId": "1cBh7MDY2fE",
    "title": "Fenerbahçe Tarfin 76-66 Dubai Basketball | EuroLeague 3. hafta",
@@ -963,15 +981,25 @@
    "publishedAt": "2026-09-23T12:00:15Z"
   }
  ],
- "PL": [
-  {
-   "videoId": "yRcJ-6H1II0",
-   "title": "A Peter Crouch hat-trick in a 5-1 against Preston ⏪",
-   "channel": "Tottenham Hotspur",
-   "publishedAt": "2026-09-23T07:00:06Z"
-  }
- ],
  "SA": [
+  {
+   "videoId": "7lbT56k3wLQ",
+   "title": "Backstage | #VóleiBenfica 3-1 Leixões SC | Jogo de Apresentação",
+   "channel": "Sport Lisboa e Benfica",
+   "publishedAt": "2026-10-03T11:02:41Z"
+  },
+  {
+   "videoId": "3gRXv1ov-Mw",
+   "title": "MILAN-VENEZIA 2-0 | EXTENDED HIGHLIGHTS | SERIE A 2026/27",
+   "channel": "Serie A",
+   "publishedAt": "2026-10-03T09:00:17Z"
+  },
+  {
+   "videoId": "pYgH7tdU4d0",
+   "title": "MAXI SINTESI MILAN-VENEZIA 2-0 | EXTENDED HIGHLIGHTS | SERIE A ENILIVE 2026/27",
+   "channel": "Serie A",
+   "publishedAt": "2026-10-03T09:00:04Z"
+  },
   {
    "videoId": "1cBh7MDY2fE",
    "title": "Fenerbahçe Tarfin 76-66 Dubai Basketball | EuroLeague 3. hafta",
@@ -1226,6 +1254,12 @@
   }
  ],
  "UNL": [
+  {
+   "videoId": "MSqfAouNxXc",
+   "title": "FIGHTING for the final chance! 🔥 | Highlights Slovenia - Jong Oranje",
+   "channel": "OnsOranje",
+   "publishedAt": "2026-10-03T06:13:47Z"
+  },
   {
    "videoId": "G3_RwLXcr9o",
    "title": "LIGA PLACARD | Resumo | AD Fundão 4 - 1 UP Venda Nova | Jornada 3",
