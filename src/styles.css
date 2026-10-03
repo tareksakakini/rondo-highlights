@@ -41,10 +41,11 @@ svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
-.logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
-.logo svg { width: 32px; height: 32px; }
-.wordmark { display: flex; align-items: baseline; gap: 6px; font-weight: 800; font-stretch: 112%; font-size: 24px; letter-spacing: -0.02em; line-height: 1; }
-.wordmark-sub { font-weight: 500; font-stretch: 100%; font-size: 15px; letter-spacing: 0; color: var(--muted); }
+.logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.logo svg { width: 48px; height: 48px; }
+/* Stacked lockup: a big "rondo" with small, widely spaced HIGHLIGHTS under it. */
+.wordmark { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; font-weight: 800; font-stretch: 112%; font-size: 34px; letter-spacing: -0.03em; line-height: 1; }
+.wordmark-sub { padding-left: 2px; font-weight: 600; font-stretch: 100%; font-size: 11px; letter-spacing: .32em; text-transform: uppercase; color: var(--muted); }
 .prefs { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 
 .seg { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
@@ -473,9 +474,10 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
   .spoiler-toggle { padding: 7px 9px; }
   .topbar { gap: 10px; }
   .seg button { padding: 7px 11px; }
-  .wordmark { font-size: 20px; flex-direction: column; align-items: flex-start; gap: 2px; }
-  .wordmark-sub { font-size: 11px; }
-  .logo svg { width: 28px; height: 28px; }
+  .logo { gap: 9px; }
+  .wordmark { font-size: 26px; }
+  .wordmark-sub { font-size: 8.5px; letter-spacing: .3em; }
+  .logo svg { width: 38px; height: 38px; }
 
   /* One scrolling row, edge to edge. Snap points keep the page's 16px inset (so the first chip
      isn't pulled under the edge), and each side fades only when there's more to scroll to. */
@@ -559,8 +561,9 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
 }
 @media (max-width: 359px) {
   .topbar { padding-left: 10px; padding-right: 10px; }
-  .wordmark { font-size: 18px; }
-  .logo svg { width: 24px; height: 24px; }
+  .wordmark { font-size: 22px; }
+  .wordmark-sub { font-size: 7.5px; letter-spacing: .26em; }
+  .logo svg { width: 32px; height: 32px; }
   .seg button { padding: 6px 6px; font-size: 12px; }
   .prefs { gap: 3px; }
   .toggle, .cond-toggle, .spoiler-toggle, .settings-btn { padding: 6px; }
