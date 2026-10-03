@@ -29,7 +29,7 @@ export type Action =
   | { type: 'enqueue'; items: PlayItem[] }
   | { type: 'dequeue'; uid: string }
   | { type: 'dequeueMatch'; matchId: number | string }
-  | { type: 'move'; uid: string; dir: -1 | 1 }
+  | { type: 'move'; uid: string; to: number }
   | { type: 'clearQueue' }
   | { type: 'next' }
   | { type: 'prev' }
@@ -109,13 +109,13 @@ export function playbackReducer(s: PlaybackState, a: Action): PlaybackState {
       return { ...s, queue: s.queue.filter((q) => q.match.id !== a.matchId) };
     case 'move': {
       const i = s.queue.findIndex((q) => q.uid === a.uid);
-      const j = i + a.dir;
-      if (i < 0 || j < 0 || j >= s.queue.length) return s;
+      const j = Math.max(0, Math.min(s.queue.length - 1, a.to));
+      if (i < 0 || i === j) return s;
       const q = [...s.queue];
-      [q[i], q[j]] = [q[j], q[i]];
+      const [it] = q.splice(i, 1);
       // Moving an item by hand makes it the viewer's choice: it's no longer a round leftover
       // that the next "Play" would replace.
-      q[j] = { ...q[j], auto: undefined };
+      q.splice(j, 0, { ...it, auto: undefined });
       return { ...s, queue: q };
     }
     case 'clearQueue':

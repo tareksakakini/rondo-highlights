@@ -299,6 +299,15 @@ a.comp { text-decoration: none; }
 .pin { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; }
 .row-actions { display: flex; gap: 2px; padding-right: 4px; }
 .row-actions .btn-icon { border-color: transparent; background: none; }
+/* Reordering the queue: drag a row by its grip; the others slide aside. */
+.grip { cursor: grab; touch-action: none; color: var(--muted); }
+.rows.is-dragging .row { transition: transform .18s ease; }
+.rows.is-dragging .row.is-lifted {
+  transition: none; position: relative; z-index: 2; background: var(--surface-2);
+  box-shadow: 0 8px 24px rgb(0 0 0 / .28); cursor: grabbing;
+}
+.rows.is-dragging .row-main { pointer-events: none; }
+body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabbing; }
 
 /* Narrow screens: a saved queue, nothing playing (QueueBar). */
 .queue-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
