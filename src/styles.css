@@ -196,15 +196,16 @@ a.comp { text-decoration: none; }
 /* Competition picker (CompSwitcher): a button that opens every competition, grouped. */
 .comp-switch { position: relative; display: flex; }
 .cs-button {
-  position: relative; display: inline-flex; align-items: center; gap: 9px; max-width: 100%;
-  padding: 8px 10px 8px 12px; border-radius: 999px; border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--c) 10%, var(--surface)); font-weight: 700; font-size: 15px; color: var(--text);
+  position: relative; display: inline-flex; align-items: center; gap: .32em; max-width: 100%; min-width: 0;
+  padding: 2px 4px 2px 8px; border: 0; border-radius: 12px; background: none; color: var(--text);
+  font-weight: 800; font-stretch: 108%; font-size: var(--hl); letter-spacing: -0.02em; line-height: 1.15;
 }
-.cs-button:hover, .comp-switch.is-open .cs-button { border-color: color-mix(in srgb, var(--c) 70%, var(--line)); }
+.cs-button:hover, .comp-switch.is-open .cs-button { background: var(--surface); }
+.cs-button .comp-mark { width: .9em; height: .63em; border-radius: 4px; margin-right: .08em; }
 .cs-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cs-caret { width: 20px; height: 20px; color: var(--muted); transition: transform .15s; }
+.cs-caret { width: .62em; height: .62em; flex: none; color: var(--muted); transition: transform .15s; }
 .comp-switch.is-open .cs-caret { transform: rotate(180deg); }
-.cs-fresh { position: absolute; top: -1px; right: -1px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+.cs-fresh { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
 .comp-mark { width: 20px; height: 14px; border-radius: 3px; flex: none; box-shadow: 0 0 0 1px rgb(255 255 255 / .12); }
 .cs-backdrop { position: fixed; inset: 0; z-index: 44; }
 .cs-panel {
@@ -246,9 +247,14 @@ a.comp { text-decoration: none; }
 
 .round-bar {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nav actions" "meta actions" "note note";
-  align-items: center; gap: 4px 16px; margin: 16px 0 14px;
+  align-items: center; gap: 6px 16px; margin: 10px 0 14px;
+  --hl: clamp(24px, 2.6vw, 38px);
 }
-.round-nav { grid-area: nav; display: flex; align-items: center; gap: 6px; min-width: 0; }
+/* "Competition / Round" as one headline. */
+.headline { grid-area: nav; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; min-width: 0; margin-left: -8px; }
+.headline .comp-switch { min-width: 0; max-width: 100%; }
+.hl-sep { font-size: var(--hl); font-weight: 300; line-height: 1; color: #3a4656; }
+.round-nav { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .round-meta { grid-area: meta; display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; font-size: 13px; padding-left: 2px; }
 .round-actions { grid-area: actions; display: flex; align-items: center; gap: 8px; }
 .cond-note { grid-area: note; margin: 2px 0 0; padding-left: 2px; max-width: 78ch; font-size: 12px; line-height: 1.45; color: var(--muted); }
@@ -258,11 +264,16 @@ a.comp { text-decoration: none; }
 .cond-toggle sup { font-size: 11px; margin-left: -3px; align-self: flex-start; }
 .lbl-short { display: none; }
 @media (max-width: 899px) { .cond-toggle .toggle-text { display: none; } }
-.round-select { min-width: 0; }
+.round-select { position: relative; min-width: 0; display: block; }
+.round-select select, .rs-sizer {
+  display: block; font: inherit; font-weight: 800; font-stretch: 108%; font-size: var(--hl); letter-spacing: -0.02em; line-height: 1.15;
+  padding: 2px calc(.62em + 10px) 2px 8px; white-space: nowrap;
+}
+.rs-sizer { visibility: hidden; overflow: hidden; }
 .round-select select {
-  appearance: none; font: inherit; font-weight: 800; font-stretch: 112%; font-size: 20px; color: var(--text); max-width: 100%; text-overflow: ellipsis;
-  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a97a6'%3E%3Cpath d='m7 10 5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 4px center / 20px;
-  border: 0; padding: 4px 30px 4px 6px; border-radius: 8px; cursor: pointer;
+  appearance: none; position: absolute; inset: 0; width: 100%; color: color-mix(in srgb, var(--text) 78%, var(--bg)); text-overflow: ellipsis;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a97a6'%3E%3Cpath d='m7 10 5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 2px center / .62em;
+  border: 0; border-radius: 12px; cursor: pointer;
 }
 .round-select select:hover { background-color: var(--surface); }
 .round-select option { background: var(--surface); font-size: 15px; font-weight: 500; }
@@ -478,10 +489,13 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
   .comps::-webkit-scrollbar { display: none; }
   .comp { scroll-snap-align: start; padding: 9px 14px; }
 
-  .round-bar { grid-template-columns: 1fr; grid-template-areas: "nav" "meta" "note" "actions"; gap: 6px; margin: 12px 0; }
-  .round-nav { gap: 4px; }
-  .round-select { flex: 1; }
-  .round-select select { width: 100%; font-size: 19px; }
+  .round-bar { grid-template-columns: 1fr; grid-template-areas: "nav" "meta" "note" "actions"; gap: 6px; margin: 8px 0 12px; --hl: clamp(22px, 7vw, 27px); }
+  /* Phones: the competition on its own line, then the round between its arrows. */
+  .headline { flex-direction: column; align-items: stretch; gap: 6px; width: calc(100% + 8px); }
+  .headline .comp-switch { align-self: flex-start; }
+  .hl-sep { display: none; }
+  .round-nav { gap: 4px; margin-left: 6px; }
+  .round-select { flex: 1; --hl: clamp(18px, 5.4vw, 21px); }
   .round-actions { margin-top: 6px; }
   .round-actions .btn-primary { flex: 1; justify-content: center; padding: 12px 18px; font-size: 16px; }
   .round-actions .btn-ghost { padding: 11px 16px; }

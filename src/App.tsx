@@ -535,18 +535,20 @@ export default function App() {
               <h1 className="sr-only">{heading}</h1>
               {!current && <p className="tagline">The whole match week, <span>back to back</span></p>}
               {comp && (
-                <CompSwitcher comps={index.competitions} current={comp} fresh={fresh}
-                  onPick={(c, e) => onNav(e, () => navigate(c, null))} />
-              )}
-
-              {comp && (
                 <div className="round-bar">
+                  {/* One headline: "Premier League / Matchweek 5"; each half is its own picker. */}
+                  <div className="headline">
+                  <CompSwitcher comps={index.competitions} current={comp} fresh={fresh}
+                    onPick={(c, e) => onNav(e, () => navigate(c, null))} />
+                  <span className="hl-sep" aria-hidden="true">/</span>
                   <div className="round-nav">
                     <RoundLink comp={comp} roundKey={roundIdx > 0 ? comp.rounds[roundIdx - 1].key : null} label="Previous round" navigate={navigate}>
                       <svg viewBox="0 0 24 24"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z" /></svg>
                     </RoundLink>
                     <label className="round-select">
                       <span className="sr-only">Round</span>
+                      {/* A native select is as wide as its longest option; this sizes it to the current one. */}
+                      <span className="rs-sizer" aria-hidden="true">{comp.rounds[roundIdx]?.label ?? ''}</span>
                       <select value={roundKey ?? ''} onChange={(e) => navigate(comp, e.target.value)}>
                         {comp.rounds.map((r) => (
                           <option key={r.key} value={r.key}>
@@ -558,6 +560,7 @@ export default function App() {
                     <RoundLink comp={comp} roundKey={roundIdx >= 0 && roundIdx < comp.rounds.length - 1 ? comp.rounds[roundIdx + 1].key : null} label="Next round" navigate={navigate}>
                       <svg viewBox="0 0 24 24"><path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" /></svg>
                     </RoundLink>
+                  </div>
                   </div>
                   {round && round.matches.length > 0 && (
                     <p className="round-meta muted">
