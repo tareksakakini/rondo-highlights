@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-04T00:40:40.812Z",
+ "generatedAt": "2026-10-04T15:24:47.751Z",
  "source": "live",
- "rev": "230f47a284513e6d760b45043eb96f3bf64aae9e",
+ "rev": "4e8bad4c3eab98481415460d52a2eb3c23d168f5",
  "competitions": [
   {
    "code": "PL",
@@ -1496,7 +1496,7 @@
    "color": "#14B8A6",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-3",
+   "currentRound": "md-4",
    "rounds": [
     {
      "key": "md-1",
