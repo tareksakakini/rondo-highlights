@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-04T15:24:47.751Z",
+ "generatedAt": "2026-10-04T19:41:24.105Z",
  "source": "live",
- "rev": "4e8bad4c3eab98481415460d52a2eb3c23d168f5",
+ "rev": "9a3ef7901ae73524da3c9fb694dc6565fac50ba9",
  "competitions": [
   {
    "code": "PL",
@@ -1524,7 +1524,7 @@
      "label": "League phase · MD 4",
      "firstDate": "2026-10-04T13:00:00Z",
      "matches": 25,
-     "withHighlights": 0
+     "withHighlights": 3
     },
     {
      "key": "md-5",
