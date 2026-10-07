@@ -264,7 +264,7 @@ a.comp { text-decoration: none; }
 @keyframes cs-fade { from { opacity: 0; } }
 
 .round-bar {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nav actions" "meta actions" "note note";
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nav actions" "meta actions";
   align-items: center; gap: 6px 16px; margin: 10px 0 14px;
   --hl: clamp(24px, 2.6vw, 38px);
 }
@@ -275,7 +275,7 @@ a.comp { text-decoration: none; }
 .round-nav { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .round-meta { grid-area: meta; display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; font-size: 13px; padding-left: 2px; }
 .round-actions { grid-area: actions; display: flex; align-items: center; gap: 8px; }
-.cond-note { grid-area: note; margin: 2px 0 0; padding-left: 2px; max-width: 78ch; font-size: 12px; line-height: 1.45; color: var(--muted); }
+.cond-note { margin: 14px 0 0; padding-left: 2px; max-width: 78ch; font-size: 12px; line-height: 1.45; color: var(--muted); }
 .cond-note sup, .cond-toggle sup, .chip.cond sup { color: var(--accent); font-weight: 800; }
 .chip.cond sup { margin-left: 1px; }
 .chip.cond.active sup { color: inherit; }
@@ -302,6 +302,13 @@ a.comp { text-decoration: none; }
 /* ---------- match card ---------- */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
 .card.is-playing { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* While a round loads: keep the footer below the fold, so it doesn't move when the cards arrive. */
+.grid.loading { min-height: 100vh; align-content: start; }
+/* Headline placeholders, as tall as the competition picker and the round picker they stand in for,
+   and about as wide as "Premier League" and "Matchweek 5", so they wrap where those do. */
+.hl-skel { display: block; border-radius: 12px; background: var(--surface); }
+.hl-skel-comp { width: 10.5em; font-size: var(--hl); height: calc(var(--hl) * 1.15 + 4px); }
+.hl-skel-round { width: 12em; height: max(calc(var(--hl) * 1.15 + 4px), 38px); font-size: var(--hl); }
 .card.skeleton { min-height: 250px; background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%) 0 0 / 300% 100%; animation: shimmer 1.2s infinite linear; }
 @keyframes shimmer { to { background-position: -150% 0; } }
 
@@ -508,12 +515,14 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
   .comps::-webkit-scrollbar { display: none; }
   .comp { scroll-snap-align: start; padding: 9px 14px; }
 
-  .round-bar { grid-template-columns: 1fr; grid-template-areas: "nav" "meta" "note" "actions"; gap: 6px; margin: 8px 0 12px; --hl: clamp(22px, 7vw, 27px); }
+  .round-bar { grid-template-columns: 1fr; grid-template-areas: "nav" "meta" "actions"; gap: 6px; margin: 8px 0 12px; --hl: clamp(22px, 7vw, 27px); }
   /* Phones: the competition on its own line, then the round between its arrows. */
   .headline { flex-direction: column; align-items: stretch; gap: 6px; width: calc(100% + 8px); }
   .headline .comp-switch { align-self: flex-start; }
   .hl-sep { display: none; }
   .round-nav { gap: 4px; margin-left: 6px; }
+  .hl-skel-comp { width: 9em; font-size: 16px; height: calc(var(--hl) * 1.15 + 4px); }
+  .hl-skel-round { width: auto; height: 38px; margin-left: 6px; }
   .round-select { flex: 1; --hl: clamp(18px, 5.4vw, 21px); }
   .round-actions { margin-top: 6px; }
   .round-actions .btn-primary { flex: 1; justify-content: center; padding: 12px 18px; font-size: 16px; }

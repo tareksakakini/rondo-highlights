@@ -565,7 +565,23 @@ export default function App() {
 
           {!index && !loadError && (
             <section className="browse" aria-label="Loading highlights" aria-busy="true">
-              <div className="grid">
+              {/* The same shapes and sizes as the loaded page, so nothing jumps when it arrives. */}
+              {!current && <p className="tagline">The whole match week, <span>back to back</span></p>}
+              <div className="round-bar" aria-hidden="true">
+                <div className="headline">
+                  <span className="hl-skel hl-skel-comp" />
+                  <span className="hl-skel hl-skel-round" />
+                </div>
+                <p className="round-meta muted">&nbsp;</p>
+                <div className="round-actions">
+                  <button className="btn-primary" disabled tabIndex={-1}>
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                    Play all
+                  </button>
+                  <button className="btn-ghost" disabled tabIndex={-1}>+ Queue all</button>
+                </div>
+              </div>
+              <div className="grid loading">
                 {Array.from({ length: 6 }, (_, i) => <div key={i} className="card skeleton" />)}
               </div>
             </section>
@@ -603,6 +619,8 @@ export default function App() {
                     </RoundLink>
                   </div>
                   </div>
+                  {/* Holds its line while the round loads, so the cards don't move down when it fills in. */}
+                  {!(round && round.matches.length > 0) && <p className="round-meta muted" aria-hidden="true">&nbsp;</p>}
                   {round && round.matches.length > 0 && (
                     <p className="round-meta muted">
                       <span>{fmtRange(round.matches[0].utcDate, round.matches[round.matches.length - 1].utcDate)}</span>
@@ -611,12 +629,6 @@ export default function App() {
                         {withAny > playable.length && <button className="linkish inline" onClick={() => setSettingsOpen(true)}>why?</button>}
                       </span>
                       {roundTotal > 0 && <span>{fmtTotal(roundTotal)}</span>}
-                    </p>
-                  )}
-                  {condensedHere > 0 && (
-                    <p className="cond-note" title="These matches have no short cut here, so they play the key moments of the extended cut, found from YouTube's chapters.">
-                      <sup>*</sup> {condensedHere === 1 ? '1 match' : `${condensedHere} matches`} auto-condensed: key moments only, may skip a goal.
-                      <button className="linkish inline" onClick={() => setAutoCondense(false)}>Turn off</button>
                     </p>
                   )}
                   <div className="round-actions">
@@ -636,10 +648,18 @@ export default function App() {
                 </div>
               )}
 
-              <div className="grid">
+              <div className={`grid${round ? '' : ' loading'}`}>
                 {!round && comp && Array.from({ length: 6 }, (_, i) => <div key={i} className="card skeleton" />)}
                 {[...playable, ...notYet].map((m, i) => renderCard(m, i < 2))}
               </div>
+              {/* A footnote under the cards: it only shows once condensed.json and the round are in,
+                  and above the cards it would push them down. */}
+              {condensedHere > 0 && (
+                <p className="cond-note" title="These matches have no short cut here, so they play the key moments of the extended cut, found from YouTube's chapters.">
+                  <sup>*</sup> {condensedHere === 1 ? '1 match' : `${condensedHere} matches`} auto-condensed: key moments only, may skip a goal.
+                  <button className="linkish inline" onClick={() => setAutoCondense(false)}>Turn off</button>
+                </p>
+              )}
 
               {blockedHere.length > 0 && playable.length > 0 && (
                 <details className="blocked-group">
