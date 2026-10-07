@@ -65,12 +65,37 @@ function earlyData(bases: string[]): Plugin {
   };
 }
 
+/**
+ * Startup wheel (index.html): move the stylesheet link from <head> to just after the
+ * wheel in <body> (the `<!-- rondo:stylesheet -->` marker). Browsers draw what comes
+ * before a stylesheet link in the body while it loads (Chrome since 69, Safari since
+ * 2017, Firefox), so the wheel shows as soon as the page starts arriving, and the page
+ * below it waits for its styles as before. In the lab this cost nothing: matches were
+ * on screen at the same time, and the full app and largest image too.
+ */
+function startupWheel(): Plugin {
+  const MARK = '<!-- rondo:stylesheet -->';
+  return {
+    name: 'rondo-startup-wheel',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        const links = html.match(/<link rel="stylesheet"[^>]*href="[^"]+\.css"[^>]*>/g) ?? [];
+        if (links.length !== 1) throw new Error(`startup wheel: expected one stylesheet link, found ${links.length}`);
+        if (!html.includes(MARK)) throw new Error(`startup wheel: index.html has no ${MARK}`);
+        return html.replace(links[0], '').replace(MARK, () => links[0]);
+      },
+    },
+  };
+}
+
 const bases = dataBases();
 
 export default defineConfig({
   // Preact runs the React code (react and react-dom are aliased to preact/compat): the
   // same components in a bundle about a third the size, which starts faster on phones.
-  plugins: [preact(), earlyData(bases), prerenderPages()],
+  plugins: [preact(), earlyData(bases), startupWheel(), prerenderPages()],
   server: { host: true, port: 5173 },
   define: { __DATA_BASES__: JSON.stringify(bases) },
 });
