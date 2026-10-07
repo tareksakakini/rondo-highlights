@@ -11,6 +11,7 @@ import { createHash } from 'node:crypto';
 import { isExcludedMatch } from './excluded.mjs';
 
 const teamName = (t) => t?.short || t?.name || 'TBD';
+export const CREST = /^crests\/[0-9a-f]{12}\.webp$/;
 
 /**
  * @param {any} index  index.json
@@ -18,12 +19,15 @@ const teamName = (t) => t?.short || t?.name || 'TBD';
  */
 export async function buildModel(index, readRound) {
   const competitions = [];
+  const crests = new Set(); // self-hosted crests the rounds use (copied into the site: scripts/lib/site-crests.mjs)
   for (const c of index.competitions) {
     const rounds = [];
     for (const r of c.rounds) {
       if (!r.matches) continue;
       const file = await readRound(c.code, r.key);
-      const fixtures = (file?.matches ?? []).filter((m) => !isExcludedMatch(m)).map((m) => `${teamName(m.home)} v ${teamName(m.away)}`);
+      const shown = (file?.matches ?? []).filter((m) => !isExcludedMatch(m));
+      for (const m of shown) for (const t of [m.home, m.away]) if (CREST.test(t?.crest ?? '')) crests.add(t.crest);
+      const fixtures = shown.map((m) => `${teamName(m.home)} v ${teamName(m.away)}`);
       if (fixtures.length) rounds.push({ key: r.key, label: r.label, fixtures });
     }
     if (rounds.length) {
@@ -33,7 +37,7 @@ export async function buildModel(index, readRound) {
       });
     }
   }
-  return { competitions };
+  return { competitions, crests: [...crests].sort() };
 }
 
 /** Changes only when something a page shows changes (fixture order within a round is ignored). */
@@ -48,10 +52,11 @@ export function fingerprint(model) {
 /** From a checked-out data branch (public/data locally and in the refresh workflow). */
 export async function loadModelFromDir(dir) {
   const index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
-  return buildModel(index, async (code, key) => {
+  const model = await buildModel(index, async (code, key) => {
     const f = path.join(dir, code, `${key}.json`);
     return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null;
   });
+  return { ...model, crestSource: { dir } };
 }
 
 /** From GitHub (Netlify builds): index.json from the data branch (or `indexRef`), rounds from the commit it names. */
@@ -82,5 +87,8 @@ export async function loadModelFromRepo(repo, { fetchImpl = fetch, concurrency =
       files.set(id, await get(raw(ref, `${id}.json`)));
     }
   }));
-  return buildModel(index, async (code, key) => files.get(`${code}/${key}`) ?? null);
+  const model = await buildModel(index, async (code, key) => files.get(`${code}/${key}`) ?? null);
+  // Crests never change once stored; read them at the commit the site would (crestsRev, else rev).
+  const crestsRef = /^[0-9a-f]{40}$/.test(index.crestsRev ?? '') ? index.crestsRev : ref;
+  return { ...model, crestSource: { base: raw(crestsRef, '') } };
 }

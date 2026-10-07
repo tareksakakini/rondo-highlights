@@ -33,7 +33,7 @@ async function setup({ crestsRev = CRESTS, condensed = true } = {}) {
   return dir;
 }
 
-test('plan: current rounds, condensed.json and their crests first, then the rest', async () => {
+test('plan: current rounds, condensed.json and their crests first, then the other rounds (no other crests)', async () => {
   const files = await plan(await setup());
   assert.deepEqual(files.map((f) => `${f.first ? '1' : '2'} ${f.ref === REV ? 'rev' : f.ref === CRESTS ? 'crests' : f.ref} ${f.path}`), [
     '1 rev PL/md-2.json',
@@ -43,8 +43,6 @@ test('plan: current rounds, condensed.json and their crests first, then the rest
     '1 crests crests/b.webp',
     '1 crests crests/c.webp',
     '2 rev PL/md-1.json',
-    '2 crests crests/x.webp',
-    '2 crests crests/y.webp',
   ]);
 });
 

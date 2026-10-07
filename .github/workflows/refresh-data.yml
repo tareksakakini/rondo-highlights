@@ -149,7 +149,7 @@ jobs:
           echo "warm=yes" >> "$GITHUB_OUTPUT"
 
       # Ask jsDelivr for what visits read (index.json, every round file at the new
-      # commit, condensed.json, crests; current rounds first), so the CDN fetches them
+      # commit, condensed.json; current rounds and their crests first), so the CDN fetches them
       # from GitHub now rather than while the next visitor waits. Also re-purges
       # index.json if jsDelivr still serves the old one. Never blocks the refresh.
       - name: Warm the CDN

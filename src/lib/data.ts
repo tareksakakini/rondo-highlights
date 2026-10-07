@@ -131,6 +131,18 @@ export const fetchCondensed = () => {
   return memo(`${ref}/condensed.json`, () => fetchFrom<CondensedMap>('condensed.json', ref, rev != null));
 };
 
+/**
+ * Where a crest loads from. Production builds copy the rounds' crests into the site
+ * itself (scripts/lib/site-crests.mjs): same host and connection as the page, cached
+ * for good. A crest added to the data after the last build isn't there yet, so the
+ * jsDelivr copy is the fallback (TeamBadge switches on a load error).
+ */
+export function crestSrc(path: string): { src: string; fallback?: string } {
+  const remote = dataAsset(path);
+  if (!/^crests\//.test(path) || !/^https?:\/\//.test(BASES[0])) return { src: remote };
+  return { src: `${import.meta.env.BASE_URL}${path}`, fallback: remote };
+}
+
 /** URL for a file stored alongside the data (e.g. `crests/1a2b….webp`); absolute URLs pass through. */
 export function dataAsset(path: string): string {
   if (/^(https?:)?\/\//.test(path)) return path;

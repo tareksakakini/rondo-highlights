@@ -6,6 +6,10 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Crests copied into the site at build time: named by a hash of their source, never changed.
+/crests/*
+  Cache-Control: public, max-age=31536000, immutable
+
 # The visitor's country: never cache across visitors or networks.
 /geo.json
   Cache-Control: no-store

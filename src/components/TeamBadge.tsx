@@ -1,5 +1,14 @@
 import type { Team } from '../types';
-import { dataAsset } from '../lib/data';
+import { crestSrc } from '../lib/data';
+
+/** A crest the site doesn't have yet (added after the last build): load the jsDelivr copy, once. */
+function loadFallback(e: { currentTarget: HTMLImageElement }) {
+  const img = e.currentTarget;
+  const fallback = img.dataset.fallback;
+  if (!fallback) return;
+  img.removeAttribute('data-fallback');
+  img.src = fallback;
+}
 
 function hue(s: string) {
   let h = 0;
@@ -9,7 +18,11 @@ function hue(s: string) {
 
 export function TeamBadge({ team, size = 28 }: { team: Team; size?: number }) {
   if (team.crest) {
-    return <img className="badge" src={dataAsset(team.crest)} alt="" width={size} height={size} loading="lazy" decoding="async" />;
+    const { src, fallback } = crestSrc(team.crest);
+    return (
+      <img className="badge" src={src} data-fallback={fallback} onError={fallback ? loadFallback : undefined}
+        alt="" width={size} height={size} loading="lazy" decoding="async" />
+    );
   }
   const h = hue(team.name);
   return (

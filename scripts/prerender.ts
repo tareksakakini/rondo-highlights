@@ -3,7 +3,8 @@
 // fixture list without running JavaScript. Each page is the built index.html with
 // its own <head> and some plain content in #root, which the app replaces when it
 // starts. Also writes sitemap.xml, 404.html and pages.json (the data fingerprint
-// the refresh workflow compares against to decide whether to redeploy).
+// the refresh workflow compares against to decide whether to redeploy), and copies
+// the rounds' crests into crests/ (scripts/lib/site-crests.mjs).
 //
 // Data: from GitHub on Netlify (REPOSITORY_URL), else ./public/data if present,
 // else the pages are skipped (plain local builds still work).
@@ -12,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 import { fingerprint, loadModelFromDir, loadModelFromRepo } from './lib/pages.mjs';
+import { copySiteCrests } from './lib/site-crests.mjs';
 import {
   SITE, compHead, compHeading, compPath, homeHead, roundHead, roundHeading, roundName, roundPath, type Head,
 } from '../src/lib/routes';
@@ -116,7 +118,13 @@ function fill(template: string, head: Head, body: string, route: string | null, 
   return html.replace('<div id="root"></div>', `<div id="root">${body}</div>`);
 }
 
-async function loadModel(root: string): Promise<{ competitions: ModelComp[] } | null> {
+interface Model {
+  competitions: ModelComp[];
+  crests: string[];
+  crestSource: { dir?: string; base?: string };
+}
+
+async function loadModel(root: string): Promise<Model | null> {
   const repo = process.env.REPOSITORY_URL?.match(/github\.com[/:]([^/]+\/[^/.]+)/)?.[1];
   if (repo) {
     // Builds started by the refresh workflow's build hook carry the data commit as the hook body.
@@ -179,6 +187,12 @@ export function prerenderPages(): Plugin {
       fs.writeFileSync(path.join(outDir, 'pages.json'),
         JSON.stringify({ fingerprint: fingerprint(model), builtAt: new Date().toISOString(), pages: urls.length }) + '\n');
       console.log(`prerender: ${urls.length} pages, fingerprint ${fingerprint(model)}`);
+
+      // The crests these pages' rounds use, served from the site itself (see scripts/lib/site-crests.mjs).
+      // A crest that fails to copy is only slower: the app falls back to jsDelivr for it.
+      const crests = await copySiteCrests(model.crests, model.crestSource, outDir);
+      console.log(`prerender: ${crests.copied}/${model.crests.length} crests copied into the site`);
+      if (crests.failed.length) console.warn(`prerender: could not copy ${crests.failed.length} crests: ${crests.failed.slice(0, 5).join(', ')}${crests.failed.length > 5 ? ', …' : ''}`);
     },
   };
 }

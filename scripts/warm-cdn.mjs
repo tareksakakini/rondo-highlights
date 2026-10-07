@@ -9,8 +9,10 @@
 //    pushed (the workflow purged it). If it still serves the old one, purge again
 //    and retry, so a slow purge can't leave the old index cached for hours.
 // 2. Each competition's current round and condensed.json (what a first visit reads),
-//    then their crests.
-// 3. Every other round file and crest, for visitors who land on another page.
+//    then their crests. The site serves crests itself (scripts/lib/site-crests.mjs);
+//    jsDelivr's copy is only the fallback for a crest added since the last site build,
+//    and such a crest is in a current round.
+// 3. Every other round file, for visitors who land on another page.
 //
 // It warms the jsDelivr servers the GitHub runner reaches, and jsDelivr's own copy
 // of the files, so a visitor whose nearby server is still empty no longer waits
@@ -61,15 +63,10 @@ export async function plan(dir) {
     }
   }
   if (await exists(path.join(dir, 'condensed.json'))) first.push('condensed.json');
-  let crests = [];
-  try {
-    crests = (await fs.readdir(path.join(dir, 'crests'))).map((f) => `crests/${f}`).filter((f) => CREST.test(f)).sort();
-  } catch { /* no crests yet */ }
   return [
     ...first.map((p) => ({ ref: rev, path: p, first: true })),
     ...[...firstCrests].sort().map((p) => ({ ref: crestsRev, path: p, first: true })),
     ...rest.map((p) => ({ ref: rev, path: p, first: false })),
-    ...crests.filter((p) => !firstCrests.has(p)).map((p) => ({ ref: crestsRev, path: p, first: false })),
   ];
 }
 

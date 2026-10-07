@@ -51,3 +51,31 @@ test('repo loader reads the index at the given commit and rounds at its rev', as
   assert.ok(seen.includes(`https://raw.githubusercontent.com/me/repo/${rev}/PL/md-1.json`));
   assert.equal(m.competitions[0].rounds[0].fixtures[0], 'Arsenal v Chelsea');
 });
+
+test('the model lists the self-hosted crests its rounds use, once each, sorted; the fingerprint ignores them', async () => {
+  const withCrest = (id, h, a, hc, ac) => {
+    const m = match(id, h, a);
+    m.home.crest = hc; m.away.crest = ac;
+    return m;
+  };
+  const a = await model([
+    withCrest(1, 'Arsenal', 'Chelsea', 'crests/bbbbbbbbbbbb.webp', 'crests/aaaaaaaaaaaa.webp'),
+    withCrest(2, 'Leeds', 'Fulham', 'https://crests.example/x.png', 'crests/aaaaaaaaaaaa.webp'),
+  ]);
+  assert.deepEqual(a.crests, ['crests/aaaaaaaaaaaa.webp', 'crests/bbbbbbbbbbbb.webp']);
+  const b = await model([withCrest(1, 'Arsenal', 'Chelsea', null, null), withCrest(2, 'Leeds', 'Fulham', null, null)]);
+  assert.equal(fingerprint(a), fingerprint(b));
+});
+
+test('repo loader reads crests at crestsRev when the index names one, else at rev', async () => {
+  const rev = 'a'.repeat(40);
+  const crestsRev = 'c'.repeat(40);
+  const make = (idx) => async (url) => {
+    const body = url.includes('/index.json') ? idx : url.endsWith('/PL/md-1.json') ? files([match(1, 'Arsenal', 'Chelsea')])['PL/md-1'] : null;
+    return { ok: body != null, status: body ? 200 : 404, json: async () => body };
+  };
+  const m1 = await loadModelFromRepo('me/repo', { fetchImpl: make({ ...index, rev, crestsRev }) });
+  assert.equal(m1.crestSource.base, `https://raw.githubusercontent.com/me/repo/${crestsRev}/`);
+  const m2 = await loadModelFromRepo('me/repo', { fetchImpl: make({ ...index, rev }) });
+  assert.equal(m2.crestSource.base, `https://raw.githubusercontent.com/me/repo/${rev}/`);
+});
