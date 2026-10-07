@@ -19,7 +19,11 @@ const model = (matches) => buildModel(index, async (c, k) => files(matches)[`${c
 test('pages list rounds with fixtures, home v away by short name', async () => {
   const m = await model([match(1, 'Arsenal', 'Chelsea'), match(2, 'Leeds', 'Fulham')]);
   assert.equal(m.competitions.length, 1);
-  assert.deepEqual(m.competitions[0].rounds, [{ key: 'md-1', label: 'Matchweek 1', fixtures: ['Arsenal v Chelsea', 'Leeds v Fulham'] }]);
+  const t = (short) => ({ name: `${short} FC`, short, tla: short.slice(0, 3).toUpperCase(), crest: null });
+  assert.deepEqual(m.competitions[0].rounds, [{
+    key: 'md-1', label: 'Matchweek 1', fixtures: ['Arsenal v Chelsea', 'Leeds v Fulham'],
+    matches: [{ home: t('Arsenal'), away: t('Chelsea'), hl: false }, { home: t('Leeds'), away: t('Fulham'), hl: false }],
+  }]);
 });
 
 test('fingerprint ignores scores, dates, highlights and fixture order', async () => {

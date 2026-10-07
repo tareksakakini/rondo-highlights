@@ -42,15 +42,15 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
     <article className={`card${playing ? ' is-playing' : ''}${hl ? '' : ' is-empty'}`} data-match={match.id}>
       <button className="thumb" onClick={() => hl && onPlay(pinned)} disabled={!hl}
         aria-label={hl ? `Play ${label}` : blocked ? `${label}: not available in your country` : `${label}: no highlights yet`}>
-        {hl && !spoilerFree ? (
+        {/* The crests, also under the thumbnail until it loads (as on the prerendered page). */}
+        <span className="thumb-teams" aria-hidden={hl && !spoilerFree ? true : undefined}>
+          <TeamBadge team={home} size={56} />
+          <span className="vs">v</span>
+          <TeamBadge team={away} size={56} />
+        </span>
+        {hl && !spoilerFree && (
           <img src={`https://i.ytimg.com/vi/${hl.videoId}/mqdefault.jpg`} alt="" width={320} height={180}
             loading={first ? 'eager' : 'lazy'} fetchPriority={first ? 'high' : 'auto'} decoding="async" />
-        ) : (
-          <span className="thumb-teams">
-            <TeamBadge team={home} size={56} />
-            <span className="vs">v</span>
-            <TeamBadge team={away} size={56} />
-          </span>
         )}
         {picked && <span className="dur">{fmtDuration(cutSec(picked))}</span>}
         {hl && <span className="play-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span>}

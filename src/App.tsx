@@ -56,7 +56,8 @@ function onNav(e: React.MouseEvent, go: () => void) {
   go();
 }
 
-export default function App() {
+/** `onReady`: called once the first screen has its data (the round, or an error), see main.tsx. */
+export default function App({ onReady }: { onReady?: () => void } = {}) {
   const [index, setIndex] = useState<DataIndex | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [compCode, setCompCode] = usePersistentState<string | null>('comp', null);
@@ -196,9 +197,14 @@ export default function App() {
     if (shownRound.current !== id) setRound(null);
     fetchRound(comp.code, roundKey)
       .then((r) => { if (!stale) { shownRound.current = id; setRound(r); } })
-      .catch((e: Error) => setToast(e.message));
+      .catch((e: Error) => { setToast(e.message); onReady?.(); });
     return () => { stale = true; };
   }, [comp, roundKey]);
+
+  // The first screen is ready to replace the prerendered one: the round's cards, or an error.
+  useEffect(() => {
+    if (loadError || (index && (round || !comp))) onReady?.();
+  }, [loadError, index, round, comp]);
 
   // ---- URLs: each competition and round has its own page ----
   /** Show a competition (its current round) or one round, as a new history entry. */

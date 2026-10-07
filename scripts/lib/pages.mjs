@@ -10,8 +10,12 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { isExcludedMatch } from './excluded.mjs';
 
-const teamName = (t) => t?.short || t?.name || 'TBD';
 export const CREST = /^crests\/[0-9a-f]{12}\.webp$/;
+const teamName = (t) => t?.short || t?.name || 'TBD';
+const team = (t) => ({
+  name: t?.name || teamName(t), short: teamName(t), tla: t?.tla || teamName(t).slice(0, 3).toUpperCase(),
+  crest: CREST.test(t?.crest ?? '') ? t.crest : null,
+});
 
 /**
  * @param {any} index  index.json
@@ -28,12 +32,15 @@ export async function buildModel(index, readRound) {
       const shown = (file?.matches ?? []).filter((m) => !isExcludedMatch(m));
       for (const m of shown) for (const t of [m.home, m.away]) if (CREST.test(t?.crest ?? '')) crests.add(t.crest);
       const fixtures = shown.map((m) => `${teamName(m.home)} v ${teamName(m.away)}`);
-      if (fixtures.length) rounds.push({ key: r.key, label: r.label, fixtures });
+      // For the prerendered match cards: who plays (names, crest) and whether highlights were
+      // in at build time (cards with highlights come first, as in the app). Not fingerprinted.
+      const matches = shown.map((m) => ({ home: team(m.home), away: team(m.away), hl: (m.highlights ?? []).length > 0 }));
+      if (fixtures.length) rounds.push({ key: r.key, label: r.label, fixtures, matches });
     }
     if (rounds.length) {
       competitions.push({
         code: c.code, name: c.name, short: c.short ?? null, group: c.group ?? 'league',
-        color: c.color, seasonLabel: c.seasonLabel, rounds,
+        color: c.color, seasonLabel: c.seasonLabel, country: c.country ?? null, currentRound: c.currentRound ?? null, rounds,
       });
     }
   }
@@ -42,9 +49,11 @@ export async function buildModel(index, readRound) {
 
 /** Changes only when something a page shows changes (fixture order within a round is ignored). */
 export function fingerprint(model) {
-  const stable = model.competitions.map((c) => ({
+  // Only what pages show as text: card details (crests, highlights at build time), the
+  // country and the current round don't count, so they never trigger a redeploy on their own.
+  const stable = model.competitions.map(({ country: _country, currentRound: _current, ...c }) => ({
     ...c,
-    rounds: c.rounds.map((r) => ({ ...r, fixtures: [...r.fixtures].sort() })),
+    rounds: c.rounds.map((r) => ({ key: r.key, label: r.label, fixtures: [...r.fixtures].sort() })),
   }));
   return createHash('sha256').update(JSON.stringify(stable)).digest('hex').slice(0, 16);
 }

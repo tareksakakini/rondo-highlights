@@ -1,6 +1,10 @@
 import type { Team } from '../types';
 import { crestSrc } from '../lib/data';
 
+// Not lazy: crests are small and cached for good, and the app first renders off screen
+// (src/main.tsx), where lazy images wouldn't load until it takes over from the
+// prerendered page, so they'd blink.
+
 /** A crest the site doesn't have yet (added after the last build): load the jsDelivr copy, once. */
 function loadFallback(e: { currentTarget: HTMLImageElement }) {
   const img = e.currentTarget;
@@ -21,7 +25,7 @@ export function TeamBadge({ team, size = 28 }: { team: Team; size?: number }) {
     const { src, fallback } = crestSrc(team.crest);
     return (
       <img className="badge" src={src} data-fallback={fallback} onError={fallback ? loadFallback : undefined}
-        alt="" width={size} height={size} loading="lazy" decoding="async" />
+        alt="" width={size} height={size} decoding="async" />
     );
   }
   const h = hue(team.name);

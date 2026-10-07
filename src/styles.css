@@ -94,7 +94,19 @@ main { display: contents; }
 .aside { order: 2; }
 .browse, .empty-state { order: 3; min-width: 0; scroll-margin-top: 72px; }
 
-/* Prerendered page content (scripts/prerender.ts): shown until the app starts, and to crawlers. */
+/* Prerendered pages (scripts/prerender.ts) draw the app's first screen with its own classes.
+   Their extras: the round's name where the app has a <select>, the space the cut chips will
+   take, and text and links for readers and crawlers under the cards. */
+.rs-sizer.pre-rs {
+  visibility: visible; border-radius: 12px; color: color-mix(in srgb, var(--text) 78%, var(--bg));
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a97a6'%3E%3Cpath d='m7 10 5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 2px center / .62em;
+}
+.pre-ghost { visibility: hidden; }
+.round-select.pre-skel { border-radius: 12px; background: var(--surface); }
+.pre-more { margin-top: 28px; max-width: 760px; font-size: 14px; }
+.pre-more .comps { margin-top: 16px; }
+
+/* The 404 page (prerendered as plain text). */
 main.pre {
   display: block; max-width: 760px;
   padding: 16px max(16px, calc((100vw - 1440px) / 2), env(safe-area-inset-right)) 32px max(16px, calc((100vw - 1440px) / 2), env(safe-area-inset-left));
@@ -313,7 +325,8 @@ a.comp { text-decoration: none; }
 @keyframes shimmer { to { background-position: -150% 0; } }
 
 .thumb { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; padding: 0; background: linear-gradient(135deg, var(--surface-2), #0e141b); overflow: hidden; }
-.thumb > img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .25s; }
+/* Positioned, so it paints over the crests (.thumb-teams) once it has loaded. */
+.thumb > img { position: relative; width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .25s; }
 .thumb:hover:not(:disabled) > img { transform: scale(1.04); }
 /* Spoiler-free (or no video): the two crests stand in for the thumbnail. Crests are 80 px files, so cap them at 56 px. */
 .thumb-teams { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 18px; }
