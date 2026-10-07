@@ -17,14 +17,22 @@ const idx = (rev, current = 'md-5') => ({
   ],
 });
 
-async function run({ route, path = '/', hash = '', stored = {}, session = {}, index = idx(REV) }) {
+async function run({ route, pre = null, path = '/', hash = '', stored = {}, session = {}, index = idx(REV) }) {
   const fetched = [];
+  const classes = [];
   const json = (body) => ({ ok: true, json: async () => body });
   const window = {};
   const ctx = {
     window,
     location: { pathname: path, hash },
-    document: { querySelector: () => (route == null ? null : { content: route }) },
+    document: {
+      querySelector: (sel) => {
+        if (sel.includes('rondo-route')) return route == null ? null : { content: route };
+        if (sel.includes('rondo-pre')) return pre == null ? null : { content: pre };
+        return null;
+      },
+      documentElement: { classList: { add: (c) => classes.push(c) } },
+    },
     localStorage: { getItem: (k) => (k in stored ? JSON.stringify(stored[k]) : null) },
     sessionStorage: { getItem: (k) => session[k] ?? null },
     fetch: (url) => {
@@ -35,7 +43,7 @@ async function run({ route, path = '/', hash = '', stored = {}, session = {}, in
   };
   vm.runInNewContext(SRC.replace('__BASES__', JSON.stringify([BASE])).replace('__MAX_AGE__', String(12 * 3600e3)), ctx);
   await new Promise((r) => setTimeout(r, 10));
-  return { fetched: fetched.map((u) => u.replace('https://cdn.jsdelivr.net/gh/me/repo', '')), window };
+  return { fetched: fetched.map((u) => u.replace('https://cdn.jsdelivr.net/gh/me/repo', '')), window, stale: classes.includes('pre-stale') };
 }
 
 test('a round page loads its round as soon as the index names the commit', async () => {
@@ -88,4 +96,24 @@ test('stamp-rev names the crest commit, defaulting to the data commit', () => {
   assert.equal(withRev(index, REV).crestsRev, REV);
   assert.equal(withRev(index, REV, OLD).crestsRev, OLD);
   assert.throws(() => withRev(index, REV, 'nope'));
+});
+
+test('home and competition pages keep their prerendered round unless it is known to be the wrong one', async () => {
+  const savedAt = (current, ageH = 1) => ({ 'rondo:indexCache': { t: Date.now() - ageH * 3600e3, idx: idx(OLD, current) } });
+  // First visits: nothing to compare with, so the build's round stays.
+  assert.equal((await run({ route: '', pre: 'PL md-5' })).stale, false);
+  assert.equal((await run({ route: 'PL', pre: 'PL md-5' })).stale, false);
+  // Home opens the competition viewed last.
+  assert.equal((await run({ route: '', pre: 'PL md-5', stored: { 'rondo:comp': 'SA' } })).stale, true);
+  assert.equal((await run({ route: '', pre: 'PL md-5', stored: { 'rondo:comp': 'PL' } })).stale, false);
+  // A competition page always shows its own competition, whatever was viewed last.
+  assert.equal((await run({ route: 'PL', pre: 'PL md-5', stored: { 'rondo:comp': 'SA' } })).stale, false);
+  // A recent saved index knows the current round.
+  assert.equal((await run({ route: 'PL', pre: 'PL md-5', stored: savedAt('md-6') })).stale, true);
+  assert.equal((await run({ route: 'PL', pre: 'PL md-5', stored: savedAt('md-5') })).stale, false);
+  assert.equal((await run({ route: '', pre: 'PL md-5', stored: savedAt('md-6') })).stale, true);
+  // ...but not one older than 12 hours.
+  assert.equal((await run({ route: 'PL', pre: 'PL md-5', stored: savedAt('md-6', 13) })).stale, false);
+  // Pages without prerendered cards are left alone.
+  assert.equal((await run({ route: 'PL', stored: savedAt('md-6') })).stale, false);
 });

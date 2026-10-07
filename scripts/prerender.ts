@@ -104,7 +104,8 @@ function hue(s: string) {
   return h;
 }
 function badge(t: ModelTeam, size: number): string {
-  if (t.crest) return `<img class="badge" src="/${esc(t.crest)}" alt="" width="${size}" height="${size}" loading="lazy" decoding="async">`;
+  // Low priority: the app's script and the round's data matter more on a slow connection.
+  if (t.crest) return `<img class="badge" src="/${esc(t.crest)}" alt="" width="${size}" height="${size}" loading="lazy" decoding="async" fetchpriority="low">`;
   const h = hue(t.name);
   return `<span class="badge badge-text" style="width:${size}px;height:${size}px;background:hsl(${h} 45% 28%);border-color:hsl(${h} 55% 45%);font-size:${+(size * 0.32).toFixed(2)}px" aria-hidden="true">${esc(t.tla)}</span>`;
 }
@@ -177,34 +178,62 @@ const page = (comps: ModelComp[], current: string | undefined, heading: string, 
   `<h1 class="sr-only">${esc(heading)}</h1>${TAGLINE}${browse}` +
   `<div class="pre-more">${more}${compNav(comps, current)}</div></section></main></div></div>`;
 
-function homePage(comps: ModelComp[]): string {
-  const items = comps.map((c) =>
-    `<li><a href="${compPath(c)}">${esc(c.name)} highlights</a> <span class="muted">${esc(c.seasonLabel)} · ${c.rounds.length} rounds</span></li>`);
-  // The app opens the competition viewed last, else the first: unknown here, so placeholders.
-  return page(comps, undefined, 'Football highlights, back to back',
-    roundBar(null, '<span class="hl-skel hl-skel-round"></span>') + skeletonGrid(),
-    '<p class="pre-lede muted">Rondo plays a whole round of football highlights back to back, from official YouTube channels. ' +
-    'Pick a competition and a round, then press Play all. Short or extended cuts, a queue across competitions, and a spoiler-free mode that hides scores.</p>' +
-    `<ul class="pre-list">${items.join('')}</ul>`);
+/** A round's headline, Play all row and match cards (round pages, and the current round on home and competition pages). */
+function roundBrowse(c: ModelComp, i: number): string {
+  const r = c.rounds[i];
+  // As in the app: matches with highlights first (as of the build).
+  const matches = [...r.matches.filter((m) => m.hl), ...r.matches.filter((m) => !m.hl)];
+  return roundBar(c, roundNav(c, i)) + `<div class="grid">${matches.map(card).join('')}</div>`;
 }
 
-function compPage(comps: ModelComp[], c: ModelComp): string {
+/**
+ * Home and competition pages open a competition's current round: the cards of the
+ * round that was current at build time. The round may have moved on since (that
+ * doesn't trigger a redeploy), and on home the app opens the competition viewed last.
+ * So the page also carries placeholders (`alt`), and scripts/early-data.js shows them
+ * instead when it can tell before the first paint that the cards are the wrong ones
+ * (from the competition viewed last, or a recent saved index; see `pre` in fill()).
+ * When it only finds out from the network, the app's cards simply replace these.
+ */
+function currentRound(c: ModelComp | undefined, alt: string): { browse: string; pre: string | null } {
+  const i = c ? c.rounds.findIndex((r) => r.key === c.currentRound) : -1;
+  if (!c || i < 0) return { browse: alt, pre: null };
+  return {
+    browse: `<div class="pre-main">${roundBrowse(c, i)}</div><div class="pre-alt">${alt}</div>`,
+    pre: `${c.code} ${c.rounds[i].key}`,
+  };
+}
+
+function homePage(comps: ModelComp[]): { body: string; pre: string | null } {
+  const items = comps.map((c) =>
+    `<li><a href="${compPath(c)}">${esc(c.name)} highlights</a> <span class="muted">${esc(c.seasonLabel)} · ${c.rounds.length} rounds</span></li>`);
+  // First visits open the first competition; returning visitors the one they viewed last.
+  const { browse, pre } = currentRound(comps[0], roundBar(null, '<span class="hl-skel hl-skel-round"></span>') + skeletonGrid());
+  return {
+    pre,
+    body: page(comps, undefined, 'Football highlights, back to back', browse,
+      '<p class="pre-lede muted">Rondo plays a whole round of football highlights back to back, from official YouTube channels. ' +
+      'Pick a competition and a round, then press Play all. Short or extended cuts, a queue across competitions, and a spoiler-free mode that hides scores.</p>' +
+      `<ul class="pre-list">${items.join('')}</ul>`),
+  };
+}
+
+function compPage(comps: ModelComp[], c: ModelComp): { body: string; pre: string | null } {
   const items = c.rounds.map((r) =>
     `<li><a href="${roundPath(c, r.key)}">${esc(roundName(r.label))}</a> <span class="muted">${r.fixtures.length} matches</span></li>`);
-  // The app shows the competition's current round, which moves on after the build: a placeholder.
-  return page(comps, c.code, compHeading(c),
-    roundBar(c, roundNavPlaceholder(c)) + skeletonGrid(),
-    `<p class="pre-lede muted">Every round of the ${esc(c.seasonLabel)} ${esc(c.name)}, with official highlights from YouTube played back to back. ` +
-    'Pick a round to watch all of its matches in one go.</p>' +
-    `<ul class="pre-list">${items.join('')}</ul>`);
+  const { browse, pre } = currentRound(c, roundBar(c, roundNavPlaceholder(c)) + skeletonGrid());
+  return {
+    pre,
+    body: page(comps, c.code, compHeading(c), browse,
+      `<p class="pre-lede muted">Every round of the ${esc(c.seasonLabel)} ${esc(c.name)}, with official highlights from YouTube played back to back. ` +
+      'Pick a round to watch all of its matches in one go.</p>' +
+      `<ul class="pre-list">${items.join('')}</ul>`),
+  };
 }
 
 function roundPage(comps: ModelComp[], c: ModelComp, i: number): string {
   const r = c.rounds[i];
-  // As in the app: matches with highlights first (as of the build).
-  const matches = [...r.matches.filter((m) => m.hl), ...r.matches.filter((m) => !m.hl)];
-  return page(comps, c.code, roundHeading(c, r),
-    roundBar(c, roundNav(c, i)) + `<div class="grid">${matches.map(card).join('')}</div>`,
+  return page(comps, c.code, roundHeading(c, r), roundBrowse(c, i),
     `<p class="pre-lede muted">All ${r.fixtures.length} matches of ${esc(c.name)} ${esc(roundName(r.label))} (${esc(c.seasonLabel)}), ` +
     'with official highlights from YouTube played back to back. Choose short or extended cuts, or switch on spoiler-free mode to hide scores. ' +
     `<a href="${compPath(c)}">All ${esc(c.name)} rounds</a>.</p>`);
@@ -220,13 +249,15 @@ const notFoundPage = (comps: ModelComp[]) =>
  * loading it before the app's JS arrives: "CODE ROUNDKEY", "CODE" (its current round),
  * "" (home: the last competition viewed, else the first), or null (no early load).
  */
-function fill(template: string, head: Head, body: string, route: string | null, opts?: { noindex?: boolean }): string {
+function fill(template: string, head: Head, body: string, route: string | null, opts?: { noindex?: boolean; pre?: string | null }): string {
   let html = setHead(template, head, opts);
   if (route != null) {
     // Before the early-data script, which follows the charset.
     const charset = '<meta charset="UTF-8" />';
     if (!html.includes(charset)) throw new Error('prerender: index.html has no charset meta');
-    html = html.replace(charset, `${charset}\n    <meta name="rondo-route" content="${esc(route)}" />`);
+    // `rondo-pre`: the round whose cards a home or competition page shows ("CODE ROUNDKEY").
+    const pre = opts?.pre ? `\n    <meta name="rondo-pre" content="${esc(opts.pre)}" />` : '';
+    html = html.replace(charset, `${charset}\n    <meta name="rondo-route" content="${esc(route)}" />${pre}`);
   }
   if (!html.includes('<div id="root"></div>')) throw new Error('prerender: no empty #root in index.html');
   return html.replace('<div id="root"></div>', `<div id="root">${body}</div>`);
@@ -275,9 +306,11 @@ export function prerenderPages(): Plugin {
       };
 
       const urls: string[] = ['/'];
-      write('/', fill(template, homeHead(), homePage(comps), ''));
+      const home = homePage(comps);
+      write('/', fill(template, homeHead(), home.body, '', { pre: home.pre }));
       for (const c of comps) {
-        write(compPath(c), fill(template, compHead(c), compPage(comps, c), c.code));
+        const hub = compPage(comps, c);
+        write(compPath(c), fill(template, compHead(c), hub.body, c.code, { pre: hub.pre }));
         urls.push(compPath(c));
         c.rounds.forEach((r, i) => {
           const head = roundHead(c, r, r.fixtures);

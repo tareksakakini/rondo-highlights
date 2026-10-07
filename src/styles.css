@@ -102,6 +102,11 @@ main { display: contents; }
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a97a6'%3E%3Cpath d='m7 10 5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 2px center / .62em;
 }
 .pre-ghost { visibility: hidden; }
+/* Home and competition pages: the build's current round, or placeholders when
+   scripts/early-data.js finds those cards are stale (html.pre-stale). */
+.pre-main, .pre-alt { display: contents; }
+.pre-alt, .pre-stale .pre-main { display: none; }
+.pre-stale .pre-alt { display: contents; }
 .round-select.pre-skel { border-radius: 12px; background: var(--surface); }
 .pre-more { margin-top: 28px; max-width: 760px; font-size: 14px; }
 .pre-more .comps { margin-top: 16px; }

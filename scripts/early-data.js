@@ -64,9 +64,26 @@
     };
 
     var saved = read('indexCache');
-    if (saved && saved.idx && Date.now() - saved.t < MAX_AGE) {
-      w.__rondoSavedIndex = saved.idx;
-      prefetch(saved.idx);
+    var savedIdx = saved && saved.idx && Date.now() - saved.t < MAX_AGE ? saved.idx : null;
+    if (savedIdx) {
+      w.__rondoSavedIndex = savedIdx;
+      prefetch(savedIdx);
+    }
+
+    // Home and competition pages show the cards of the round that was current at build
+    // time (<meta name="rondo-pre">). If this visitor will see another competition (the
+    // one viewed last, on home) or a saved index says the round has moved on, show the
+    // page's placeholders instead, before the first paint (scripts/prerender.ts).
+    var preMeta = document.querySelector('meta[name="rondo-pre"]');
+    if (preMeta && route) {
+      var pre = preMeta.content.split(' ');
+      var code = route[0] || read('comp');
+      var stale = !!code && code !== pre[0];
+      var known = savedIdx && savedIdx.competitions || [];
+      for (var j = 0; j < known.length; j++) {
+        if (known[j].code === pre[0] && known[j].currentRound && known[j].currentRound !== pre[1]) stale = true;
+      }
+      if (stale) document.documentElement.classList.add('pre-stale');
     }
     quiet(fresh.then(prefetch));
 
