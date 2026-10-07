@@ -7,14 +7,14 @@ import { prerenderPages } from './scripts/prerender';
 // Production builds read highlight data from the GitHub repo's `data` branch
 // (served by jsDelivr, raw.githubusercontent.com as fallback), so the scheduled
 // data refresh never has to redeploy the site.
-//   - VITE_DATA_BASE overrides everything (single base URL).
+//   - VITE_DATA_BASE overrides everything (one base URL, or several separated by commas).
 //   - REPOSITORY_URL is set automatically by Netlify builds (e.g. https://github.com/user/repo).
 //   - Otherwise (local dev/preview) use ./public/data.
 // `{ref}` is filled in at runtime: `data` (the branch) for index.json, and the
 // commit named in index.json (`rev`) for round files and crests, which never
 // change at a given commit and can be cached forever.
 function dataBases(): string[] {
-  if (process.env.VITE_DATA_BASE) return [process.env.VITE_DATA_BASE.replace(/\/$/, '')];
+  if (process.env.VITE_DATA_BASE) return process.env.VITE_DATA_BASE.split(',').map((b) => b.trim().replace(/\/$/, ''));
   const repo = process.env.REPOSITORY_URL?.match(/github\.com[/:]([^/]+\/[^/.]+)/)?.[1];
   if (repo) {
     return [
@@ -59,7 +59,8 @@ function earlyData(bases: string[]): Plugin {
         ...(origin ? [`<link rel="preconnect" href="${origin}" crossorigin />`, `<link rel="preconnect" href="${origin}" />`] : []),
         '<link rel="preconnect" href="https://i.ytimg.com" />',
       ];
-      return html.replace(CHARSET, `${CHARSET}\n    ${tags.join('\n    ')}`);
+      // A replacer function: the minified script can contain `$&`, which a replacement string would expand.
+      return html.replace(CHARSET, () => `${CHARSET}\n    ${tags.join('\n    ')}`);
     },
   };
 }

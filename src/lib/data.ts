@@ -22,7 +22,7 @@ declare global {
   }
 }
 
-let active = 0; // index into BASES that last worked
+let active = 0; // index into BASES that answered last (crest fallbacks are read there)
 let rev: string | null = null; // data-branch commit named by index.json
 let crestsRev: string | null = null; // where crests are read (see scripts/stamp-rev.mjs)
 const cache = new Map<string, Promise<unknown>>();
@@ -37,24 +37,57 @@ function takeEarly<T>(url: string): Promise<T> | undefined {
   return early;
 }
 
+async function get<T>(url: string, pinned: boolean, signal?: AbortSignal): Promise<T> {
+  const r = await fetch(url, { cache: pinned ? 'default' : 'no-cache', signal });
+  if (!r.ok) throw new Error(`${r.status} loading ${url.split('/').slice(-2).join('/')}`);
+  return (await r.json()) as T;
+}
+
+/** How long the first base (jsDelivr) gets before the next one is asked too. */
+const HEDGE_MS = 200;
+
+/**
+ * A data file, as a hedged request (as in scripts/early-data.js): ask jsDelivr; if it
+ * hasn't answered within HEDGE_MS or fails, ask raw.githubusercontent too, take the first
+ * good answer and cancel the rest. An uncached file took 0.4-11 s on jsDelivr and
+ * 0.1-0.35 s on GitHub (2026-10-07); GitHub throttles anonymous downloads, so it backs
+ * jsDelivr up rather than replacing it.
+ */
+function race<T>(path: string, ref: string, pinned: boolean): Promise<T> {
+  if (BASES.length === 1) return get<T>(`${baseAt(0, ref)}/${path}`, pinned);
+  return new Promise<T>((resolve, reject) => {
+    const ctrls: AbortController[] = [];
+    let failed = 0;
+    let next = 0;
+    let done = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const start = () => {
+      if (done || next >= BASES.length) return;
+      const i = next++;
+      ctrls[i] = new AbortController();
+      get<T>(`${baseAt(i, ref)}/${path}`, pinned, ctrls[i].signal).then((body) => {
+        done = true;
+        clearTimeout(timer);
+        active = i;
+        ctrls.forEach((c, j) => { if (j !== i) c.abort(); });
+        resolve(body);
+      }, (e: unknown) => {
+        if (++failed === BASES.length) reject(e);
+        else if (!done) { clearTimeout(timer); start(); }
+      });
+      timer = setTimeout(start, HEDGE_MS);
+    };
+    start();
+  });
+}
+
 async function fetchFrom<T>(path: string, ref: string, pinned: boolean): Promise<T> {
-  let lastError: unknown;
-  const early = takeEarly<T>(`${baseAt(active, ref)}/${path}`);
+  // scripts/early-data.js files its requests (also races) under the first base's URL.
+  const early = takeEarly<T>(`${baseAt(0, ref)}/${path}`);
   if (early) {
     try { return await early; } catch { /* fetch it again below */ }
   }
-  for (let i = active; i < BASES.length; i++) {
-    try {
-      const r = await fetch(`${baseAt(i, ref)}/${path}`, { cache: pinned ? 'default' : 'no-cache' });
-      if (!r.ok) throw new Error(`${r.status} loading ${path}`);
-      const json = (await r.json()) as T;
-      active = i;
-      return json;
-    } catch (e) {
-      lastError = e;
-    }
-  }
-  throw lastError;
+  return race<T>(path, ref, pinned);
 }
 
 function memo<T>(key: string, load: () => Promise<T>): Promise<T> {

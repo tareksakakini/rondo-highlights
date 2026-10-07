@@ -4,6 +4,9 @@
 // and src/lib/region.ts pick these requests up.
 //
 //   - index.json from the data branch (always revalidated);
+//   (from jsDelivr, and also from raw.githubusercontent when jsDelivr is slow to answer:
+//   see race() below; GitHub throttles anonymous downloads at limits it doesn't publish,
+//   so it backs jsDelivr up rather than replacing it)
 //   - the round file the page will show, and condensed.json, as soon as an index
 //     names the data commit (`rev`) they live at;
 //   - /geo.json (the visitor's country), unless this tab already knows it.
@@ -26,8 +29,44 @@
     if (!r.ok) throw new Error(r.status);
     return r.json();
   }
-  function url(ref, path) {
-    return BASES[0].replace('{ref}', ref) + '/' + path;
+  function url(ref, path, i) {
+    return BASES[i || 0].replace('{ref}', ref) + '/' + path;
+  }
+  // Hedged requests: ask the first base (jsDelivr); if it hasn't answered within HEDGE_MS
+  // or fails, ask the next one (raw.githubusercontent) too, take the first good answer and
+  // cancel the rest. An uncached file took 0.4-11 s on jsDelivr and 0.1-0.35 s on GitHub
+  // (2026-10-07); a cached one answers well within HEDGE_MS, so then GitHub isn't asked.
+  // Stored under the first base's URL, where src/lib/data.ts looks for it.
+  var HEDGE_MS = 200;
+  function race(ref, path, init) {
+    if (BASES.length < 2) return fetch(url(ref, path), init).then(json);
+    return new Promise(function (resolve, reject) {
+      var ctrls = [];
+      var failed = 0;
+      var next = 0;
+      var done = false;
+      var timer = null;
+      function start() {
+        if (done || next >= BASES.length) return;
+        var i = next++;
+        var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+        ctrls[i] = ctrl;
+        var opts = {};
+        for (var k in init) opts[k] = init[k];
+        if (ctrl) opts.signal = ctrl.signal;
+        fetch(url(ref, path, i), opts).then(json).then(function (body) {
+          done = true;
+          clearTimeout(timer);
+          ctrls.forEach(function (c, j) { if (c && j !== i) c.abort(); });
+          resolve(body);
+        }, function (e) {
+          if (++failed === BASES.length) reject(e);
+          else if (!done) { clearTimeout(timer); start(); }
+        });
+        timer = setTimeout(start, HEDGE_MS);
+      }
+      start();
+    });
   }
   function read(key) {
     try { return JSON.parse(localStorage.getItem('rondo:' + key)); } catch (e) { return null; }
@@ -37,7 +76,7 @@
     return p;
   }
   try {
-    var fresh = quiet(fetch(url('data', 'index.json'), { cache: 'no-cache' }).then(json));
+    var fresh = quiet(race('data', 'index.json', { cache: 'no-cache' }));
     w.__rondoIndex = fresh;
 
     var meta = document.querySelector('meta[name="rondo-route"]');
@@ -59,7 +98,7 @@
         var u = url(idx.rev, path);
         if (started[u]) return; // also when the app has already taken it
         started[u] = 1;
-        early[u] = quiet(fetch(u).then(json));
+        early[u] = quiet(race(idx.rev, path, {}));
       });
     };
 

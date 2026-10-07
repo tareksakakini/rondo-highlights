@@ -41,7 +41,7 @@ function setHead(html: string, head: Head, opts: { noindex?: boolean } = {}): st
   ];
   for (const [re, to] of swaps) {
     if (!re.test(html)) throw new Error(`prerender: index.html has no tag matching ${re}`);
-    html = html.replace(re, to);
+    html = html.replace(re, () => to);
   }
   return html;
 }
@@ -257,10 +257,11 @@ function fill(template: string, head: Head, body: string, route: string | null, 
     if (!html.includes(charset)) throw new Error('prerender: index.html has no charset meta');
     // `rondo-pre`: the round whose cards a home or competition page shows ("CODE ROUNDKEY").
     const pre = opts?.pre ? `\n    <meta name="rondo-pre" content="${esc(opts.pre)}" />` : '';
-    html = html.replace(charset, `${charset}\n    <meta name="rondo-route" content="${esc(route)}" />${pre}`);
+    html = html.replace(charset, () => `${charset}\n    <meta name="rondo-route" content="${esc(route)}" />${pre}`);
   }
   if (!html.includes('<div id="root"></div>')) throw new Error('prerender: no empty #root in index.html');
-  return html.replace('<div id="root"></div>', `<div id="root">${body}</div>`);
+  // Replacer functions here and above: page text may contain `$` patterns.
+  return html.replace('<div id="root"></div>', () => `<div id="root">${body}</div>`);
 }
 
 interface Model {
