@@ -306,18 +306,47 @@ a.comp { text-decoration: none; }
 .lbl-short { display: none; }
 @media (max-width: 899px) { .cond-toggle .toggle-text { display: none; } }
 .round-select { position: relative; min-width: 0; display: block; }
-.round-select select, .rs-sizer {
+.rs-button, .rs-sizer {
   display: block; font: inherit; font-weight: 800; font-stretch: 108%; font-size: var(--hl); letter-spacing: -0.02em; line-height: 1.15;
   padding: 2px calc(.62em + 10px) 2px 8px; white-space: nowrap;
 }
 .rs-sizer { visibility: hidden; overflow: hidden; }
-.round-select select {
-  appearance: none; position: absolute; inset: 0; width: 100%; color: color-mix(in srgb, var(--text) 78%, var(--bg)); text-overflow: ellipsis;
-  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a97a6'%3E%3Cpath d='m7 10 5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 2px center / .62em;
-  border: 0; border-radius: 12px; cursor: pointer;
+
+/* Round picker (RoundPicker): the competition picker's panel, holding the rounds. */
+.rs-button {
+  position: relative; width: 100%; max-width: 100%; text-align: left; cursor: pointer;
+  border: 0; border-radius: 12px; background: none; color: color-mix(in srgb, var(--text) 78%, var(--bg));
 }
-.round-select select:hover { background-color: var(--surface); }
-.round-select option { background: var(--surface); font-size: 15px; font-weight: 500; }
+.rs-button:hover, .round-select.is-open .rs-button { background: var(--surface); color: var(--text); }
+.rs-name { display: block; overflow: hidden; text-overflow: ellipsis; }
+.rs-button .cs-caret { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); }
+.round-select.is-open .cs-caret { transform: translateY(-50%) rotate(180deg); }
+.rp-panel .cs-grab + .cs-group .cs-label { margin-top: 4px; }
+.rp-tiles { display: grid; grid-template-columns: repeat(8, 42px); gap: 6px; padding: 0 2px 4px; }
+.rp-item { color: var(--text); text-decoration: none; border-radius: 10px; }
+.rp-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rp-tile {
+  display: grid; place-items: center; height: 40px; font-size: 14.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: rgb(255 255 255 / .06);
+}
+.rp-tile.is-upcoming { background: none; color: var(--muted); font-weight: 500; }
+.rp-tile:hover { background: rgb(255 255 255 / .12); color: var(--text); }
+.rp-row { display: flex; align-items: center; gap: 11px; padding: 9px 10px; font-weight: 650; font-size: 14.5px; }
+.rp-row.is-upcoming .rp-row-name { color: var(--muted); font-weight: 500; }
+.rp-row:hover { background: var(--surface-2); }
+.rp-row-name { white-space: nowrap; flex: none; }
+.rp-item[aria-current="page"] {
+  background: color-mix(in srgb, var(--c) 22%, transparent); color: var(--text);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 75%, transparent);
+}
+@media (min-width: 761px) {
+  .rp-panel { width: max-content; min-width: 260px; max-width: calc(100vw - 32px); max-height: min(520px, calc(100dvh - 140px)); overflow-y: auto; overscroll-behavior: contain; }
+}
+@media (max-width: 760px) {
+  .rp-tiles { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 7px; padding: 0 0 6px; }
+  .rp-tile { height: 46px; font-size: 16px; }
+  .rp-row { padding: 11px 10px; font-size: 15px; }
+}
 
 .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
 @media (min-width: 1100px) { .layout.with-aside .grid { grid-template-columns: repeat(auto-fill, minmax(235px, 1fr)); } }
