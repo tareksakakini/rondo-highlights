@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-07T01:34:49.891Z",
+ "generatedAt": "2026-10-09T22:41:02.974Z",
  "source": "live",
- "rev": "d2efb93fdfe9630730473649d8c21ec64d841e44",
+ "rev": "bb316d5afbca6fb75862dd818e7e89c4a842090e",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
  "competitions": [
   {
@@ -293,7 +293,7 @@
    "color": "#F97316",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-7",
+   "currentRound": "md-8",
    "rounds": [
     {
      "key": "md-1",
@@ -349,7 +349,7 @@
      "label": "Matchweek 8",
      "firstDate": "2026-10-09T19:00:00Z",
      "matches": 10,
-     "withHighlights": 0
+     "withHighlights": 1
     },
     {
      "key": "md-9",
@@ -853,7 +853,7 @@
    "color": "#EF4444",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-4",
+   "currentRound": "md-5",
    "rounds": [
     {
      "key": "md-1",
@@ -888,7 +888,7 @@
      "label": "Matchday 5",
      "firstDate": "2026-10-09T18:30:00Z",
      "matches": 9,
-     "withHighlights": 0
+     "withHighlights": 1
     },
     {
      "key": "md-6",
@@ -1105,7 +1105,7 @@
    "color": "#22C55E",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-5",
+   "currentRound": "md-6",
    "rounds": [
     {
      "key": "md-1",
@@ -1147,7 +1147,7 @@
      "label": "Matchweek 6",
      "firstDate": "2026-10-09T18:45:00Z",
      "matches": 9,
-     "withHighlights": 0
+     "withHighlights": 1
     },
     {
      "key": "md-7",
