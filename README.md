@@ -90,6 +90,23 @@ src/            React app (built with Preact, see below): App.tsx, components/, 
 docs/           landscape.md (competitor comparison)
 ```
 
+## Visitor analytics
+
+Our own, at **rondohighlights.com/stats**. It sets no cookies and stores no IP addresses.
+
+- **What's counted:** page views, including moving between rounds inside the app, plus a few events. These are Play buttons pressed (`play`), highlights started (`video`), highlights watched to the end (`finish`), matches added to the queue (`queue`) and settings changed (`setting`). `src/lib/track.ts` sends them from production builds to `/api/r`.
+- **Visitors:** a visitor is a hash of a random daily salt, the IP and the user agent. The same person is one visitor within a day, but can't be followed from one day to the next, so multi-day totals add up each day's visitors. Clients that don't run JavaScript (most bots) never send anything, and the collector also drops known bot user agents.
+- **Storage (Netlify Blobs, store `analytics`):**
+  - `netlify/functions/collect.mjs` saves each hit as its own entry, so hits arriving together never overwrite each other.
+  - `compact.mjs` (scheduled hourly) folds them into one totals record per day and deletes them.
+  - `stats.mjs` (`/api/stats`) reads the totals plus hits not folded yet.
+  - The counting logic is in `netlify/lib/analytics.mjs`, tested by `tests/analytics.test.mjs`.
+- **Setup:** set these in Netlify under Project configuration → Environment variables:
+  - `STATS_KEY`: any long random string. The stats page asks for it once per browser.
+  - `STATS_TZ` (optional): an IANA time zone like `America/Los_Angeles`, so days run midnight to midnight there. The default is UTC.
+- **Your own visits:** opening `/stats` with the key marks that browser `rondo:notrack`, so your own browsing isn't counted.
+- **Trying it locally:** run `npm run build`, then `STATS_KEY=… netlify dev --offline --framework '#static' --dir dist` (Node 22). That serves the built site with the functions and a local blob store. Nothing is sent from `npm run dev`.
+
 ## YouTube embed rules we follow
 
 - One player on the page.

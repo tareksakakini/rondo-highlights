@@ -4,11 +4,12 @@ import { fetchCondensed, fetchRound, loadIndex } from './lib/data';
 import type { CondensedMap } from './lib/moments';
 import { cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
 import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
-import { initialPlayback, playbackReducer } from './lib/playback';
+import { initialPlayback, playbackReducer, type Action } from './lib/playback';
 import { usePersistentState } from './lib/storage';
 import { describeYtError } from './lib/youtube';
 import { compHead, compHeading, compPath, homeHead, legacyHash, resolvePath, roundHead, roundHeading, roundPath } from './lib/routes';
 import { applyHead } from './lib/head';
+import { track, trackView } from './lib/track';
 import { Logo } from './components/Logo';
 import { CompSwitcher } from './components/CompSwitcher';
 import { RoundPicker } from './components/RoundPicker';
@@ -38,6 +39,16 @@ function useMedia(query: string) {
     return () => mq.removeEventListener('change', update);
   }, [query]);
   return on;
+}
+
+/** Report a setting when the visitor changes it (not the value it loads with). `name`: a-z, up to 12 letters. */
+function useTrackSetting(name: string, value: string) {
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    track('setting', { [name]: value });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 }
 
 /** Which kind of page the URL names: the app shows a round on all three. */
@@ -84,6 +95,11 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   const detectedFrom: 'network' | 'timezone' | null = netRegion ? 'network' : tzRegion ? 'timezone' : null;
   const [regionOverride, setRegionOverride] = usePersistentState('region', '');
   const region = regionOverride || detected;
+  useTrackSetting('length', pref);
+  useTrackSetting('condense', autoCondense ? 'on' : 'off');
+  useTrackSetting('spoilers', spoilerFree ? 'hidden' : 'shown');
+  useTrackSetting('autoplay', autoplay ? 'on' : 'off');
+  useTrackSetting('country', regionOverride || 'auto');
   const [embedErrors, setEmbedErrors] = useState(0);
   // Channels whose embeds failed with 101/150, per country, remembered for a week.
   const [embedBlocked, setEmbedBlocked] = usePersistentState<Record<string, Record<string, number>>>('embedBlocked', {});
@@ -269,6 +285,10 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     else applyHead(roundHead(comp, roundMeta, fixtures));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, comp, roundMeta, fixturesKey]);
+  // A page view once the URL is settled (old links and unknown paths are rewritten on load).
+  useEffect(() => {
+    if (index || loadError) trackView(location.pathname);
+  }, [index, loadError, page, compCode, roundKey]);
   const heading = page === 'home' || !comp ? 'Football highlights, back to back'
     : page === 'comp' || !roundMeta ? compHeading(comp) : roundHeading(comp, roundMeta);
 
@@ -333,16 +353,25 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   };
   /** Play what's queued (nothing playing yet). */
   const playQueue = () => {
+    track('play', { from: 'queue', comp: pb.queue[0]?.comp.code });
     dispatch({ type: 'next' });
     toStage();
   };
+  /** The Up next panel's own controls: starting a match from the queue counts as a play. */
+  const queueDispatch = (a: Action) => {
+    if (a.type === 'playQueued') track('play', { from: 'queue', comp: pb.queue.find((q) => q.uid === a.uid)?.comp.code });
+    else if (a.type === 'next' && !pb.current) track('play', { from: 'queue', comp: pb.queue[0]?.comp.code });
+    dispatch(a);
+  };
   /** Play all: the round from its first match, the rest of it at the front of the queue. */
   const playAll = () => {
+    track('play', { from: 'all', comp: comp?.code });
     dispatch({ type: 'playRound', items: playable.map((m) => toItem(m, pins[m.id])), start: 0 });
     toStage();
   };
   /** Play on one card: just that match; the queue carries on after it. */
   const playMatch = (m: Match, kind?: Kind) => {
+    track('play', { from: 'card', comp: comp?.code });
     dispatch({ type: 'playOne', item: toItem(m, kind ?? pins[m.id]) });
     toStage(m.id);
   };
@@ -352,12 +381,14 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
       setToast(`Removed ${matchTitle(m)} from the queue`);
       return;
     }
+    track('queue', { from: 'card', comp: comp?.code });
     dispatch({ type: 'enqueue', items: [toItem(m, kind)] });
     setToast(`Queued ${matchTitle(m)}`);
   };
   const queueAll = () => {
     const inQueue = new Set(pb.queue.map((q) => q.match.id));
     const adding = playable.filter((m) => !inQueue.has(m.id) && m.id !== pb.current?.match.id);
+    if (adding.length) track('queue', { from: 'all', comp: comp?.code });
     dispatch({ type: 'enqueue', items: adding.map((m) => toItem(m, pins[m.id])) });
     setToast(adding.length ? `Queued ${adding.length} matches from ${round!.round.label}` : 'Already in your queue');
   };
@@ -392,7 +423,23 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
 
   useEffect(() => setRevealTitle(false), [current?.uid]);
 
-  const onEnded = useCallback(() => { if (autoplay) dispatch({ type: 'next' }); }, [autoplay]);
+  // Each match that starts playing counts once, whatever started it (a button, autoplay,
+  // Next); a cut that fails and is replaced by another isn't a second one.
+  const playing = current && picked ? { comp: current.comp.code, cut: cutKind(picked) } : null;
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+  const trackedUid = useRef<string | null>(null);
+  useEffect(() => {
+    if (!current || !playing || trackedUid.current === current.uid) return;
+    trackedUid.current = current.uid;
+    track('video', playing);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.uid, !!playing]);
+
+  const onEnded = useCallback(() => {
+    if (playingRef.current) track('finish', playingRef.current);
+    if (autoplay) dispatch({ type: 'next' });
+  }, [autoplay]);
   const onError = useCallback(
     (code: number) => {
       if (!video) return;
@@ -676,14 +723,18 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
             {narrow && !current ? (
               <QueueBar state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} onPlay={playQueue} onClear={() => dispatch({ type: 'clearQueue' })} />
             ) : hasUpNext ? (
-              <UpNext state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} dispatch={dispatch} />
+              <UpNext state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} dispatch={queueDispatch} />
             ) : (
               <QueueSuggestions
                 items={suggestions}
                 roundName={comp && round ? `${comp.short ?? comp.name} · ${round.round.label}` : 'this round'}
                 pref={pref} condensed={cmap} region={region} avoid={avoid}
-                onPlay={(it) => dispatch({ type: 'playOne', item: it })}
-                onQueue={(it) => { dispatch({ type: 'enqueue', items: [it] }); setToast(`Queued ${matchTitle(it.match)}`); }}
+                onPlay={(it) => { track('play', { from: 'suggestion', comp: it.comp.code }); dispatch({ type: 'playOne', item: it }); }}
+                onQueue={(it) => {
+                  track('queue', { from: 'suggestion', comp: it.comp.code });
+                  dispatch({ type: 'enqueue', items: [it] });
+                  setToast(`Queued ${matchTitle(it.match)}`);
+                }}
                 onQueueAll={queueAll}
               />
             )}

@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Rondo stats</title>
+<link rel="icon" type="image/svg+xml" href="/logo.svg" />
+<!--
+  Private dashboard for our own analytics (netlify/functions/stats.mjs, which needs the
+  STATS_KEY set in Netlify). The key is kept in this browser's localStorage, and opening
+  this page marks the browser rondo:notrack so your own visits aren't counted.
+-->
+<style>
+  :root {
+    --bg: #0b0f14; --surface: #121821; --surface-2: #19212c; --line: #243040;
+    --text: #e8eef4; --muted: #8a97a6; --accent: #c8f550; --accent-dim: #5d7225; --danger: #ff6b6b;
+    --radius: 14px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    padding: 24px 16px 48px;
+  }
+  main { max-width: 1040px; margin: 0 auto; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; margin-bottom: 20px; }
+  h1 { font-size: 22px; margin: 0; }
+  h1 a { color: inherit; text-decoration: none; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  button, input {
+    font: inherit; color: inherit; background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 999px; padding: 7px 14px;
+  }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button.on { background: var(--accent); color: #11160a; border-color: var(--accent); font-weight: 600; }
+  .ranges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .grid { display: grid; gap: 14px; }
+  .kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 14px; }
+  .kpi .label { font-size: 13px; color: var(--muted); }
+  .kpi .value { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .kpi .note { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .two { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 14px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td { padding: 5px 0; border-top: 1px solid var(--line); vertical-align: top; }
+  tr:first-child td { border-top: 0; }
+  td.n { text-align: right; padding-left: 12px; white-space: nowrap; }
+  td.k { word-break: break-word; position: relative; }
+  td.k .bar { position: absolute; inset: 3px auto 3px 0; background: var(--surface-2); border-radius: 4px; z-index: 0; }
+  td.k span { position: relative; z-index: 1; padding-left: 6px; }
+  .empty { color: var(--muted); font-size: 13px; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .login { max-width: 420px; margin: 12vh auto 0; }
+  .login form { display: flex; gap: 8px; margin-top: 14px; }
+  .login input { flex: 1; min-width: 0; border-radius: 10px; }
+  .err { color: var(--danger); margin-top: 10px; font-size: 14px; }
+  .sub { margin-top: 18px; }
+  .sub h3 { font-size: 13px; margin: 0 0 6px; font-weight: 600; }
+  footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
+  footer button { padding: 4px 10px; font-size: 13px; }
+</style>
+</head>
+<body>
+<main id="app"><p class="muted">Loading…</p></main>
+<script>
+(() => {
+  const KEY = 'rondo:stats-key';
+  const app = document.getElementById('app');
+  const store = {
+    get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+    del: (k) => { try { localStorage.removeItem(k); } catch {} },
+  };
+  let days = Number(store.get('rondo:stats-days')) || 7;
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = (n) => Number(n).toLocaleString('en-US');
+  const pct = (a, b) => (b ? `${Math.round((100 * a) / b)}%` : '–');
+  let regionNames = null;
+  try { regionNames = new Intl.DisplayNames(['en'], { type: 'region' }); } catch {}
+  const country = (cc) => {
+    if (!/^[A-Z]{2}$/.test(cc)) return 'Unknown';
+    try { return regionNames?.of(cc) ?? cc; } catch { return cc; }
+  };
+  const COMPS = { PL: 'Premier League', PD: 'La Liga', SA: 'Serie A', BL1: 'Bundesliga', FL1: 'Ligue 1', CL: 'Champions League', EL: 'Europa League', UNL: 'Nations League', WC: 'World Cup', EC: 'Euros' };
+  const LABELS = {
+    from: { all: 'Play all', card: 'A match card', queue: 'The queue', suggestion: 'A suggestion' },
+    cut: { short: 'Short', extended: 'Extended', condensed: 'Auto-condensed' },
+  };
+  const label = (prop, v) => (prop === 'comp' ? COMPS[v] ?? v : prop === 'country' && v !== 'auto' ? country(v) : LABELS[prop]?.[v] ?? v);
+
+  function login(error) {
+    app.innerHTML = `
+      <div class="login card">
+        <h1>Rondo stats</h1>
+        <p class="muted small">Enter the key you set as <code>STATS_KEY</code> in Netlify. It's kept in this browser, and visits from this browser stop being counted.</p>
+        <form><input type="password" autocomplete="current-password" placeholder="Stats key" required /><button class="on">Open</button></form>
+        ${error ? `<div class="err">${esc(error)}</div>` : ''}
+      </div>`;
+    const form = app.querySelector('form');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      store.set(KEY, form.querySelector('input').value.trim());
+      load();
+    });
+    form.querySelector('input').focus();
+  }
+
+  async function load() {
+    const key = store.get(KEY);
+    if (!key) return login();
+    let res;
+    try {
+      res = await fetch(`/api/stats?days=${days}`, { headers: { Authorization: `Bearer ${key}` } });
+    } catch {
+      return login('Could not reach the stats endpoint.');
+    }
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 401) { store.del(KEY); return login('That key is wrong.'); }
+    if (!res.ok) return login(body.error || `Error ${res.status}`);
+    store.set('rondo:notrack', '1');
+    render(body);
+  }
+
+  function table(rows, fmt = (k) => k, empty = 'Nothing yet') {
+    if (!rows || !rows.length) return `<div class="empty">${empty}</div>`;
+    const max = rows[0][1] || 1;
+    return `<table>${rows.map(([k, n]) => `
+      <tr><td class="k"><div class="bar" style="width:${Math.max(2, (100 * n) / max)}%"></div><span>${esc(fmt(k))}</span></td><td class="n">${num(n)}</td></tr>`).join('')}</table>`;
+  }
+
+  function chart(daily) {
+    const W = 960, H = 220, top = 10, bottom = 26, left = 34;
+    const max = Math.max(4, ...daily.map((d) => d.visitors));
+    const step = Math.pow(10, Math.floor(Math.log10(max)));
+    const ceil = Math.ceil(max / step) * step;
+    const y = (v) => top + (H - top - bottom) * (1 - v / ceil);
+    const bw = (W - left) / daily.length;
+    const barW = Math.max(2, Math.min(36, bw * 0.7));
+    const ticks = [0, ceil / 2, ceil];
+    const every = Math.ceil(daily.length / 10);
+    const bars = daily.map((d, i) => {
+      const x = left + i * bw + (bw - barW) / 2;
+      const day = new Date(`${d.day}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+      return `
+        <g><title>${day}: ${d.visitors} visitors, ${d.watchers} watched highlights, ${d.views} page views</title>
+          <rect x="${x}" y="${y(d.visitors)}" width="${barW}" height="${y(0) - y(d.visitors)}" rx="3" fill="var(--accent-dim)" />
+          <rect x="${x}" y="${y(d.watchers)}" width="${barW}" height="${y(0) - y(d.watchers)}" rx="3" fill="var(--accent)" />
+          ${i % every === 0 ? `<text x="${x + barW / 2}" y="${H - 6}" text-anchor="middle" font-size="12" fill="var(--muted)">${day}</text>` : ''}
+        </g>`;
+    }).join('');
+    const grid = ticks.map((t) => `
+      <line x1="${left}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" />
+      <text x="${left - 8}" y="${y(t) + 4}" text-anchor="end" font-size="12" fill="var(--muted)">${num(t)}</text>`).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitors per day">${grid}${bars}</svg>`;
+  }
+
+  function eventBlock(ev, props) {
+    if (!ev) return '<div class="empty">Nothing yet</div>';
+    return props.filter(([p]) => ev.by[p]?.length).map(([p, title]) => `
+      <div class="sub"><h3>${title}</h3>${table(ev.by[p], (v) => label(p, v))}</div>`).join('') || '<div class="empty">Nothing yet</div>';
+  }
+
+  function render(s) {
+    const t = s.totals;
+    const ev = s.events;
+    const finished = ev.finish?.n ?? 0;
+    const settings = ev.setting ? Object.entries(ev.setting.by).flatMap(([name, vals]) => vals.map(([v, n]) => [`${name}: ${label(name, v)}`, n])).sort((a, b) => b[1] - a[1]) : [];
+    const range = (n, text) => `<button data-days="${n}" class="${days === n ? 'on' : ''}">${text}</button>`;
+    app.innerHTML = `
+      <header>
+        <h1><a href="/">Rondo</a> stats</h1>
+        <div class="ranges">${range(1, 'Today')}${range(7, '7 days')}${range(30, '30 days')}${range(90, '90 days')}</div>
+      </header>
+
+      <div class="grid kpis">
+        <div class="card kpi"><div class="label">Visitors</div><div class="value">${num(t.visitors)}</div><div class="note">${days > 1 ? 'Added up day by day' : 'Today'}</div></div>
+        <div class="card kpi"><div class="label">Watched highlights</div><div class="value">${num(t.watchers)}</div><div class="note">${pct(t.watchers, t.visitors)} of visitors</div></div>
+        <div class="card kpi"><div class="label">Highlights started</div><div class="value">${num(t.videos)}</div><div class="note">${t.watchers ? (t.videos / t.watchers).toFixed(1) : '–'} per watcher</div></div>
+        <div class="card kpi"><div class="label">Watched to the end</div><div class="value">${pct(finished, t.videos)}</div><div class="note">${num(finished)} of ${num(t.videos)}</div></div>
+        <div class="card kpi"><div class="label">Page views</div><div class="value">${num(t.views)}</div><div class="note">${t.visitors ? (t.views / t.visitors).toFixed(1) : '–'} per visitor</div></div>
+        <div class="card kpi"><div class="label">Left after one page</div><div class="value">${pct(t.oneView, t.visitors)}</div><div class="note">Saw one page, played nothing</div></div>
+      </div>
+
+      <div class="card chart">
+        <h2>Visitors per day</h2>
+        <div class="legend"><span><i style="background:var(--accent-dim)"></i>Visitors</span><span><i style="background:var(--accent)"></i>Watched highlights</span></div>
+        ${chart(s.daily)}
+      </div>
+
+      <div class="grid two">
+        <div class="card"><h2>Where visitors came from</h2>${table(s.refs, (k) => k, 'No other sites yet')}<p class="muted small">Landings with no referring site (typed, bookmarks, apps) aren't listed.</p></div>
+        <div class="card"><h2>Landing pages</h2>${table(s.entries)}</div>
+        <div class="card"><h2>Pages viewed</h2>${table(s.pages)}</div>
+        <div class="card"><h2>Countries</h2>${table(s.countries, country)}</div>
+        <div class="card"><h2>Highlights started</h2>${eventBlock(ev.video, [['comp', 'By competition'], ['cut', 'By cut']])}</div>
+        <div class="card"><h2>Play buttons pressed</h2>${eventBlock(ev.play, [['from', 'From'], ['comp', 'By competition']])}</div>
+        <div class="card"><h2>Added to the queue</h2>${eventBlock(ev.queue, [['from', 'From'], ['comp', 'By competition']])}</div>
+        <div class="card"><h2>Devices and settings</h2>${table(s.devices, (d) => d[0].toUpperCase() + d.slice(1))}
+          <div class="sub"><h3>Settings changed</h3>${table(settings, (k) => k, 'None changed')}</div></div>
+      </div>
+
+      <footer>
+        Days run midnight to midnight ${esc(s.tz ? s.tz.replace(/_/g, ' ') + ' time' : 'UTC')}. A visitor is counted once a day: the same person on two days counts twice.
+        Bots that don't run JavaScript aren't counted. Visits from this browser are not counted.
+        <button id="forget">Forget key</button>
+      </footer>`;
+    app.querySelectorAll('[data-days]').forEach((b) => b.addEventListener('click', () => {
+      days = Number(b.dataset.days);
+      store.set('rondo:stats-days', String(days));
+      load();
+    }));
+    app.querySelector('#forget').addEventListener('click', () => { store.del(KEY); login(); });
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
