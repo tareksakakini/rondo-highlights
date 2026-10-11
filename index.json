@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-11T21:08:45.966Z",
+ "generatedAt": "2026-10-11T21:19:00.021Z",
  "source": "live",
- "rev": "8405c43a2eebd0052f515998179e48cef3f9aab0",
+ "rev": "dbf6a2fcae9aa5384994b3963bb759d0a1c90c07",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
  "competitions": [
   {
@@ -1147,7 +1147,7 @@
      "label": "Matchweek 6",
      "firstDate": "2026-10-09T18:45:00Z",
      "matches": 9,
-     "withHighlights": 8
+     "withHighlights": 9
     },
     {
      "key": "md-7",
