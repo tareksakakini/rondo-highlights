@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-11T00:16:37.786Z",
+ "generatedAt": "2026-10-11T14:14:15.034Z",
  "source": "live",
- "rev": "615903b1a1986fcffbae8fdd3aa5ae279d3f5404",
+ "rev": "7d3a047573e150cd6e9ec274a6aeca01858de588",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
  "competitions": [
   {
@@ -300,21 +300,21 @@
      "label": "Matchweek 1",
      "firstDate": "2026-08-15T17:30:00Z",
      "matches": 10,
-     "withHighlights": 9
+     "withHighlights": 10
     },
     {
      "key": "md-2",
      "label": "Matchweek 2",
      "firstDate": "2026-08-20T19:00:00Z",
      "matches": 10,
-     "withHighlights": 9
+     "withHighlights": 10
     },
     {
      "key": "md-3",
      "label": "Matchweek 3",
      "firstDate": "2026-08-28T17:00:00Z",
      "matches": 10,
-     "withHighlights": 9
+     "withHighlights": 10
     },
     {
      "key": "md-6",
@@ -328,28 +328,28 @@
      "label": "Matchweek 4",
      "firstDate": "2026-09-04T19:00:00Z",
      "matches": 10,
-     "withHighlights": 9
+     "withHighlights": 10
     },
     {
      "key": "md-5",
      "label": "Matchweek 5",
      "firstDate": "2026-09-11T19:00:00Z",
      "matches": 10,
-     "withHighlights": 9
+     "withHighlights": 10
     },
     {
      "key": "md-7",
      "label": "Matchweek 7",
      "firstDate": "2026-09-18T19:00:00Z",
      "matches": 10,
-     "withHighlights": 9
+     "withHighlights": 10
     },
     {
      "key": "md-8",
      "label": "Matchweek 8",
      "firstDate": "2026-10-09T19:00:00Z",
      "matches": 10,
-     "withHighlights": 4
+     "withHighlights": 5
     },
     {
      "key": "md-9",
@@ -615,7 +615,7 @@
      "label": "Matchweek 6",
      "firstDate": "2026-10-10T13:00:00Z",
      "matches": 10,
-     "withHighlights": 3
+     "withHighlights": 4
     },
     {
      "key": "md-7",
@@ -1147,7 +1147,7 @@
      "label": "Matchweek 6",
      "firstDate": "2026-10-09T18:45:00Z",
      "matches": 9,
-     "withHighlights": 5
+     "withHighlights": 6
     },
     {
      "key": "md-7",
@@ -1364,7 +1364,7 @@
      "label": "League phase · MD 1",
      "firstDate": "2026-09-08T16:45:00Z",
      "matches": 18,
-     "withHighlights": 17
+     "withHighlights": 18
     },
     {
      "key": "md-2",
