@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-11T21:19:00.021Z",
+ "generatedAt": "2026-10-11T22:08:49.313Z",
  "source": "live",
- "rev": "b5c7bd9da8c9d4476f8a953475f6a69b41584d9e",
+ "rev": "7bcf2983a6f09c9aaa6172d1bdfc6ea08cdd0a6c",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
  "competitions": [
   {
@@ -888,7 +888,7 @@
      "label": "Matchday 5",
      "firstDate": "2026-10-09T18:30:00Z",
      "matches": 9,
-     "withHighlights": 5
+     "withHighlights": 9
     },
     {
      "key": "md-6",
