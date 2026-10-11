@@ -4,15 +4,22 @@ name: Refresh clock
 # while matches finish, every few hours otherwise, a full run once a day. See
 # scripts/refresh-clock.mjs and scripts/lib/refresh-plan.mjs.
 #
-# GitHub drops many scheduled runs when it's busy, so this schedule is dense and
-# each tick is cheap (no npm install, no API quota). While matches are finishing,
-# a tick stays awake and keeps checking instead of waiting for the next tick to
-# turn up. A tick that finds another clock already awake exits at once.
+# GitHub drops many scheduled runs when it's busy (and once fired none for the
+# first 4 hours), so a clock doesn't wait for the next tick: it stays on duty for
+# 5 hours, then starts the next clock itself. The dense schedule below is the
+# backup that restarts the relay if it breaks; each tick is cheap (no npm install,
+# no API quota) and exits at once when a clock is already on duty. If no clock
+# runs at all, refresh-data.yml's own 3-hourly backup timer still refreshes.
 
 on:
   schedule:
     - cron: '3-59/10 * * * *'   # every 10 minutes, off the busy top of the hour
   workflow_dispatch:
+    inputs:
+      takeover:
+        description: 'Run id of the clock handing over (filled in by the clock; leave blank).'
+        required: false
+        default: ''
 
 permissions:
   actions: write   # start refresh-data.yml (and see which runs are going)
@@ -21,7 +28,7 @@ permissions:
 jobs:
   tick:
     runs-on: ubuntu-latest
-    timeout-minutes: 330   # stays awake at most 300 min (MAX_AWAKE_MIN)
+    timeout-minutes: 330   # on duty 300 min (MAX_AWAKE_MIN), then hands over
     steps:
       - uses: actions/checkout@v4
 
@@ -32,4 +39,5 @@ jobs:
       - name: Start a refresh if one is due
         env:
           GH_TOKEN: ${{ github.token }}
+          TAKEOVER: ${{ inputs.takeover }}
         run: node scripts/refresh-clock.mjs

@@ -4,12 +4,16 @@
 //
 // GitHub's scheduled runs are best-effort: a 2-hourly schedule ran about every 6 hours
 // (up to 9.5 h apart) in late September 2026. So the clock's schedule is dense (every
-// 10 minutes, and it's fine if many of those are dropped), each tick is cheap (no npm
-// install, no API quota), and while matches are finishing the tick stays awake and keeps
-// checking every few minutes instead of relying on the next tick turning up.
+// 10 minutes, and it's fine if many of those are dropped) and each tick is cheap (no npm
+// install, no API quota). Even so, a brand-new schedule went 4 hours without a single tick
+// on 11 October 2026. So the scheduler only has to start the clock once: a clock stays on
+// duty for MAX_AWAKE_MIN, checking whenever something could become due, then starts its
+// own successor and exits. The scheduled ticks are the backup if that relay breaks, and
+// refresh-data.yml has a 3-hourly backup timer of its own for when no clock is running.
 //
 // When to refresh comes from the fixtures already on the data branch (lib/refresh-plan.mjs).
-// Only one clock is on duty at a time: a tick that finds an older clock running exits.
+// Only one clock is on duty at a time: a tick that finds an older clock running exits
+// (except the one that handed over to it, which is on its way out).
 //
 //   node scripts/refresh-clock.mjs           (in Actions: needs GH_TOKEN with actions: write)
 //   node scripts/refresh-clock.mjs --dry     (print the plan, start nothing; works locally with gh)
@@ -22,11 +26,14 @@ const REFRESH = 'refresh-data.yml';
 const CLOCK = 'refresh-clock.yml';
 const ref = process.env.GITHUB_REF_NAME || 'main';
 const myRun = Number(process.env.GITHUB_RUN_ID || 0);
+const takeover = Number(process.env.TAKEOVER || 0);
 
-// Stay awake while the next check is at most this far off; past that, leave it to the
-// next scheduled tick. The job's timeout (refresh-clock.yml) is above MAX_AWAKE_MIN.
-const STAY_AWAKE_MIN = 25;
+// On duty this long, then hand over to a fresh clock run. The job's timeout
+// (refresh-clock.yml) is above MAX_AWAKE_MIN; GitHub stops any job at 6 h.
 const MAX_AWAKE_MIN = 300;
+// Look again at least this often, even when the plan says nothing is due for hours
+// (a refresh started by hand or new fixtures can change the plan).
+const CHECK_EVERY_MIN = 30;
 // If the data branch can't be read, still refresh at least this often.
 const FALLBACK_EVERY_H = 2;
 
@@ -90,10 +97,23 @@ function start(p) {
   log(`started a ${p.mode} refresh${p.only ? ` of ${p.only.join(', ')}` : ''}: ${p.reason}`);
 }
 
+/** Start the next clock run, telling it this one is on its way out. */
+function handOver() {
+  if (!myRun) { log('on duty long enough'); return; }
+  try {
+    gh('workflow', 'run', CLOCK, '--ref', ref, '-f', `takeover=${myRun}`);
+    log('on duty long enough: started the next clock');
+  } catch (e) {
+    log(`! could not start the next clock (${e.stderr?.toString().trim() || e.message}); the scheduled ticks will take over`);
+  }
+}
+
 async function main() {
   if (myRun && !dry) {
-    const older = runs(CLOCK, 20).filter((r) => r.status === 'in_progress' && r.databaseId < myRun);
+    const older = runs(CLOCK, 20)
+      .filter((r) => r.status === 'in_progress' && r.databaseId < myRun && r.databaseId !== takeover);
     if (older.length) { log(`clock run ${older[0].databaseId} is already on duty`); return; }
+    if (takeover) log(`taking over from clock run ${takeover}`);
   }
   for (;;) {
     const p = await plan();
@@ -101,12 +121,13 @@ async function main() {
     if (p.due && p.active) log(`refresh due (${p.reason}), but one is already running`);
     else if (p.due) start(p);
     else log(`nothing due; next check ${when}Z`);
+    if (dry) break;
 
-    const wait = p.nextAt - Date.now();
-    if (dry || wait > STAY_AWAKE_MIN * 60e3) break;
-    if (Date.now() + wait - started > MAX_AWAKE_MIN * 60e3) { log('awake long enough, handing over to the next tick'); break; }
+    const left = started + MAX_AWAKE_MIN * 60e3 - Date.now();
+    if (left <= 0) { handOver(); break; }
     // A refresh is already running: look again soon rather than at the planned time.
-    await sleep(p.due && p.active ? 3 * 60e3 : Math.max(wait, 60e3));
+    const wait = p.due && p.active ? 3 * 60e3 : Math.max(p.nextAt - Date.now(), 60e3);
+    await sleep(Math.min(wait, CHECK_EVERY_MIN * 60e3, left));
   }
 }
 

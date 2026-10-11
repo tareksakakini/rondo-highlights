@@ -153,10 +153,10 @@ Highlights go up about 20–60 minutes after full time, so the refresh follows t
 
 Quick runs carry on from each channel's last read and read club and federation channels at most every 30 min. The full run catches anything they missed, and re-matches recent videos after a matcher fix.
 
-GitHub's scheduled runs are best-effort (a 2-hourly schedule ran about every 6 hours in September 2026), so the clock is scheduled every 10 minutes, and dropped ticks don't matter. Each tick takes seconds and no API quota. While matches are finishing, a tick stays awake (up to 5 hours) and keeps checking, rather than waiting for the next tick to turn up. A tick that finds another clock awake exits. Each refresh's title in the Actions tab says why it ran ("Refresh data · quick · just finished: Man United v Tottenham"), and its summary lists the new highlights.
+GitHub's scheduled runs are best-effort (a 2-hourly schedule ran about every 6 hours in September 2026), so the clock doesn't rely on them: a clock run stays on duty for 5 hours, checking whenever something could become due, then starts the next clock run itself. The clock is also scheduled every 10 minutes as a backup that restarts the relay if it breaks; a tick takes seconds and no API quota, and exits at once when a clock is already on duty. If no clock is running at all, *Refresh data* falls back to its own backup timer (every 3 h, full at 03:17 UTC); those runs cancel themselves while a clock is on duty. Each refresh's title in the Actions tab says why it ran ("Refresh data · quick · just finished: Man United v Tottenham"), and its summary lists the new highlights.
 
 - Refresh now: `npm run refresh` (a full run; needs the GitHub CLI, `gh`, signed in). Add `-- -f mode=quick` for a quick one.
 - See what the clock would do, without starting anything: `node scripts/refresh-clock.mjs --dry`.
-- To pause refreshes, disable the *Refresh clock* workflow in the Actions tab.
+- To pause refreshes, disable both the *Refresh clock* and *Refresh data* workflows in the Actions tab (with only the clock disabled, the backup timer still refreshes every 3 h).
 - For local development, `npm run ingest` or `npm run sample` writes `public/data/`, which is gitignored on `main`.
 - **Attribution:** football-data.org requires "Football data provided by the Football-Data.org API" to be shown on the site. It's in the footer, next to a credit for Highlightly.
