@@ -23,7 +23,7 @@ for (const v of seed.videos) {
 const videosById = new Map(seed.videos.map((v) => [v.videoId, v]));
 const iso = (s) => `PT${Math.floor(s / 60)}M${s % 60}S`;
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
-const calls = { fd: 0, yt: 0, hl: 0 };
+const calls = { fd: 0, yt: 0, hl: 0, ytChannels: 0 };
 const HL_LEAGUES = { 3337: 'EL', 5039: 'UNL' };
 
 globalThis.fetch = async (input, init) => {
@@ -48,6 +48,7 @@ globalThis.fetch = async (input, init) => {
     calls.yt++;
     const ep = u.pathname.split('/').pop();
     if (ep === 'channels') {
+      calls.ytChannels++;
       const h = u.searchParams.get('forHandle').toLowerCase();
       const c = byHandle.get(h);
       return json({ items: c ? [{ id: `UC_${h}`, snippet: { title: c.title }, contentDetails: { relatedPlaylists: { uploads: `UU_${h}` } } }] : [] });
@@ -86,7 +87,7 @@ globalThis.Date = class extends RealDate {
 process.env.FOOTBALL_DATA_KEY = 'x';
 process.env.YOUTUBE_API_KEY = 'y';
 process.env.HIGHLIGHTLY_API_KEY = 'z';
-process.argv = [process.argv[0], 'ingest', '--since=2026-09-01'];
+process.argv = [process.argv[0], 'ingest', ...(process.env.INGEST_ARGS ?? '--since=2026-09-01').split(' ')];
 // ingest.mjs starts main() without awaiting it, so report once everything it started has
 // finished: 'beforeExit' fires when the event loop is empty. (A fixed wait was too short on
 // busy CI runners.) If ingest fails it calls process.exit(1), which skips this.

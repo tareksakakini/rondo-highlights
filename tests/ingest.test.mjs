@@ -27,5 +27,21 @@ test('ingest end-to-end against mocked APIs; a second run changes nothing', () =
   const again = run({ KEEP: '1', HL_DOWN: '1' });
   assert.equal(Number(again.match(/hl: (\d+)/)[1]), 0, 'cached fixtures are reused');
   assert.equal(fs.readFileSync(indexPath, 'utf8'), before);
+  const calls = (o) => Object.fromEntries([...o.matchAll(/(\w+): (\d+)/g)].map(([, k, v]) => [k, Number(v)]));
+  const first = calls(out);
+  const channels = JSON.parse(fs.readFileSync(path.join(dir, 'public/data/cache/channels.json'), 'utf8'));
+  assert.ok(Object.values(channels).every((c) => c.id && c.uploads && c.read), 'every channel stored with its last read');
+  // Stored channels aren't looked up again (the mock only knows the seed's channels; the rest stay "not found").
+  assert.equal(calls(again).ytChannels, first.ytChannels - Object.keys(channels).length);
+
+  // Quick run right after: club channels were just read, the rest carry on from their last
+  // read, so it costs a fraction of a full run and keeps everything already found.
+  const quick = run({ KEEP: '1', INGEST_ARGS: '--quick' });
+  assert.match(quick, /Rondo ingest \(quick\)/);
+  assert.match(quick, /club\/federation channel\(s\) read in the last 30 min/);
+  const reads = (c) => c.yt - c.ytChannels; // uploads pages + video details
+  assert.ok(reads(calls(quick)) < reads(first) / 3, `quick run made ${reads(calls(quick))} YouTube reads vs ${reads(first)}`);
+  assert.deepEqual(JSON.parse(quick.match(/RESULT (\[.*\]) \{/)[1]), result);
+  assert.equal(fs.readFileSync(indexPath, 'utf8'), before);
   fs.rmSync(dir, { recursive: true, force: true });
 });

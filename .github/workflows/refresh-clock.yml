@@ -1,0 +1,35 @@
+name: Refresh clock
+
+# Starts "Refresh data" (refresh-data.yml) when the data needs it: every ~10 min
+# while matches finish, every few hours otherwise, a full run once a day. See
+# scripts/refresh-clock.mjs and scripts/lib/refresh-plan.mjs.
+#
+# GitHub drops many scheduled runs when it's busy, so this schedule is dense and
+# each tick is cheap (no npm install, no API quota). While matches are finishing,
+# a tick stays awake and keeps checking instead of waiting for the next tick to
+# turn up. A tick that finds another clock already awake exits at once.
+
+on:
+  schedule:
+    - cron: '3-59/10 * * * *'   # every 10 minutes, off the busy top of the hour
+  workflow_dispatch:
+
+permissions:
+  actions: write   # start refresh-data.yml (and see which runs are going)
+  contents: read
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330   # stays awake at most 300 min (MAX_AWAKE_MIN)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Start a refresh if one is due
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/refresh-clock.mjs
