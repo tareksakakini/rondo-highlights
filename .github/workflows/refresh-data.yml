@@ -1,16 +1,30 @@
 name: Refresh data
 
-# Every 2 hours: fetch fixtures + highlights and commit any changes to the
-# `data` branch. The live site reads that branch through jsDelivr's CDN, so
-# new highlights need no redeploy. The prerendered competition/round pages are
-# the exception: the last step redeploys when they would change (rarely).
-# Code changes on `main` are built and deployed by Netlify as usual.
+# Fetch fixtures + highlights and commit any changes to the `data` branch. The
+# live site reads that branch through jsDelivr's CDN, so new highlights need no
+# redeploy. The prerendered competition/round pages are the exception: the last
+# step redeploys when they would change (rarely). Code changes on `main` are
+# built and deployed by Netlify as usual.
+#
+# No schedule of its own: the refresh clock (refresh-clock.yml) starts it when
+# matches finish (quick runs every ~10 min, only the competitions involved),
+# every few hours otherwise, and once a day as a full run. Start one by hand from
+# the Actions tab or with `npm run refresh` (a full run unless you pick quick).
+
+run-name: "Refresh data · ${{ inputs.mode || 'full' }}${{ inputs.reason && format(' · {0}', inputs.reason) || '' }}"
 
 on:
-  schedule:
-    - cron: '17 */2 * * *'   # every 2 hours (UTC); GitHub may delay scheduled runs
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'full = 10 days of uploads from every channel, every stored video re-checked (~150 YouTube units). quick = only the newest uploads (what the clock runs while matches finish).'
+        type: choice
+        options: [full, quick]
+        default: full
+      reason:
+        description: 'Why this run (shown in its title). The clock fills this in.'
+        required: false
+        default: ''
       since:
         description: 'Backfill uploads from this date (YYYY-MM-DD). Blank = last 10 days.'
         required: false
@@ -65,11 +79,13 @@ jobs:
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           HIGHLIGHTLY_API_KEY: ${{ secrets.HIGHLIGHTLY_API_KEY }}
+          MODE: ${{ inputs.mode }}
           SINCE: ${{ inputs.since }}
           FRESH: ${{ inputs.fresh }}
           ONLY: ${{ inputs.only }}
         run: |
           ARGS=""
+          if [ "$MODE" = quick ]; then ARGS="$ARGS --quick"; fi
           if [ -n "$SINCE" ]; then ARGS="$ARGS --since=$SINCE"; fi
           if [ -n "$FRESH" ]; then ARGS="$ARGS --fresh=$FRESH"; fi
           if [ -n "$ONLY" ]; then ARGS="$ARGS --only=$ONLY"; fi

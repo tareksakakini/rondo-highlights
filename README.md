@@ -42,7 +42,7 @@ npm run ingest -- --since=2026-08-15 --fresh=EL,UNL   # rebuild after a matching
 
 **Misses:** `public/data/cache/unmatched.json` lists, per competition, videos that looked like match highlights but that no fixture claimed. It's the first place to look when a match is missing its highlights (usually a new spelling of a team name).
 
-**Quota:** the ingest never uses `search.list`, which costs 100 units a call. It reads each channel's uploads playlist at 1 unit per 50 videos, and re-checks stored videos at 1 unit per 50. A normal run costs a few hundred units of the 10,000 you get per day, and a backfill costs up to about 1,000.
+**Quota:** the ingest never uses `search.list`, which costs 100 units a call. It reads each channel's uploads playlist at 1 unit per 50 videos, and re-checks stored videos at 1 unit per 50. Channel ids are looked up once a week and kept in `cache/channels.json`. A full run costs about 150 units of the 10,000 you get per day, a quick run (`--quick`) about 5–60, and a backfill up to about 1,000. A busy Saturday comes to roughly 2,000–3,000 in all.
 
 ## Global audience
 
@@ -127,7 +127,7 @@ data branch ◀──(every 2 h)── GitHub Actions: npm run ingest           
 ```
 
 - **Code** lives on `main`. Netlify builds it with `netlify.toml`, only when code changes.
-- **Data** lives on the public `data` branch. `.github/workflows/refresh-data.yml` runs the ingest every 2 hours, then `npm run crests`, and commits only when something changed. `index.json` is read from `https://cdn.jsdelivr.net/gh/<owner>/<repo>@data/index.json` (purged after each change). It names the commit that holds the dataset (`rev`), and round files are read from `…@<rev>/…`, which never changes and is cached for good; `rev` only moves when files the site reads change (not `cache/`). Crests are read at `crestsRev`, the last commit that added one, so a refresh that adds no crest leaves their URLs (and visitors' caches) alone. Both fall back to `raw.githubusercontent.com`. `vite.config.ts` works out the repo from Netlify's `REPOSITORY_URL`, or you can set `VITE_DATA_BASE` (with an optional `{ref}` placeholder) to override it.
+- **Data** lives on the public `data` branch. `.github/workflows/refresh-data.yml` runs the ingest, then `npm run crests`, and commits only when something changed. It has no schedule of its own: see *When the data refreshes* below. `index.json` is read from `https://cdn.jsdelivr.net/gh/<owner>/<repo>@data/index.json` (purged after each change). It names the commit that holds the dataset (`rev`), and round files are read from `…@<rev>/…`, which never changes and is cached for good; `rev` only moves when files the site reads change (not `cache/`). Crests are read at `crestsRev`, the last commit that added one, so a refresh that adds no crest leaves their URLs (and visitors' caches) alone. Both fall back to `raw.githubusercontent.com`. `vite.config.ts` works out the repo from Netlify's `REPOSITORY_URL`, or you can set `VITE_DATA_BASE` (with an optional `{ref}` placeholder) to override it.
 - **Crests** are self-hosted: `scripts/crests.mjs` downloads each crest once, stores an 80×80 WebP under `crests/` on the data branch, and points the round files at it (about a third of the original size; the originals are 200×200). A crest that fails to download keeps its original URL.
 - **Fast first load:**
   - `scripts/early-data.js` is inlined at the top of every page. While the HTML is still loading it fetches `index.json`, then the round the page will show (prerendered pages name it in `<meta name="rondo-route">`) and `condensed.json`, plus `/geo.json`. Without it, those waited for the JS bundle to download and start.
@@ -139,5 +139,24 @@ data branch ◀──(every 2 h)── GitHub Actions: npm run ingest           
 - **Redeploying pages:** the pages only change when competitions, rounds or who plays whom change. The last workflow step (`scripts/check-pages.mjs`) compares the data's fingerprint with the live `/pages.json` and, if they differ and the site was built more than 20 hours ago, calls the Netlify build hook in the `NETLIFY_BUILD_HOOK` secret (each production deploy costs Netlify credits). Without the secret it only logs a warning.
 - **Repo secrets:** `FOOTBALL_DATA_KEY`, `YOUTUBE_API_KEY`, `HIGHLIGHTLY_API_KEY`, and `NETLIFY_BUILD_HOOK` (optional, see above). The repo must be public so the CDN can read the `data` branch; the secrets stay private.
 - To backfill, open Actions → *Refresh data* → *Run workflow* and set a `since` date.
+
+### When the data refreshes
+
+Highlights go up about 20–60 minutes after full time, so the refresh follows the fixtures rather than a fixed timer. `.github/workflows/refresh-clock.yml` runs `scripts/refresh-clock.mjs`, which reads the fixtures on the data branch, decides with `scripts/lib/refresh-plan.mjs` and starts *Refresh data* when it's due:
+
+| When | How often | Run |
+|---|---|---|
+| From 100 min after kick-off until 4 h after | every 10 min | quick, only the competitions involved |
+| A finished match still without highlights | hourly for 12 h after kick-off, then every 3 h until 54 h (the Bundesliga holds Saturday 15:30 games back ~30 h) | quick, only those competitions |
+| Otherwise | every 6 h | quick, every competition |
+| Once a day | | full: 10 days of uploads from every channel, every stored video re-checked |
+
+Quick runs carry on from each channel's last read and read club and federation channels at most every 30 min. The full run catches anything they missed, and re-matches recent videos after a matcher fix.
+
+GitHub's scheduled runs are best-effort (a 2-hourly schedule ran about every 6 hours in September 2026), so the clock is scheduled every 10 minutes, and dropped ticks don't matter. Each tick takes seconds and no API quota. While matches are finishing, a tick stays awake (up to 5 hours) and keeps checking, rather than waiting for the next tick to turn up. A tick that finds another clock awake exits. Each refresh's title in the Actions tab says why it ran ("Refresh data · quick · just finished: Man United v Tottenham"), and its summary lists the new highlights.
+
+- Refresh now: `npm run refresh` (a full run; needs the GitHub CLI, `gh`, signed in). Add `-- -f mode=quick` for a quick one.
+- See what the clock would do, without starting anything: `node scripts/refresh-clock.mjs --dry`.
+- To pause refreshes, disable the *Refresh clock* workflow in the Actions tab.
 - For local development, `npm run ingest` or `npm run sample` writes `public/data/`, which is gitignored on `main`.
 - **Attribution:** football-data.org requires "Football data provided by the Football-Data.org API" to be shown on the site. It's in the footer, next to a credit for Highlightly.

@@ -29,6 +29,9 @@ const SKIP_DIRS = new Set(['cache', 'crests', '.git']);
 export const MAX_FETCHES = Number(process.env.CONDENSE_MAX) || 40;
 const GAP_MS = 1500;
 const RETRY_AFTER_H = 8;
+// Refreshes now run minutes after an upload, before YouTube has added chapters: leave a
+// video alone until it's this old, so its first read isn't wasted on a page without them.
+const MIN_AGE_H = 2;
 const MAX_TRIES = 4;
 const STOP_AFTER_FAILURES = 3;
 
@@ -82,7 +85,7 @@ export async function main(dir = path.join(ROOT, 'public', 'data'), { fetchPage 
   let fetched = 0; let failures = 0; let stopped = null;
   for (const v of videos) {
     if (fetched >= maxFetches || stopped) break;
-    if (!needsFetch(cache[v.videoId], now)) continue;
+    if (!needsFetch(cache[v.videoId], now) || now - Date.parse(v.publishedAt) < MIN_AGE_H * 3600e3) continue;
     if (fetched) await new Promise((r) => setTimeout(r, gapMs));
     fetched++;
     let res;

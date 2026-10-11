@@ -9,6 +9,15 @@
 //   npm run ingest -- --dry                # print a summary, write nothing
 //
 //   npm run ingest -- --refresh-fixtures   # re-download Highlightly fixtures now (normally once a day)
+//   npm run ingest -- --quick --only=PL,PD # a quick run while matches finish (see "Quick runs" below)
+//
+// Quick runs (--quick) are what the refresh clock (scripts/refresh-clock.mjs) starts every
+// ~10 minutes while matches finish. They read each channel only from a little before its
+// last read (club and federation channels at most every CLUB_EVERY_MIN), re-check only
+// recently published highlights, and refresh Highlightly scores at most every
+// HL_DATES_EVERY_MIN. A full run (the default, about once a day) reads DEFAULT_LOOKBACK_DAYS
+// of uploads from every channel and re-checks every stored highlight, which also picks up
+// anything quick runs missed and re-matches recent videos after a matcher fix.
 //
 // Reads FOOTBALL_DATA_KEY, YOUTUBE_API_KEY and HIGHLIGHTLY_API_KEY from .env (or the environment).
 // Writes public/data/index.json and public/data/<CODE>/<round>.json, plus public/data/cache/
@@ -20,8 +29,9 @@
 // Quota: football-data.org free tier = 10 req/min (one call per fixture competition).
 // Highlightly free plan = 100 req/day: a full fixture download (~5 requests for EL + UNL)
 // once a day, then only the dates with unfinished recent matches (0-2 requests a run).
-// YouTube Data API = 10,000 units/day. A normal run uses a few hundred units
-// (channels.list 1u per channel, playlistItems.list 1u/page, videos.list 1u/50 ids). No search.list.
+// YouTube Data API = 10,000 units/day. A full run uses ~150 units, a quick run ~5-60
+// (playlistItems.list 1u/page, videos.list 1u/50 ids, channels.list 1u per channel but only
+// about once a week: ids are kept in cache/channels.json). No search.list.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -54,6 +64,15 @@ const args = Object.fromEntries(
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log(...a);
+const quick = Boolean(args.quick);
+const runStart = Date.now();
+
+// Quick runs (see the top of this file).
+const QUICK_LOOKBACK_HOURS = 36; // never read further back than this in a quick run
+const QUICK_OVERLAP_HOURS = 3; // re-read this much before a channel's last read
+const QUICK_RECHECK_DAYS = 3; // re-check stored highlights published this recently
+const CLUB_EVERY_MIN = 30; // club and federation channels: at most this often in quick runs
+const HL_DATES_EVERY_MIN = 30; // Highlightly score refreshes: at most this often in quick runs
 
 function currentSeason(d = new Date()) {
   return d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1; // season starts ~July
@@ -135,9 +154,12 @@ async function highlightlyMatches(comp, season, key, { dry }) {
       cache = { leagueId: comp.highlightly, season, fetchedAt: new Date(now).toISOString(), matches };
       log(`  Highlightly: downloaded ${matches.length} matches`);
     } else {
-      const dates = [...new Set(cache.matches
+      let dates = [...new Set(cache.matches
         .filter((m) => { const k = Date.parse(m.date); return k <= now && k >= now - 36 * 3600e3 && !FINAL.test(m.state?.description ?? ''); })
         .map((m) => m.date.slice(0, 10)))];
+      // Quick runs come every ~10 minutes on match nights: refresh scores less often than that.
+      if (quick && cache.datesAt && now - Date.parse(cache.datesAt) < HL_DATES_EVERY_MIN * 60e3) dates = [];
+      if (dates.length) cache.datesAt = new Date(now).toISOString();
       for (const date of dates.slice(0, 3)) {
         const data = await hlFetch('/matches', { leagueId: comp.highlightly, season, date, limit: 100 }, key);
         const fresh = new Map((data.data ?? []).map((m) => [m.id, m]));
@@ -171,14 +193,46 @@ async function yt(endpoint, params, key) {
   return res.json();
 }
 
+// Channel ids and upload playlists never change, so they're kept on the data branch in
+// cache/channels.json ({ handle: { id, title, uploads, at, read } }) and looked up again
+// only every CHANNEL_RECHECK_DAYS (titles can change). `read` is when the channel's
+// uploads were last read: quick runs carry on from there.
+const CHANNELS_FILE = path.join(ROOT, 'public', 'data', 'cache', 'channels.json');
+const CHANNEL_RECHECK_DAYS = 7;
+let channelStore = {};
+const readThisRun = new Set(); // handles whose uploads this run read
+
+async function loadChannelStore() {
+  try { channelStore = JSON.parse(await fs.readFile(CHANNELS_FILE, 'utf8')); } catch { channelStore = {}; }
+}
+
+async function saveChannelStore() {
+  const at = new Date(runStart).toISOString();
+  for (const h of readThisRun) if (channelStore[h]) channelStore[h].read = at;
+  const sorted = Object.fromEntries(Object.keys(channelStore).sort().map((k) => [k, channelStore[k]]));
+  await fs.mkdir(path.dirname(CHANNELS_FILE), { recursive: true });
+  await fs.writeFile(CHANNELS_FILE, JSON.stringify(sorted, null, 1));
+}
+
 const channelCache = new Map();
 async function resolveChannel(handle, key) {
   if (channelCache.has(handle)) return channelCache.get(handle);
-  const data = await yt('channels', { part: 'snippet,contentDetails', forHandle: handle }, key);
-  const item = data.items?.[0];
-  const info = item
-    ? { id: item.id, title: item.snippet.title, uploads: item.contentDetails.relatedPlaylists.uploads }
-    : null;
+  const stored = channelStore[handle];
+  let info = stored?.id && Date.now() - Date.parse(stored.at) < CHANNEL_RECHECK_DAYS * 86400e3 ? stored : null;
+  if (!info) {
+    try {
+      const data = await yt('channels', { part: 'snippet,contentDetails', forHandle: handle }, key);
+      const item = data.items?.[0];
+      info = item
+        ? { id: item.id, title: item.snippet.title, uploads: item.contentDetails.relatedPlaylists.uploads, at: new Date().toISOString() }
+        : null;
+    } catch (e) {
+      if (!stored?.id) throw e;
+      info = stored; // YouTube hiccup: the stored id is still good
+    }
+    if (info) channelStore[handle] = { ...stored, ...info };
+    else delete channelStore[handle];
+  }
   channelCache.set(handle, info);
   return info;
 }
@@ -237,11 +291,23 @@ async function videoDetails(ids, key) {
 /** Upload candidates for one competition from all its channels. */
 async function collectCandidates(comp, sinceMs, YT, maxPages) {
   const candidates = [];
+  let rested = 0;
   for (const [priority, ch] of comp.channels.entries()) {
+    // Quick runs: club and federation channels post after the broadcasters and the league,
+    // so they're read at most every CLUB_EVERY_MIN; every channel carries on from its last read.
+    let since = sinceMs;
+    if (quick) {
+      const last = Date.parse(channelStore[ch.handle]?.read ?? '');
+      if (Number.isFinite(last)) {
+        if (ch.tier !== 'broadcaster' && runStart - last < CLUB_EVERY_MIN * 60e3) { rested++; continue; }
+        since = Math.max(sinceMs, last - QUICK_OVERLAP_HOURS * 3600e3);
+      }
+    }
     let info;
     try { info = await resolveChannel(ch.handle, YT); } catch (e) { log(`  ! ${ch.handle}: ${e.message}`); continue; }
     if (!info) { log(`  ! ${ch.handle}: handle not found, skipped`); continue; }
-    const uploads = await recentUploads(info, sinceMs, YT, maxPages);
+    const uploads = await recentUploads(info, since, YT, maxPages);
+    readThisRun.add(ch.handle);
     const must = ch.mustMatch ? new RegExp(ch.mustMatch, 'i') : null;
     const keep = uploads.filter((u) => {
       if (!looksLikeMatchHighlight(u.title, { fixtures: comp.source !== 'videos' }) || (must && !must.test(u.title))) return false;
@@ -251,6 +317,7 @@ async function collectCandidates(comp, sinceMs, YT, maxPages) {
     if (keep.length) log(`  ${info.title.slice(0, 30).padEnd(30)} ${String(uploads.length).padStart(4)} uploads → ${keep.length} candidates`);
     for (const u of keep) candidates.push({ ...u, channel: info.title, channelId: info.id, priority, tier: ch.tier });
   }
+  if (rested) log(`  ${rested} club/federation channel(s) read in the last ${CLUB_EVERY_MIN} min, not read again yet`);
   const ids = [...new Set(candidates.map((c) => c.videoId))];
   const details = await videoDetails(ids, YT);
   const byId = new Map(ids.map((id, k) => [id, details[k]]));
@@ -265,12 +332,16 @@ async function collectCandidates(comp, sinceMs, YT, maxPages) {
 }
 
 /**
- * Re-check every stored highlight: refresh its country restrictions and drop videos
+ * Re-check stored highlights: refresh their country restrictions and drop videos
  * that were deleted, made private or had embedding switched off since we found them.
- * ~1 quota unit per 50 videos.
+ * ~1 quota unit per 50 videos. Quick runs only re-check those published in the last
+ * QUICK_RECHECK_DAYS (the daily full run re-checks the rest).
  */
 async function refreshStored(comp, built, YT) {
-  const ids = [...new Set(built.files.flatMap((f) => f.matches.flatMap((m) => m.highlights.map((h) => h.videoId))))];
+  const recheckSince = quick ? runStart - QUICK_RECHECK_DAYS * 86400e3 : -Infinity;
+  const ids = [...new Set(built.files.flatMap((f) => f.matches.flatMap((m) => m.highlights
+    .filter((h) => !(Date.parse(h.publishedAt) < recheckSince))
+    .map((h) => h.videoId))))];
   if (!ids.length) return built;
   const details = await videoDetails(ids, YT);
   const byId = new Map(ids.map((id, k) => [id, details[k]]));
@@ -278,6 +349,7 @@ async function refreshStored(comp, built, YT) {
   for (const f of built.files) {
     for (const m of f.matches) {
       m.highlights = m.highlights.filter((h) => {
+        if (!byId.has(h.videoId)) return true; // not re-checked this run
         const d = byId.get(h.videoId);
         if (!d || !d.embeddable) { dropped++; return false; }
         delete h.allow; delete h.block;
@@ -310,7 +382,8 @@ async function main() {
 
   const defaultSeason = Number(args.season ?? currentSeason());
   const only = args.only ? String(args.only).split(',').map((s) => s.trim().toUpperCase()) : null;
-  const globalSince = args.since ? Date.parse(String(args.since)) : Date.now() - DEFAULT_LOOKBACK_DAYS * 86400e3;
+  const lookbackHours = quick ? QUICK_LOOKBACK_HOURS : DEFAULT_LOOKBACK_DAYS * 24;
+  const globalSince = args.since ? Date.parse(String(args.since)) : runStart - lookbackHours * 3600e3;
   // Backfills (--since) may need to page further back through busy channels.
   const pagesFor = (comp) => Number(args.pages ?? Math.max(args.since ? 60 : 0, comp.maxPages ?? MAX_PAGES_PER_CHANNEL));
   const published = await readIndex(ROOT);
@@ -322,12 +395,18 @@ async function main() {
     return true;
   });
 
-  log(`Rondo ingest: ${comps.map((c) => c.code).join(', ')} · uploads since ${new Date(globalSince).toISOString().slice(0, 10)}`);
+  const sinceLabel = new Date(globalSince).toISOString().slice(0, quick ? 16 : 10).replace('T', ' ');
+  log(`Rondo ingest${quick ? ' (quick)' : ''}: ${comps.map((c) => c.code).join(', ')} · uploads since ${sinceLabel}${quick ? ' UTC at the earliest' : ''}`);
+  await loadChannelStore();
   const results = [];
   const knownTeams = new Map(); // clubs from football-data, lent to Highlightly and video-first competitions
   let fdCalls = 0;
+  const newMatches = []; // "PL: Man United v Tottenham", for the run summary
 
   const unmatched = {};
+  // Quick runs read only the latest uploads, so keep earlier misses around for DEFAULT_LOOKBACK_DAYS.
+  const prevUnmatched = quick ? await readUnmatched() : {};
+  const keepMissesSince = runStart - DEFAULT_LOOKBACK_DAYS * 86400e3;
 
   // Fixture competitions first (they also teach us club names for the video-first ones).
   // football-data.org ones come before Highlightly ones (config order), so EL can borrow
@@ -359,20 +438,27 @@ async function main() {
     for (const f of fixtures) for (const t of [f.homeTeam, f.awayTeam]) if (t?.id) knownTeams.set(t.id, t);
     if (!fixtures.length) continue;
 
-    const sinceMs = comp.since ? Math.min(Date.parse(comp.since), globalSince) : globalSince;
+    const sinceMs = comp.since && !quick ? Math.min(Date.parse(comp.since), globalSince) : globalSince;
     const videos = await collectCandidates(comp, sinceMs, YT, pagesFor(comp));
     const highlights = matchVideosToFixtures(fixtures, videos, { windowHours: MATCH_WINDOW_HOURS });
     const claimed = new Set([...highlights.values()].flat().map((h) => h.videoId));
     const missed = videos
       .filter((v) => v.embeddable && v.durationSec >= 45 && !claimed.has(v.videoId) && looksLikeMatchHighlight(v.title, { fixtures: true }))
-      .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
-    unmatched[comp.code] = missed.map(({ videoId, title, channel, publishedAt }) => ({ videoId, title, channel, publishedAt }));
+      .map(({ videoId, title, channel, publishedAt }) => ({ videoId, title, channel, publishedAt }));
+    const missedIds = new Set(missed.map((v) => v.videoId));
+    for (const v of prevUnmatched[comp.code] ?? []) {
+      if (!missedIds.has(v.videoId) && !claimed.has(v.videoId) && Date.parse(v.publishedAt) >= keepMissesSince) missed.push(v);
+    }
+    unmatched[comp.code] = missed.sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
     // --fresh=EL,UNL drops highlights kept from earlier runs (after matching or filter fixes).
     const fresh = String(args.fresh ?? '').toUpperCase().split(',').includes(comp.code);
     const previous = fresh ? new Map() : await readPrevious(ROOT, comp.code, season);
     const built = await refreshStored(comp, buildCompetition(comp, season, fixtures, highlights, previous), YT);
     const cur = built.index.rounds.find((r) => r.key === built.index.currentRound);
     log(`  matched ${highlights.size} matches · current: ${cur?.label ?? '-'} (${cur?.withHighlights ?? 0}/${cur?.matches ?? 0} with highlights)`);
+    const named = newlyCovered(previous, built);
+    if (named.length) log(`  new highlights: ${named.join(', ')}`);
+    newMatches.push(...named.map((n) => `${comp.code}: ${n}`));
     results.push(built);
   }
 
@@ -382,7 +468,7 @@ async function main() {
     const canonical = makeRegistry([...knownTeams.values()], { nations: national, clubs: !national });
     const season = comp.season ?? defaultSeason;
     log(`\n▸ ${comp.name} (${comp.code}) ${season} · discovered from highlight titles`);
-    const sinceMs = comp.since ? Math.min(Date.parse(comp.since), globalSince) : globalSince;
+    const sinceMs = comp.since && !quick ? Math.min(Date.parse(comp.since), globalSince) : globalSince;
     const videos = await collectCandidates(comp, sinceMs, YT, pagesFor(comp));
     // --fresh=EL,UNL rebuilds discovered competitions from scratch (after matching fixes).
     const fresh = String(args.fresh ?? '').toUpperCase().split(',').includes(comp.code);
@@ -405,17 +491,38 @@ async function main() {
 
   log(`\nYouTube quota used: ~${quota} units (daily limit 10,000)`);
   if (hlCalls) log(`Highlightly requests: ${hlCalls} (free plan: 100/day)`);
+  const summary = newMatches.length
+    ? `New highlights for ${newMatches.length} match(es): ${newMatches.join('; ')}`
+    : 'No new highlights.';
+  log(summary);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, `${summary}\n\nYouTube quota used: ~${quota} units.\n`).catch(() => {});
+  }
   if (args.dry) { log('Dry run: nothing written.'); return; }
   await writeDataset(ROOT, results, { source: 'live', merge: true });
   await writeUnmatched(unmatched, new Set(results.map((r) => r.index.code)));
+  await saveChannelStore();
   log('Wrote public/data/.');
+}
+
+/** Matches that had no highlight this run didn't already know of: "Man United v Tottenham". */
+function newlyCovered(previous, built) {
+  const known = new Set([...previous.values()].flatMap((f) => f.matches.flatMap((m) => m.highlights.map((h) => h.videoId))));
+  return built.files.flatMap((f) => f.matches)
+    .filter((m) => m.highlights.length && !m.highlights.some((h) => known.has(h.videoId)))
+    .map((m) => `${m.home?.short ?? m.home?.name} v ${m.away?.short ?? m.away?.name}`);
+}
+
+const UNMATCHED_FILE = path.join(ROOT, 'public', 'data', 'cache', 'unmatched.json');
+
+async function readUnmatched() {
+  try { return JSON.parse(await fs.readFile(UNMATCHED_FILE, 'utf8')); } catch { return {}; }
 }
 
 /** public/data/cache/unmatched.json: per competition, videos that looked like highlights but fit no fixture. */
 async function writeUnmatched(found, rebuilt) {
-  const file = path.join(ROOT, 'public', 'data', 'cache', 'unmatched.json');
-  let prev = {};
-  try { prev = JSON.parse(await fs.readFile(file, 'utf8')); } catch { /* none yet */ }
+  const file = UNMATCHED_FILE;
+  const prev = await readUnmatched();
   const next = { ...prev };
   for (const code of rebuilt) delete next[code];
   Object.assign(next, found);
