@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-11T14:14:15.034Z",
+ "generatedAt": "2026-10-11T18:31:52.972Z",
  "source": "live",
- "rev": "7d3a047573e150cd6e9ec274a6aeca01858de588",
+ "rev": "e2b2d17750a819368a4d0878373e0d879e7df755",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
  "competitions": [
   {
@@ -55,7 +55,7 @@
      "label": "Matchweek 6",
      "firstDate": "2026-10-10T11:30:00Z",
      "matches": 10,
-     "withHighlights": 6
+     "withHighlights": 9
     },
     {
      "key": "md-7",
@@ -349,7 +349,7 @@
      "label": "Matchweek 8",
      "firstDate": "2026-10-09T19:00:00Z",
      "matches": 10,
-     "withHighlights": 5
+     "withHighlights": 6
     },
     {
      "key": "md-9",
@@ -615,7 +615,7 @@
      "label": "Matchweek 6",
      "firstDate": "2026-10-10T13:00:00Z",
      "matches": 10,
-     "withHighlights": 4
+     "withHighlights": 7
     },
     {
      "key": "md-7",
@@ -888,7 +888,7 @@
      "label": "Matchday 5",
      "firstDate": "2026-10-09T18:30:00Z",
      "matches": 9,
-     "withHighlights": 3
+     "withHighlights": 5
     },
     {
      "key": "md-6",
@@ -1147,7 +1147,7 @@
      "label": "Matchweek 6",
      "firstDate": "2026-10-09T18:45:00Z",
      "matches": 9,
-     "withHighlights": 6
+     "withHighlights": 8
     },
     {
      "key": "md-7",
