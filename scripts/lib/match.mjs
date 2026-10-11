@@ -23,11 +23,15 @@ export function normalize(s) {
 // Club-name noise words that titles usually drop ("FC Barcelona" -> "Barcelona").
 const NOISE = new Set([
   'fc', 'cf', 'afc', 'ac', 'as', 'ss', 'ssc', 'us', 'sc', 'sv', 'sk', 'fk', 'kv', 'vfb', 'vfl',
-  'tsg', 'fsv', 'rc', 'rcd', 'cd', 'ud', 'sd', 'ca', 'osc', 'bk', 'club', 'de', 'calcio', 'bc',
+  'tsg', 'fsv', 'rc', 'rcd', 'cd', 'ud', 'sd', 'ca', 'osc', 'sco', 'bk', 'club', 'de', 'calcio', 'bc',
+  'pae', 'rb',
 ]);
 
 // Nicknames / short forms broadcasters use that can't be derived automatically.
-// Keyed by football-data.org TLA (preferred) or by normalized short name.
+// Keyed by football-data.org TLA. football-data changes TLAs now and then (Atlético went
+// from ATM to ATL, Barcelona from BAR to FCB, Bayern's code), so a club whose code is
+// shared or has moved goes in NAME_ALIASES below instead.
+const ATLETI = ['atletico madrid', 'atletico de madrid', 'atletico', 'atleti'];
 export const MANUAL_ALIASES = {
   // Premier League
   TOT: ['spurs', 'tottenham'],
@@ -47,8 +51,8 @@ export const MANUAL_ALIASES = {
   SUN: ['sunderland'],
   BOU: ['bournemouth'],
   // Spain
-  ATM: ['atletico madrid', 'atletico', 'atleti'],
-  BAR: ['barcelona', 'barca'],
+  ATL: ATLETI,
+  ATM: ATLETI,
   RMA: ['real madrid'],
   ATH: ['athletic club', 'athletic bilbao'],
   BET: ['real betis', 'betis'],
@@ -58,7 +62,6 @@ export const MANUAL_ALIASES = {
   MIL: ['ac milan'],
   JUV: ['juventus', 'juve'],
   // Germany
-  FCB: ['bayern', 'bayern munich', 'bayern munchen'],
   BVB: ['dortmund', 'bvb'],
   B04: ['leverkusen', 'bayer leverkusen'],
   BMG: ['gladbach', 'mgladbach', 'monchengladbach'],
@@ -69,8 +72,14 @@ export const MANUAL_ALIASES = {
 };
 
 // Keyed by football-data's full name where three-letter codes collide across leagues
-// (BRE is Brentford and Brest). Spellings taken from the Ligue 1 channel's titles.
+// (BRE is Brentford and Brest, FCB is Bayern and Barcelona). Ligue 1 spellings taken
+// from the Ligue 1 channel's titles.
 const NAME_ALIASES = {
+  'fc barcelona': ['barcelona', 'barca'],
+  'fc bayern munchen': ['bayern', 'bayern munich', 'bayern munchen'],
+  // LaLiga's channel writes "R. RACING CLUB". Not plain "racing": RC Lens is "Racing Club
+  // de Lens", and Racing de Ferrol and Racing Club (Avellaneda) turn up on the same channels.
+  'real racing club de santander': ['racing santander', 'racing de santander', 'real racing club', 'r racing club'],
   'le havre ac': ['havre', 'havre ac'],
   'es troyes ac': ['troyes', 'estac troyes', 'estac'],
   'racing club de lens': ['lens', 'rc lens'],

@@ -212,3 +212,59 @@ test('highlights kept from earlier runs are re-checked against today\'s filters'
   assert.deepEqual(files[0].matches[0].highlights.map((h) => h.videoId), ['first']);
   assert.ok(stillBelongs(stored('ok', 'Dortmund 3-2 Villarreal | UCL Highlights'), bvbVil));
 });
+
+// Real teams and titles that went unmatched in the 2026/27 season (data branch, 2026-10-10).
+const club = (id, name, shortName, tla) => ({ id, name, shortName, tla });
+const SAN = club(275, 'Real Racing Club de Santander', 'Santander', 'SAN');
+const ATL = club(78, 'Club Atlético de Madrid', 'Atleti', 'ATL');
+const ALA = club(263, 'Deportivo Alavés', 'Alavés', 'ALA');
+const BAR = club(81, 'FC Barcelona', 'Barça', 'FCB');
+const BAY = club(5, 'FC Bayern München', 'Bayern', 'FCB');
+const fixture = (id, utcDate, homeTeam, awayTeam, home, away) =>
+  ({ id, utcDate, status: 'FINISHED', matchday: 1, homeTeam, awayTeam, score: { fullTime: { home, away } } });
+const upload = (videoId, title, publishedAt, channel = 'LALIGA EA SPORTS') =>
+  ({ videoId, title, channel, channelId: 'x', durationSec: 180, publishedAt, embeddable: true, priority: 1 });
+const ids = (res, id) => (res.get(id) ?? []).map((h) => h.videoId).sort();
+
+test('LaLiga titles Racing Santander "R. RACING CLUB"', () => {
+  const fixtures = [
+    fixture(564687, '2026-09-16T19:30:00Z', BAR, SAN, 7, 2),
+    fixture(564694, '2026-09-19T16:30:00Z', club(558, 'RC Celta de Vigo', 'Celta', 'CEL'), SAN, 5, 0),
+  ];
+  const res = matchVideosToFixtures(fixtures, [
+    upload('bar', 'FC BARCELONA 7 - 2 R. RACING CLUB | RESUMEN LALIGA EA SPORTS', '2026-09-16T22:00:00Z'),
+    upload('cel', 'CELTA 5 - 0 R. RACING CLUB | RESUMEN LALIGA EA SPORTS', '2026-09-19T19:00:00Z'),
+  ]);
+  assert.deepEqual(ids(res, 564687), ['bar']);
+  assert.deepEqual(ids(res, 564694), ['cel']);
+  // No cross-talk with RC Lens ("Racing Club de Lens").
+  const san = teamAliases(SAN);
+  assert.equal(mentions(normalize('Racing Club de Lens 2-0 Lille | Highlights Ligue 1'), san), '');
+});
+
+test('Atlético\'s aliases apply under its current TLA (ATL) and the old one (ATM)', () => {
+  const title = 'DEPORTIVO ALAVÉS 1 - 2 ATLÉTICO DE MADRID | RESUMEN LALIGA EA SPORTS';
+  for (const tla of ['ATL', 'ATM']) {
+    const res = matchVideosToFixtures([fixture(564699, '2026-10-10T14:15:00Z', ALA, { ...ATL, tla }, 1, 2)], [
+      upload('laliga', title, '2026-10-10T17:00:00Z'),
+      upload('club', 'Alavés 1-2 Atlético de Madrid | ⚽ Grimaldo & Romero | HIGHLIGHTS, LaLiga - MD8', '2026-10-10T18:00:00Z', 'Atlético de Madrid'),
+    ]);
+    assert.deepEqual(ids(res, 564699), ['club', 'laliga'], tla);
+  }
+});
+
+test('"Angers SCO" is plain "Angers" in titles', () => {
+  const res = matchVideosToFixtures([fixture(559666, '2026-10-10T18:45:00Z', club(512, 'Stade Brestois 29', 'Brest', 'BRE'), club(532, 'Angers SCO', 'Angers SCO', 'ANG'), 5, 1)], [
+    upload('bein', 'Stade Brest vs Angers | HIGHLIGHTS Ligue 1 | 10/10/2026 | beIN SPORTS USA', '2026-10-10T22:00:00Z', 'beIN SPORTS USA'),
+  ]);
+  assert.deepEqual(ids(res, 559666), ['bein']);
+});
+
+test('Barcelona and Bayern share the TLA FCB but not their nicknames', () => {
+  const bar = teamAliases(BAR);
+  const bay = teamAliases(BAY);
+  assert.equal(mentions(normalize('Bayern 3-0 Frankfurt | Highlights'), bar), '');
+  assert.equal(mentions(normalize('Barça 2-0 Sevilla | Highlights'), bay), '');
+  assert.equal(mentions(normalize('Barça 2-0 Sevilla | Highlights'), bar), 'barca');
+  assert.equal(mentions(normalize('Bayern Munich 3-0 Frankfurt | Highlights'), bay), 'bayern munich');
+});
