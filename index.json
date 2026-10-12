@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-12T20:59:26.986Z",
+ "generatedAt": "2026-10-12T21:23:24.311Z",
  "source": "live",
- "rev": "66bfc1bddeb771128ae63164802e91f3b889dd8d",
+ "rev": "28aec642c63de55ca6543d85c367662dba0def0c",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
  "competitions": [
   {
@@ -349,7 +349,7 @@
      "label": "Matchweek 8",
      "firstDate": "2026-10-09T19:00:00Z",
      "matches": 10,
-     "withHighlights": 8
+     "withHighlights": 9
     },
     {
      "key": "md-9",
