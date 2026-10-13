@@ -11,7 +11,7 @@
 //
 // Pure functions, no I/O. Covered by tests/videos.test.mjs.
 
-import { normalize, teamAliases, classify, slimHighlight, detectComps, looksLikeMatchHighlight, STAGE_LABELS, sortFiles, indexFor } from './match.mjs';
+import { normalize, teamAliases, classify, slimHighlight, detectComps, looksLikeMatchHighlight, highlightLength, STAGE_LABELS, sortFiles, indexFor } from './match.mjs';
 import { NATIONS } from './teams.mjs';
 
 const EMOJI = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}]/gu;
@@ -160,7 +160,7 @@ export function buildFromVideos(comp, season, videos, canonical, previous = new 
   }
 
   for (const v of videos) {
-    if (v.embeddable === false || !v.durationSec || v.durationSec < 45) continue;
+    if (v.embeddable === false || !highlightLength(v.durationSec)) continue;
     if (!looksLikeMatchHighlight(v.title)) continue;
     const hints = detectComps(v.title);
     if (hints.size && !hints.has(comp.code)) continue;

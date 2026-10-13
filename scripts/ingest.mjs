@@ -37,7 +37,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { COMPETITIONS, MATCH_WINDOW_HOURS, DEFAULT_LOOKBACK_DAYS, MAX_PAGES_PER_CHANNEL } from './config.mjs';
-import { withEmbedBlocks, looksLikeMatchHighlight, matchVideosToFixtures, buildCompetition, detectComps, indexFor } from './lib/match.mjs';
+import { withEmbedBlocks, looksLikeMatchHighlight, highlightLength, matchVideosToFixtures, buildCompetition, detectComps, indexFor } from './lib/match.mjs';
 import { makeRegistry, buildFromVideos } from './lib/videos.mjs';
 import { writeDataset, readPrevious, readIndex } from './lib/output.mjs';
 import { toFixtures } from './lib/highlightly.mjs';
@@ -440,10 +440,11 @@ async function main() {
 
     const sinceMs = comp.since && !quick ? Math.min(Date.parse(comp.since), globalSince) : globalSince;
     const videos = await collectCandidates(comp, sinceMs, YT, pagesFor(comp));
-    const highlights = matchVideosToFixtures(fixtures, videos, { windowHours: MATCH_WINDOW_HOURS });
-    const claimed = new Set([...highlights.values()].flat().map((h) => h.videoId));
+    const skipped = new Set(); // goal clips and the like: they named a fixture, so they aren't misses
+    const highlights = matchVideosToFixtures(fixtures, videos, { windowHours: MATCH_WINDOW_HOURS, skipped });
+    const claimed = new Set([...highlights.values()].flat().map((h) => h.videoId).concat([...skipped]));
     const missed = videos
-      .filter((v) => v.embeddable && v.durationSec >= 45 && !claimed.has(v.videoId) && looksLikeMatchHighlight(v.title, { fixtures: true }))
+      .filter((v) => v.embeddable && highlightLength(v.durationSec) && !claimed.has(v.videoId) && looksLikeMatchHighlight(v.title, { fixtures: true }))
       .map(({ videoId, title, channel, publishedAt }) => ({ videoId, title, channel, publishedAt }));
     const missedIds = new Set(missed.map((v) => v.videoId));
     for (const v of prevUnmatched[comp.code] ?? []) {

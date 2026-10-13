@@ -14,6 +14,7 @@ export function normalize(s) {
     .replace(/ø/gi, 'o')
     .replace(/ß/g, 'ss')
     .toLowerCase()
+    .replace(/(?<=[a-z0-9])['’`]s\b/g, '') // possessive: "Liverpool's defense" names Liverpool
     .replace(/['’`]/g, '')
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, ' ')
@@ -186,7 +187,7 @@ const NOT_FIRST_TEAM_RE =
 export const isFirstTeam = (title) => !NOT_FIRST_TEAM_RE.test(deaccent(title));
 
 const EXCLUDE_RE =
-  /\b(press conference|konferencija za medije|pressekonferenz|conferenza stampa|rueda de prensa|conference de presse|iz drugog ugla|izjave|preview|reactions?|interview|vlogs?|vlogowe|kulisy|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|all highlights|top \d+|review|full match|legends|alt angle|behind the scenes|behind the tigers|in hd|cinematic|inside the match|members only|on the road|match cut|post-?match|pre-?match|watchalong|reacts?|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|esports|efootball|fc 2[5-9]|#shorts)\b/i;
+  /\b(press conference|konferencija za medije|pressekonferenz|conferenza stampa|rueda de prensa|conference de presse|iz drugog ugla|izjave|preview|reactions?|interview|vlogs?|vlogowe|kulisy|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|(?:all|every) angles?|analy[sz]e|analysis|goalscorer|inside(?! the (?:box|area))|uncut|unseen|matchday (?:live|pass)|extra time show|first \d+ minutes|pos-?jogo|apres-?match|all highlights|top \d+|review|full match|legends|alt angle|behind the scenes|behind the tigers|in hd|cinematic|inside the match|members only|on the road|match cut|post-?match|pre-?match|watchalong|reacts?|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|esports|efootball|fc 2[5-9]|#shorts)\b/i;
 
 // Competition keywords in titles. Club and national-team channels post several
 // competitions, so a title that names a different competition is skipped.
@@ -218,8 +219,15 @@ const deaccent = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').repla
 
 // A scoreline between two names ("Everton 1-0 Ipswich", "OM - PSG (1-2)") marks a match
 // video even when the title never says "highlights" (Ligue 1 and several clubs do this).
-const SCORE_RE = /[a-z)]\s+\d{1,2}\s*[-–:]\s*\d{1,2}\s+[a-z(]|\(\d{1,2}\s*[-–:]\s*\d{1,2}\)/i;
+// An inline one only counts once the matcher sees it between the fixture's two names: see
+// scoreBetween and highlightTitleFor.
+const INLINE_SCORE_RE = /[a-z)]\s+\d{1,2}\s*[-–:]\s*\d{1,2}\s+[a-z(]/i;
+const PAREN_SCORE_RE = /\(\d{1,2}\s*[-–:]\s*\d{1,2}\)/;
 const CLASSIC_RE = /\bclassics?\b/i;
+// A title that opens with a quoted remark is an interview or a pundit's take
+// ("“Take the positives into next weekend” | James Justin | Arsenal 2-1 Leeds United"),
+// unless it goes on to say "highlights".
+const QUOTE_OPEN_RE = /^\W*["“”'‘’«]/;
 
 /**
  * Cheap title-only pre-filter (before we spend quota on video details).
@@ -230,11 +238,54 @@ const CLASSIC_RE = /\bclassics?\b/i;
 export function looksLikeMatchHighlight(title, { fixtures = false } = {}) {
   const t = deaccent(title);
   if (NOT_FIRST_TEAM_RE.test(t) || EXCLUDE_RE.test(t) || (!fixtures && CLASSIC_RE.test(t))) return false;
-  return HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t) || SCORE_RE.test(t);
+  if (HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t)) return true;
+  return !QUOTE_OPEN_RE.test(t) && (INLINE_SCORE_RE.test(t) || PAREN_SCORE_RE.test(t));
+}
+
+/** True when a title gets past looksLikeMatchHighlight only on an inline scoreline. */
+const scorelineOnly = (title) => {
+  const t = deaccent(title);
+  return !(HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t) || PAREN_SCORE_RE.test(t));
+};
+
+// Club-name noise words may sit between a name and the score ("Real Sociedad 1-2 AFC
+// Bournemouth" when the alias matched is "bournemouth").
+const NOISE_GAP = `(?:(?:${[...NOISE].join('|')}) )*`;
+
+/**
+ * The scoreline a title puts between the two names ("Dortmund 2-3 Villarreal"), in home-away
+ * order, or null when there isn't one there.
+ */
+export function scoreBetween(normTitle, homeAlias, awayAlias) {
+  const between = (a, b) => normTitle.match(new RegExp(` ${a} ${NOISE_GAP}(\\d{1,2}) (\\d{1,2}) ${NOISE_GAP}${b} `));
+  const m = between(homeAlias, awayAlias);
+  if (m) return [Number(m[1]), Number(m[2])];
+  const r = between(awayAlias, homeAlias);
+  return r ? [Number(r[2]), Number(r[1])] : null;
+}
+
+/**
+ * Is this a highlights video of the match whose names matched as `homeAlias` and `awayAlias`?
+ * A title that says "highlights" (or shows "A - B (x-y)") is. One with only an inline
+ * scoreline is when the score sits between the two names ("Chelsea 5-1 AFC Bournemouth"),
+ * not when it's a running score elsewhere: that's a single-goal clip ("Kai Havertz strikes
+ * Arsenal 1-0 ahead of Coventry City", NBC Sports) or a studio segment ("Carra and Nev
+ * analyse Spurs 3-0 thrashing by Brentford"). Names matched fuzzily have no known position,
+ * so those titles are given the benefit of the doubt.
+ */
+export function highlightTitleFor(title, normTitle, homeAlias, awayAlias) {
+  if (!scorelineOnly(title)) return true;
+  if (!normTitle.includes(` ${homeAlias} `) || !normTitle.includes(` ${awayAlias} `)) return true;
+  return scoreBetween(normTitle, homeAlias, awayAlias) !== null;
 }
 
 const EXTENDED_RE = /\bextended\b|\bextendido\b|\blong\b/i;
 export const EXTENDED_MIN_SEC = 7 * 60;
+// Shorter than this is a Short or a teaser; longer is a live stream or a full match
+// (Man City's 4-hour "Matchday Live"), never a highlights cut. TUDN's longest cuts run ~25 min.
+export const MIN_HIGHLIGHT_SEC = 45;
+export const MAX_HIGHLIGHT_SEC = 30 * 60;
+export const highlightLength = (sec) => sec >= MIN_HIGHLIGHT_SEC && sec <= MAX_HIGHLIGHT_SEC;
 
 /**
  * Assign 'short' | 'extended' to every candidate video of ONE match.
@@ -271,33 +322,29 @@ export function scoreContradicts(normTitle, homeAlias, awayAlias, fixture) {
   const fa = s?.fullTime?.away;
   if (fixture.status !== 'FINISHED' || !Number.isInteger(fh) || !Number.isInteger(fa)) return false;
   if (s.penalties?.home != null || s.duration === 'PENALTY_SHOOTOUT') return false;
-  const hi = normTitle.indexOf(` ${homeAlias} `);
-  const ai = normTitle.indexOf(` ${awayAlias} `);
-  if (hi < 0 || ai < 0) return false; // matched fuzzily: positions unknown
-  const [first, firstAlias, second] = hi < ai ? [hi, homeAlias, ai] : [ai, awayAlias, hi];
-  const between = normTitle.slice(first + firstAlias.length + 1, second + 1);
-  const m = between.match(/^ (\d{1,2}) (\d{1,2}) $/);
-  if (!m) return false;
-  const [x, y] = [Number(m[1]), Number(m[2])];
-  return hi < ai ? x !== fh || y !== fa : x !== fa || y !== fh;
+  const between = scoreBetween(normTitle, homeAlias, awayAlias);
+  return between !== null && (between[0] !== fh || between[1] !== fa);
 }
 
 /** Does a stored highlight still pass the title filters and the scoreline check for `f`? */
 export function stillBelongs(h, f) {
-  if (!looksLikeMatchHighlight(h.title, { fixtures: true })) return false;
+  if (!looksLikeMatchHighlight(h.title, { fixtures: true }) || !highlightLength(h.durationSec)) return false;
   const t = normalize(h.title);
   const home = mentions(t, teamAliases(f.homeTeam));
   const away = mentions(t, teamAliases(f.awayTeam));
-  return !(home && away && home !== away && scoreContradicts(t, home, away, f));
+  if (!home || !away || home === away) return true;
+  return highlightTitleFor(h.title, t, home, away) && !scoreContradicts(t, home, away, f);
 }
 
 /**
  * Attach highlight videos to fixtures.
  * @param fixtures football-data.org style match objects
  * @param videos   [{videoId,title,channel,channelId,durationSec,publishedAt,embeddable,priority}]
+ * @param skipped  optional Set: gets the ids of videos that named a fixture but aren't
+ *                 highlights of it (goal clips), so they aren't reported as misses
  * @returns Map<matchId, Highlight[]>
  */
-export function matchVideosToFixtures(fixtures, videos, { windowHours = 120 } = {}) {
+export function matchVideosToFixtures(fixtures, videos, { windowHours = 120, skipped } = {}) {
   const teamCache = new Map();
   const aliasesOf = (t) => {
     const key = `${t.id ?? t.name}`;
@@ -308,7 +355,7 @@ export function matchVideosToFixtures(fixtures, videos, { windowHours = 120 } = 
   const byMatch = new Map();
   for (const v of videos) {
     if (v.embeddable === false) continue;
-    if (!v.durationSec || v.durationSec < 45) continue; // Shorts / teasers
+    if (!highlightLength(v.durationSec)) continue;
     if (!looksLikeMatchHighlight(v.title, { fixtures: true })) continue;
     const t = normalize(v.title);
     const published = Date.parse(v.publishedAt);
@@ -323,6 +370,7 @@ export function matchVideosToFixtures(fixtures, videos, { windowHours = 120 } = 
       if (!h) { h = fuzzyMentions(t, aliasesOf(f.homeTeam)); fuzzy = true; }
       if (h && !a) { a = fuzzyMentions(t, aliasesOf(f.awayTeam)); fuzzy = true; }
       if (!h || !a || h === a) continue;
+      if (!highlightTitleFor(v.title, t, h, a)) { skipped?.add(v.videoId); continue; }
       if (scoreContradicts(t, h, a, f)) continue;
       // Prefer exact name matches over typo-tolerant ones, then the fixture whose names
       // matched most specifically, then the closest kick-off.

@@ -64,6 +64,8 @@ test('title filter keeps match highlights, drops compilations, women, cups', () 
   assert.ok(!looksLikeMatchHighlight('Highlights: Man City 4-2 Liverpool FC Women | WSL'));
   assert.ok(!looksLikeMatchHighlight('Liverpool 3-1 Spurs | Carabao Cup Highlights'));
   assert.ok(!looksLikeMatchHighlight('ALL HIGHLIGHTS | BUNDESLIGA | MATCHDAY 04'));
+  assert.ok(!looksLikeMatchHighlight('Roy Keane, Daniel Sturridge & Micah Richards ANALYSE Liverpool 0-3 Man City'));
+  assert.ok(!looksLikeMatchHighlight('Every Angle of Igor Jesus\' 88th-Minute Winner! 🤩 | Aston Villa 1-2 Nottingham Forest'));
 });
 
 test('classify: explicit/long = extended; relative split when both are short-ish', () => {
@@ -211,6 +213,74 @@ test('highlights kept from earlier runs are re-checked against today\'s filters'
   const { files } = buildCompetition({ code: 'CL', name: 'Champions League' }, 2026, [bvbVil], new Map(), previous);
   assert.deepEqual(files[0].matches[0].highlights.map((h) => h.videoId), ['first']);
   assert.ok(stillBelongs(stored('ok', 'Dortmund 3-2 Villarreal | UCL Highlights'), bvbVil));
+});
+
+// Real PL titles from Matchweek 6 (data branch, 2026-10-13).
+const ARS = { id: 57, name: 'Arsenal FC', shortName: 'Arsenal', tla: 'ARS' };
+const LEE = { id: 341, name: 'Leeds United FC', shortName: 'Leeds United', tla: 'LEE' };
+const arsLee = { id: 2, utcDate: '2026-10-10T11:30:00Z', status: 'FINISHED', matchday: 6,
+  homeTeam: ARS, awayTeam: LEE, score: { fullTime: { home: 2, away: 1 } } };
+const plVid = (videoId, title) => ({ ...vid(videoId, title), publishedAt: '2026-10-10T14:00:00Z' });
+
+test('single-goal clips are not highlights, even when their running score is the final one', () => {
+  const skipped = new Set();
+  const got = matchVideosToFixtures([arsLee], [
+    plVid('nbc-goal', 'Bruno Guimaraes drills Arsenal 2-1 ahead of Leeds | Premier League | NBC Sports'),
+    plVid('nbc-goal-2', 'Riccardo Calafiori makes it 1-1 for Arsenal against Leeds | Premier League | NBC Sports'),
+    plVid('angles', 'Bukayo Saka\'s winner | Arsenal 2-1 Leeds United | All Angles'),
+    plVid('club', 'Arsenal 2-1 Leeds United | Premier League highlights'),
+    plVid('score-only', 'Gunners come from behind | Arsenal 2-1 Leeds United'),
+    plVid('nbc-full', 'Arsenal v. Leeds United | PREMIER LEAGUE HIGHLIGHTS | 10/10/2026 | NBC Sports'),
+  ], { skipped });
+  assert.deepEqual(got.get(2).map((h) => h.videoId).sort(), ['club', 'nbc-full', 'score-only']);
+  // They named the fixture, so they aren't reported as unmatched misses either.
+  assert.deepEqual([...skipped].sort(), ['nbc-goal', 'nbc-goal-2']);
+  // Stored clips from before the fix are dropped on the next run.
+  assert.ok(!stillBelongs({ ...plVid('nbc-goal', 'Bruno Guimaraes drills Arsenal 2-1 ahead of Leeds | Premier League | NBC Sports'), kind: 'short' }, arsLee));
+});
+
+test('a scoreline between the names still counts with club-name noise around it', () => {
+  const RSO = { id: 92, name: 'Real Sociedad de Fútbol', shortName: 'Real Sociedad', tla: 'RSO' };
+  const BOU = { id: 1044, name: 'AFC Bournemouth', shortName: 'Bournemouth', tla: 'BOU' };
+  const f = { ...arsLee, homeTeam: RSO, awayTeam: BOU, score: { fullTime: { home: 1, away: 2 } } };
+  const t = 'Kluivert and Rayan on scoresheet in HISTORIC first win in Europe | Real Sociedad 1-2 AFC Bournemouth';
+  assert.equal(matchVideosToFixtures([f], [plVid('bou', t)]).get(2).length, 1);
+  // Ligue 1's own channel: "A - B (x-y)".
+  const OM = { id: 516, name: 'Olympique de Marseille', shortName: 'Marseille', tla: 'MAR' };
+  const STR = { id: 576, name: 'RC Strasbourg Alsace', shortName: 'Strasbourg', tla: 'RCS' };
+  const l1 = { ...arsLee, homeTeam: OM, awayTeam: STR, score: { fullTime: { home: 4, away: 0 } } };
+  const t2 = 'OLYMPIQUE DE MARSEILLE - RC STRASBOURG ALSACE (4-0) | Week 1 - Ligue 1 McDonald\'s 26/27';
+  assert.equal(matchVideosToFixtures([l1], [plVid('l1', t2)]).get(2).length, 1);
+});
+
+test('interviews, behind-the-scenes and live streams are not highlights', () => {
+  for (const t of [
+    '“Take the positives into next weekend” | James Justin | Arsenal 2-1 Leeds United',
+    '\'I\'m very happy" | Goalscorer Anton Stach | Nottingham Forest 0-1 Leeds United',
+    'Sensational night at Elland Road | Uncut exclusive footage | Leeds United 4-1 Newcastle United',
+    'Extra Time Show: Nottingham Forest 0-1 Leeds United | Premier League',
+    'Inside: Ipswich 0-2 Liverpool | Unseen moments from Friday night win',
+    'Fábio\'s PL Return + Jaidon\'s First Goal ❤️ | Inside Brentford | Brentford 3-0 Chelsea',
+    'CITY BEAT BOURNEMOUTH! | MATCHDAY LIVE | Man City 2-1 Bournemouth | Premier League',
+    'Athletic Club vs. Sevilla [FIRST 15 MINUTES LIVE] | LALIGA Highlights | ESPN FC',
+    'Pós-jogo | UEFA Champions League: Sporting CP 3-1 Galatasaray SK',
+    'FILIPE LUÍS | CONFÉRENCE D\'APRÈS-MATCH 🇫🇷 | COLETIVA PÓS-JOGO 🇧🇷 | AS MONACO - RC LENS (2-1)',
+  ]) assert.ok(!looksLikeMatchHighlight(t, { fixtures: true }), t);
+  // A quoted opener is fine when the title says "highlights".
+  assert.ok(looksLikeMatchHighlight('"What a goal!" | Arsenal 2-1 Leeds | Premier League Highlights', { fixtures: true }));
+  // Over 30 minutes is a stream or a full match, whatever the title says.
+  const long = { ...plVid('stream', 'Arsenal 2-1 Leeds United | Premier League highlights'), durationSec: 4 * 3600 };
+  assert.equal(matchVideosToFixtures([arsLee], [long]).get(2), undefined);
+  assert.ok(!stillBelongs({ ...long, kind: 'extended' }, arsLee));
+});
+
+test('a possessive still names the team, so its running score is judged too', () => {
+  assert.equal(normalize("Liverpool's defense").trim(), 'liverpool defense');
+  const LIV = { id: 64, name: 'Liverpool FC', shortName: 'Liverpool', tla: 'LIV' };
+  const MCI = { id: 65, name: 'Manchester City FC', shortName: 'Man City', tla: 'MCI' };
+  const f = { ...arsLee, homeTeam: LIV, awayTeam: MCI, score: { fullTime: { home: 0, away: 3 } } };
+  const t = "Manchester City breach 10-man Liverpool's defense in 3-0 romp | Premier League Update | NBC Sports";
+  assert.equal(matchVideosToFixtures([f], [plVid('update', t)]).get(2), undefined);
 });
 
 // Real teams and titles that went unmatched in the 2026/27 season (data branch, 2026-10-10).
