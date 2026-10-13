@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-12T21:23:24.311Z",
+ "generatedAt": "2026-10-13T18:50:55.752Z",
  "source": "live",
- "rev": "5cc0db0bd3ec911caac070db59abc716b5ba3e2f",
+ "rev": "9015b5daae5e128992ad4d457f91cd16243e386c",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
  "competitions": [
   {
@@ -1357,7 +1357,7 @@
    "color": "#3B82F6",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-1",
+   "currentRound": "md-2",
    "rounds": [
     {
      "key": "md-1",
