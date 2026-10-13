@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-13T19:10:53.988Z",
+ "generatedAt": "2026-10-13T21:10:56.138Z",
  "source": "live",
- "rev": "7093b3b888ba83f53eda61bb2670205b8468da95",
+ "rev": "f6fffe1f38b065bafeb8bc463e53f381234dadee",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
  "competitions": [
   {
@@ -1371,7 +1371,7 @@
      "label": "League phase · MD 2",
      "firstDate": "2026-10-13T16:45:00Z",
      "matches": 18,
-     "withHighlights": 2
+     "withHighlights": 5
     },
     {
      "key": "md-3",
