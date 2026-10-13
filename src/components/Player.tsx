@@ -196,7 +196,8 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
   useEffect(() => {
     const el = slotRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => setScrolledAway(e.intersectionRatio < 0.5), { threshold: [0, 0.5, 1] });
+    // Hidden (mounted ahead of the first play) has no size: that isn't scrolled away.
+    const io = new IntersectionObserver(([e]) => setScrolledAway(e.boundingClientRect.width > 0 && e.intersectionRatio < 0.5), { threshold: [0, 0.5, 1] });
     io.observe(el);
     return () => io.disconnect();
   }, []);

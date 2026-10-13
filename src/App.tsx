@@ -116,6 +116,19 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   const [toast, setToast] = useState<string | null>(null);
   const [pb, dispatch] = useReducer(playbackReducer, undefined, () => initialPlayback(readQueue()));
   const stageRef = useRef<HTMLDivElement>(null);
+  // The YouTube player loads its API, embed page and ~2 MB of player code before it can
+  // play anything. Mount it (hidden) once the page is idle and keep it mounted, so the
+  // first Play only has to load the video.
+  const [playerWarm, setPlayerWarm] = useState(false);
+  useEffect(() => {
+    const warm = () => setPlayerWarm(true);
+    if (window.requestIdleCallback) {
+      const id = window.requestIdleCallback(warm, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(warm, 1500);
+    return () => clearTimeout(id);
+  }, []);
   useEffect(() => { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; }, []);
   const returnTo = useRef<{ y: number; match: Match['id'] | null }>({ y: 0, match: null });
   const onStageEntry = useRef(false);
@@ -545,8 +558,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
 
       <div className={`layout${showAside ? ' with-aside' : ''}`}>
         <main>
-          {current && (
-            <section className={`stage${docked ? ' is-docked' : ''}`} ref={stageRef} aria-label="Now playing">
+          {(current || playerWarm) && (
+            <section className={`stage${docked ? ' is-docked' : ''}`} ref={stageRef} aria-label="Now playing" hidden={!current}>
               {watching && (
                 <button className="watch-back" onClick={toBrowse}>
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z" /></svg>
@@ -556,7 +569,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
               <Player
                 videoId={video?.videoId ?? null}
                 seq={pb.seq}
-                label={matchTitle(current.match)}
+                label={current ? matchTitle(current.match) : ''}
                 moments={cut?.m ?? null}
                 onMoment={setMoment}
                 onEnded={onEnded}
@@ -565,7 +578,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                 docked={docked}
                 onExpand={docked ? () => toStage() : watching ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : undefined}
               />
-              <div className="now">
+              {current && <div className="now">
                 <div className="now-main">
                   <div className="now-kicker">
                     <i className="comp-dot" style={{ background: current.comp.color }} />
@@ -600,7 +613,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                     Autoplay
                   </label>
                 </div>
-              </div>
+              </div>}
               {embedErrors >= 2 && (
                 <div className="region-note hint">
                   <span>Several videos wouldn&apos;t play here. If you&apos;re using a VPN or travelling, set the country YouTube sees you in.</span>

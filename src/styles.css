@@ -138,7 +138,7 @@ main.pre {
     grid-template-rows: auto 1fr;
     grid-template-areas: "stage aside" "browse aside";
   }
-  .layout:not(:has(.stage)) { grid-template-areas: "browse aside" "browse aside"; }
+  .layout:not(:has(.stage:not([hidden]))) { grid-template-areas: "browse aside" "browse aside"; }
   .aside { align-self: start; position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow: auto; }
 }
 

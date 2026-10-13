@@ -58,6 +58,8 @@ function earlyData(bases: string[]): Plugin {
         // fetch() uses the CORS connection pool and <img> the plain one, so warm both.
         ...(origin ? [`<link rel="preconnect" href="${origin}" crossorigin />`, `<link rel="preconnect" href="${origin}" />`] : []),
         '<link rel="preconnect" href="https://i.ytimg.com" />',
+        // The YouTube player (src/lib/youtube.ts): its API script, embed page and player code.
+        '<link rel="preconnect" href="https://www.youtube.com" />',
       ];
       // A replacer function: the minified script can contain `$&`, which a replacement string would expand.
       return html.replace(CHARSET, () => `${CHARSET}\n    ${tags.join('\n    ')}`);
