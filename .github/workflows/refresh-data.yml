@@ -6,11 +6,11 @@ name: Refresh data
 # step redeploys when they would change (rarely). Code changes on `main` are
 # built and deployed by Netlify as usual.
 #
-# The refresh clock (refresh-clock.yml) starts it when matches finish (quick runs
-# every ~10 min, only the competitions involved), every few hours otherwise, and
-# once a day as a full run. Its own schedule is only a backup for when no clock is
-# running: every 3 h (full at 03:17 UTC, quick otherwise), and those runs cancel
-# themselves while a clock is on duty. Start one by hand from the Actions tab or
+# The refresh clock (refresh-clock.yml, ticked every 10 min by cron-job.org)
+# starts it when matches finish (quick runs every ~10 min, only the competitions
+# involved), every few hours otherwise, and once a day as a full run. Its own
+# schedule is only a backup for when the clock stops ticking: every 3 h (full at
+# 03:17 UTC, quick otherwise), and those runs cancel themselves while it ticks. Start one by hand from the Actions tab or
 # with `npm run refresh` (a full run unless you pick quick).
 
 run-name: "Refresh data · ${{ inputs.mode || (github.event.schedule == '17 3 * * *' && 'full') || (github.event_name == 'schedule' && 'quick') || 'full' }}${{ inputs.reason && format(' · {0}', inputs.reason) || (github.event_name == 'schedule' && ' · backup timer') || '' }}"
@@ -62,10 +62,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      # Stand down when the clock is doing its job: one is running, or started in
-      # the last 20 min (a handover, or a tick). Cancelled runs don't count as
-      # refreshes for the clock.
-      - name: Backup timer (stands down while the clock is on duty)
+      # Stand down when the clock is doing its job: a tick is running, or one
+      # succeeded in the last 20 min. Cancelled runs don't count as refreshes for
+      # the clock.
+      - name: Backup timer (stands down while the clock ticks)
         if: github.event_name == 'schedule'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -73,13 +73,13 @@ jobs:
         run: |
           on_duty=$(gh run list --workflow refresh-clock.yml --limit 20 --json status,createdAt \
             --jq '[.[] | select(.status == "in_progress" or .status == "queued"
-                   or (now - (.createdAt | fromdateiso8601)) < 1200)] | length')
+                   or (.conclusion == "success" and (now - (.createdAt | fromdateiso8601)) < 1200))] | length')
           if [ "$on_duty" -gt 0 ]; then
-            echo "The refresh clock is on duty: cancelling this backup run."
+            echo "The refresh clock is ticking: cancelling this backup run."
             gh run cancel "$GITHUB_RUN_ID"
             sleep 300
           fi
-          echo "No refresh clock is running: refreshing on the backup timer."
+          echo "The refresh clock isn't ticking: refreshing on the backup timer."
 
       - uses: actions/checkout@v4
 
