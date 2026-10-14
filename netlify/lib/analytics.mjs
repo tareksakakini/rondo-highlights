@@ -6,9 +6,11 @@
 // One JSON record per day (UTC, or the STATS_TZ time zone), `days/<YYYY-MM-DD>` in the
 // "analytics" blob store:
 //   views                     page views
-//   v      { id: [views, plays, videos] }   per visitor; `id` is a hash of a daily salt,
-//                             the IP and the user agent, so the same person is one visitor
-//                             within a day and can't be followed from one day to the next
+//   v      { id: [views, plays, videos, age?] }   per visitor; `id` is a hash of a daily
+//                             salt, the IP and the user agent, so the same person is one
+//                             visitor within a day and can't be followed from one day to the
+//                             next. `age`: days since the browser's first visit (ageDays), from
+//                             its landing view; missing if it sent none
 //   pages, entries, refs      page views by path, landings by path, landings by referrer host
 //   countries, devices        visitors by country code and by mobile/tablet/desktop
 //   events { name: { n, by: { prop: { value: n } } } }
@@ -21,6 +23,11 @@ const MAX_KEYS = 500;
 const OTHER = '(other)';
 /** Hits a visitor can add in a day: past this they're dropped (a script, not a person). */
 const MAX_HITS = 2000;
+/** Ages past this are all stored as MAX_AGE + 1 ("over a month"). */
+const MAX_AGE = 30;
+/** Day-N retention the stats page shows; the cohort table has a column for each of days 1..7. */
+const RETENTION = [1, 7, 30];
+const COHORT_DAYS = 7;
 
 const BOT = /bot|crawl|spider|slurp|scrap|headless|lighthouse|pagespeed|preview|monitor|python|curl|wget|httpclient|okhttp|java\/|go-http|axios|node-fetch|undici|phantom|puppeteer|playwright|selenium/i;
 
@@ -46,6 +53,18 @@ export function dayKey(d = new Date(), tz) {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Whole days, by the calendar of `tz`, from a browser's first visit to `now`, given the
+ * hours since that visit (sent with its landing view): 0 for a first-day visitor, -1 for
+ * one that visited before we started keeping track (`hours` -1), at most MAX_AGE + 1.
+ */
+export function ageDays(hours, now = new Date(), tz) {
+  if (hours < 0) return -1;
+  const first = dayKey(new Date(now.getTime() - hours * 36e5), tz);
+  const days = Math.round((Date.parse(dayKey(now, tz)) - Date.parse(first)) / 864e5);
+  return Math.min(Math.max(days, 0), MAX_AGE + 1);
+}
+
 const PATH = /^\/[\w\-./]{0,120}$/;
 const HOST = /^[a-z0-9.-]{1,100}$/;
 const PROP_KEY = /^[a-z]{1,12}$/;
@@ -53,7 +72,8 @@ const PROP_VAL = /^[\w .:-]{1,40}$/;
 
 /**
  * A hit as the site sent it, checked and trimmed, or null if it isn't one.
- *   { t: 'view', p: '/premier-league/', l: 1, r: 'google.com' }   (l, r: landing only)
+ *   { t: 'view', p: '/premier-league/', l: 1, r: 'google.com', a: 30 }   (l, r, a: landing only;
+ *                                       a: hours since the browser's first visit, -1 if unknown)
  *   { t: 'event', n: 'play', p: '/', d: { from: 'all', comp: 'PL' } }
  */
 export function parseHit(body) {
@@ -65,6 +85,7 @@ export function parseHit(body) {
       const host = body.r.toLowerCase().replace(/^www\./, '');
       if (HOST.test(host)) hit.ref = host;
     }
+    if (hit.landing && Number.isInteger(body.a) && body.a >= -1 && body.a <= 1e6) hit.hours = body.a;
     return hit;
   }
   if (body.t === 'event' && EVENTS.includes(body.n)) {
@@ -88,7 +109,7 @@ function bump(map, key, by = 1) {
 
 /**
  * Add one hit to a day's record (changed in place and returned).
- * `who`: { id, country, device } for the visitor who sent it.
+ * `who`: { id, country, device, age? } for the visitor who sent it (age: ageDays).
  */
 export function addHit(day, hit, who) {
   let me = day.v[who.id];
@@ -99,6 +120,7 @@ export function addHit(day, hit, who) {
     bump(day.devices, who.device);
   }
   if (me[0] + me[1] + me[2] >= MAX_HITS) return day;
+  if (me[3] === undefined && Number.isInteger(who.age)) me[3] = who.age;
   if (hit.type === 'view') {
     me[0]++;
     day.views++;
@@ -130,30 +152,58 @@ const merge = (into, map) => { for (const [k, n] of Object.entries(map ?? {})) i
 const top = (map, n = 25) => Object.entries(map).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, n);
 
 /**
- * What the stats page shows for a run of days: `records` is [dayKey, record | null] pairs,
- * oldest first. Visitors can't be matched across days (the salt changes daily), so
- * multi-day visitor totals add up each day's visitors.
+ * Day-N retention: of the browsers whose first visit was on day d, how many visited on day
+ * d + N. `ages[i]` is the visitors' ages on the i-th day of the run. The last day is today,
+ * still counting, so it's left out as a return day.
+ */
+function retention(days, ages) {
+  const last = days.length - 1;
+  const count = (i, age) => ages[i].filter((a) => a === age).length;
+  const cohorts = days.slice(0, last).map((day, i) => ({
+    day,
+    size: count(i, 0),
+    back: Array.from({ length: COHORT_DAYS }, (_, k) => (i + k + 1 < last ? count(i + k + 1, k + 1) : null)),
+  }));
+  const rates = Object.fromEntries(RETENTION.map((n) => {
+    const from = days.slice(0, Math.max(last - n, 0)).map((_, i) => i);
+    return [n, from.length ? { back: from.reduce((t, i) => t + count(i + n, n), 0), of: from.reduce((t, i) => t + count(i, 0), 0) } : null];
+  }));
+  return { cohorts, rates };
+}
+
+/**
+ * What the stats page shows for a run of days ending today: `records` is
+ * [dayKey, record | null] pairs, oldest first. Visitors can't be matched across days (the
+ * salt changes daily), so multi-day visitor totals add up each day's visitors; whether they
+ * came back is told by their age (days since their browser's first visit).
  */
 export function summarize(records) {
   const daily = [];
+  const ages = [];
   const sums = { pages: {}, entries: {}, refs: {}, countries: {}, devices: {} };
   const events = {};
-  const totals = { views: 0, visitors: 0, watchers: 0, plays: 0, videos: 0, oneView: 0 };
+  const totals = { views: 0, visitors: 0, watchers: 0, plays: 0, videos: 0, oneView: 0, fresh: 0, back: 0 };
   for (const [day, rec] of records) {
     const r = rec ?? emptyDay();
     const people = Object.values(r.v);
+    const known = people.map((p) => p[3]).filter((a) => a !== undefined);
+    ages.push(known);
     const row = {
       day,
       views: r.views,
       visitors: people.length,
       watchers: people.filter((p) => p[2] > 0).length,
       videos: r.events.video?.n ?? 0,
+      fresh: known.filter((a) => a === 0).length,
+      back: known.filter((a) => a !== 0).length,
     };
     daily.push(row);
     totals.views += row.views;
     totals.visitors += row.visitors;
     totals.watchers += row.watchers;
     totals.videos += row.videos;
+    totals.fresh += row.fresh;
+    totals.back += row.back;
     totals.plays += r.events.play?.n ?? 0;
     totals.oneView += people.filter((p) => p[0] <= 1 && p[1] === 0 && p[2] === 0).length;
     for (const k of Object.keys(sums)) merge(sums[k], r[k]);
@@ -173,6 +223,7 @@ export function summarize(records) {
     refs: top(sums.refs),
     countries: top(sums.countries, 30),
     devices: top(sums.devices),
+    retention: retention(records.map(([day]) => day), ages),
     events: Object.fromEntries(Object.entries(events).map(([name, ev]) => [name, {
       n: ev.n,
       by: Object.fromEntries(Object.entries(ev.by).map(([prop, vals]) => [prop, top(vals, 30)])),

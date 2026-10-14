@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addHit, dayKey, device, emptyDay, isBot, lastDays, parseHit, summarize } from '../netlify/lib/analytics.mjs';
+import { addHit, ageDays, dayKey, device, emptyDay, isBot, lastDays, parseHit, summarize } from '../netlify/lib/analytics.mjs';
 
 const CHROME = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36';
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
@@ -96,11 +96,63 @@ test('summarize adds up days and ranks the lists', () => {
   const s = summarize([['2026-10-07', d1], ['2026-10-08', null], ['2026-10-09', d2]]);
   assert.equal(s.from, '2026-10-07');
   assert.equal(s.to, '2026-10-09');
-  assert.deepEqual(s.totals, { views: 4, visitors: 3, watchers: 1, plays: 0, videos: 1, oneView: 1 });
+  assert.deepEqual(s.totals, { views: 4, visitors: 3, watchers: 1, plays: 0, videos: 1, oneView: 1, fresh: 0, back: 0 });
   assert.deepEqual(s.daily.map((d) => [d.day, d.visitors, d.watchers]), [['2026-10-07', 2, 1], ['2026-10-08', 0, 0], ['2026-10-09', 1, 0]]);
   assert.deepEqual(s.pages, [['/', 3], ['/serie-a/', 1]]);
   assert.deepEqual(s.refs, [['google.com', 2]]);
   assert.deepEqual(s.countries, [['US', 2], ['IT', 1]]);
   assert.deepEqual(s.events.finish, { n: 1, by: { comp: [['PL', 1]], cut: [['short', 1]] } });
   assert.deepEqual(s.events.setting, { n: 1, by: { length: [['extended', 1]] } });
+});
+
+test('landing views carry the hours since the first visit', () => {
+  assert.equal(parseHit({ t: 'view', p: '/', l: 1, a: 30 }).hours, 30);
+  assert.equal(parseHit({ t: 'view', p: '/', l: 1, a: -1 }).hours, -1);
+  assert.equal(parseHit({ t: 'view', p: '/', a: 30 }).hours, undefined);
+  for (const a of [-2, 1.5, '3', 1e7, null]) assert.equal(parseHit({ t: 'view', p: '/', l: 1, a }).hours, undefined, String(a));
+});
+
+test('ageDays counts calendar days in the stats time zone', () => {
+  const now = new Date('2026-10-10T01:00:00Z');
+  assert.equal(ageDays(0, now), 0);
+  assert.equal(ageDays(2, now), 1); // Oct 9, 23:00 UTC
+  assert.equal(ageDays(-1, now), -1);
+  assert.equal(ageDays(24 * 400, now), 31);
+  // 6pm Oct 9 in Los Angeles, first visit 8am the same day there.
+  assert.equal(ageDays(10, now, 'America/Los_Angeles'), 0);
+});
+
+test('a visitor keeps the age of their landing view', () => {
+  const day = emptyDay();
+  addHit(day, parseHit({ t: 'event', n: 'play', p: '/' }), who('a'));
+  addHit(day, parseHit({ t: 'view', p: '/', l: 1 }), who('a', { age: 3 }));
+  addHit(day, parseHit({ t: 'view', p: '/', l: 1 }), who('a', { age: 0 }));
+  addHit(day, parseHit({ t: 'view', p: '/', l: 1 }), who('b'));
+  assert.deepEqual(day.v, { a: [2, 1, 0, 3], b: [1, 0, 0] });
+});
+
+test('summarize tells new visitors from returning ones and follows each day\'s new ones', () => {
+  const days = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04', '2026-10-05'];
+  const visits = [
+    // [day index, visitor, age]
+    [0, 'n1', 0], [0, 'n2', 0], [0, 'n3', 0], [0, 'old', -1],
+    [1, 'n1', 1], [1, 'm1', 0], [1, 'x', undefined],
+    [2, 'n2', 2], [2, 'm1', 1],
+    [3, 'n1', 3],
+    [4, 'n3', 4], // today: still counting, not a return day
+  ];
+  const recs = days.map(() => emptyDay());
+  for (const [i, id, age] of visits) addHit(recs[i], parseHit({ t: 'view', p: '/', l: 1 }), who(id, { age }));
+  const s = summarize(days.map((d, i) => [d, recs[i]]));
+  assert.deepEqual(s.daily.map((d) => [d.fresh, d.back]), [[3, 1], [1, 1], [0, 2], [0, 1], [0, 1]]);
+  assert.equal(s.totals.fresh, 4);
+  assert.equal(s.totals.back, 6);
+  assert.deepEqual(s.retention.cohorts.map((c) => [c.day, c.size, c.back.slice(0, 4)]), [
+    ['2026-10-01', 3, [1, 1, 1, null]],
+    ['2026-10-02', 1, [1, 0, null, null]],
+    ['2026-10-03', 0, [0, null, null, null]],
+    ['2026-10-04', 0, [null, null, null, null]],
+  ]);
+  assert.deepEqual(s.retention.rates[1], { back: 2, of: 4 });
+  assert.equal(s.retention.rates[7], null);
 });

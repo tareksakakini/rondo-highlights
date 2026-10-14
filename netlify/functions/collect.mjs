@@ -5,9 +5,11 @@
 // No cookies and no IP addresses are stored: a visitor is a hash of today's salt, the IP
 // and the user agent. The salt is random, kept only for the day it's used, then deleted,
 // so a visitor's hash can't be worked back to their IP or matched with another day's.
+// A landing view also says how long ago the browser first visited (its own localStorage
+// keeps the time); that's kept only as whole days, to tell new visitors from returning ones.
 
 import { createHash, randomBytes } from 'node:crypto';
-import { dayKey, device, isBot, parseHit } from '../lib/analytics.mjs';
+import { ageDays, dayKey, device, isBot, parseHit } from '../lib/analytics.mjs';
 import { analyticsStore } from '../lib/store.mjs';
 
 const nothing = (status = 204) => new Response(null, { status });
@@ -28,10 +30,13 @@ export default async (req, context) => {
     const now = new Date();
     const day = dayKey(now, process.env.STATS_TZ);
     const salt = await saltFor(store, day);
+    const { hours, ...rest } = hit;
+    hit = rest;
     const who = {
       id: createHash('sha256').update(`${salt}|${context.ip}|${ua}`).digest('base64url').slice(0, 12),
       country: context.geo?.country?.code ?? null,
       device: device(ua),
+      age: hours === undefined ? undefined : ageDays(hours, now, process.env.STATS_TZ),
     };
     await store.setJSON(`hits/${day}/${now.getTime().toString(36)}-${randomBytes(6).toString('hex')}`, { hit, who });
   } catch (e) {

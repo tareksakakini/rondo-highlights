@@ -95,7 +95,8 @@ docs/           landscape.md (competitor comparison)
 Our own, at **rondohighlights.com/stats**. It sets no cookies and stores no IP addresses.
 
 - **What's counted:** page views, including moving between rounds inside the app, plus a few events. These are Play buttons pressed (`play`), highlights started (`video`), highlights watched to the end (`finish`), matches added to the queue (`queue`) and settings changed (`setting`). `src/lib/track.ts` sends them from production builds to `/api/r`.
-- **Visitors:** a visitor is a hash of a random daily salt, the IP and the user agent. The same person is one visitor within a day, but can't be followed from one day to the next, so multi-day totals add up each day's visitors. Clients that don't run JavaScript (most bots) never send anything, and the collector also drops known bot user agents.
+- **Visitors:** a visitor is a hash of a random daily salt, the IP and the user agent. The same person is one visitor within a day, but can't be followed from one day to the next, so multi-day totals add up each day's visitors.
+- **Coming back:** the browser keeps the time of its first visit in localStorage (`rondo:first`), and a landing view sends the hours since then. The collector keeps only whole days since the first visit (0 = new, capped past 30), which gives the share of returning visitors and day-N retention (of the browsers first seen on day d, how many visited on day d + N). Browsers that already had our settings saved when this started count as returning but aren't in day-N figures. Clients that don't run JavaScript (most bots) never send anything, and the collector also drops known bot user agents.
 - **Storage (Netlify Blobs, store `analytics`):**
   - `netlify/functions/collect.mjs` saves each hit as its own entry, so hits arriving together never overwrite each other.
   - `compact.mjs` (scheduled hourly) folds them into one totals record per day and deletes them.

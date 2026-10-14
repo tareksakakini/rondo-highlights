@@ -64,6 +64,16 @@
   .err { color: var(--danger); margin-top: 10px; font-size: 14px; }
   .sub { margin-top: 18px; }
   .sub h3 { font-size: 13px; margin: 0 0 6px; font-weight: 600; }
+  .back { margin-top: 14px; }
+  .back .kpis { margin: 4px 0 18px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  .back .kpi { background: var(--surface-2); }
+  .cohorts { overflow-x: auto; margin-top: 18px; }
+  .cohorts table { min-width: 560px; }
+  .cohorts th { font-size: 12px; font-weight: 600; color: var(--muted); text-align: right; padding: 0 0 6px 4px; white-space: nowrap; }
+  .cohorts th:first-child { text-align: left; }
+  .cohorts td { text-align: right; padding: 2px 0 2px 4px; white-space: nowrap; font-size: 13px; }
+  .cohorts td:first-child { text-align: left; }
+  .cohorts td.c span { display: block; border-radius: 4px; padding: 3px 6px; }
   footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
   footer button { padding: 4px 10px; font-size: 13px; }
 </style>
@@ -137,9 +147,12 @@
       <tr><td class="k"><div class="bar" style="width:${Math.max(2, (100 * n) / max)}%"></div><span>${esc(fmt(k))}</span></td><td class="n">${num(n)}</td></tr>`).join('')}</table>`;
   }
 
-  function chart(daily) {
+  const shortDay = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+
+  // Bars of `whole` per day with `part` of it on top; `tip(row, day)` is each day's tooltip.
+  function chart(daily, whole = 'visitors', part = 'watchers', tip = (d, day) => `${day}: ${d.visitors} visitors, ${d.watchers} watched highlights, ${d.views} page views`) {
     const W = 960, H = 220, top = 10, bottom = 26, left = 34;
-    const max = Math.max(4, ...daily.map((d) => d.visitors));
+    const max = Math.max(4, ...daily.map((d) => d[whole]));
     const step = Math.pow(10, Math.floor(Math.log10(max)));
     const ceil = Math.ceil(max / step) * step;
     const y = (v) => top + (H - top - bottom) * (1 - v / ceil);
@@ -149,18 +162,62 @@
     const every = Math.ceil(daily.length / 10);
     const bars = daily.map((d, i) => {
       const x = left + i * bw + (bw - barW) / 2;
-      const day = new Date(`${d.day}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+      const day = shortDay(d.day);
       return `
-        <g><title>${day}: ${d.visitors} visitors, ${d.watchers} watched highlights, ${d.views} page views</title>
-          <rect x="${x}" y="${y(d.visitors)}" width="${barW}" height="${y(0) - y(d.visitors)}" rx="3" fill="var(--accent-dim)" />
-          <rect x="${x}" y="${y(d.watchers)}" width="${barW}" height="${y(0) - y(d.watchers)}" rx="3" fill="var(--accent)" />
+        <g><title>${tip(d, day)}</title>
+          <rect x="${x}" y="${y(d[whole])}" width="${barW}" height="${y(0) - y(d[whole])}" rx="3" fill="var(--accent-dim)" />
+          <rect x="${x}" y="${y(d[part])}" width="${barW}" height="${y(0) - y(d[part])}" rx="3" fill="var(--accent)" />
           ${i % every === 0 ? `<text x="${x + barW / 2}" y="${H - 6}" text-anchor="middle" font-size="12" fill="var(--muted)">${day}</text>` : ''}
         </g>`;
     }).join('');
     const grid = ticks.map((t) => `
       <line x1="${left}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" />
       <text x="${left - 8}" y="${y(t) + 4}" text-anchor="end" font-size="12" fill="var(--muted)">${num(t)}</text>`).join('');
-    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitors per day">${grid}${bars}</svg>`;
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${whole === 'visitors' ? 'Visitors' : 'Visitors we could tell'} per day">${grid}${bars}</svg>`;
+  }
+
+  // Did visitors come back: returning share, day-N retention and a table of first-visit days.
+  function comingBack(s) {
+    const t = s.totals;
+    const told = t.fresh + t.back;
+    const daily = s.daily.map((d) => ({ ...d, told: d.fresh + d.back }));
+    const r = s.retention;
+    const rate = (n, text) => {
+      const x = r.rates[n];
+      const value = x && x.of ? pct(x.back, x.of) : '–';
+      const note = !x ? `Needs a range over ${n + 1} days` : x.of ? `${num(x.back)} of ${num(x.of)} new visitors` : 'No new visitors to follow yet';
+      return `<div class="card kpi"><div class="label">${text}</div><div class="value">${value}</div><div class="note">${note}</div></div>`;
+    };
+    const cohorts = r.cohorts.slice(-14).reverse();
+    const cell = (n, size) => {
+      if (n === null) return '<td class="c"></td>';
+      if (!size) return '<td class="c muted">–</td>';
+      const share = n / size;
+      return `<td class="c" title="${num(n)} of ${num(size)}"><span style="background:rgba(200,245,80,${(0.08 + 0.6 * Math.min(1, share * 2)).toFixed(2)});${share > 0.4 ? 'color:#11160a;' : ''}">${pct(n, size)}</span></td>`;
+    };
+    const days = Array.from({ length: cohorts[0]?.back.length ?? 0 }, (_, k) => k + 1);
+    const grid = cohorts.length && cohorts.some((c) => c.size) ? `
+      <div class="cohorts">
+        <h3 class="small">Of each day's new visitors, the share back N days later</h3>
+        <table>
+          <tr><th>First visit</th><th>New</th>${days.map((k) => `<th>Day ${k}</th>`).join('')}</tr>
+          ${cohorts.map((c) => `<tr><td>${shortDay(c.day)}</td><td>${num(c.size)}</td>${c.back.map((n) => cell(n, c.size)).join('')}</tr>`).join('')}
+        </table>
+      </div>` : `<p class="empty">${s.daily.length > 2 ? 'No new visitors to follow yet.' : 'Pick 7 days or more to follow new visitors day by day.'}</p>`;
+    return `
+      <div class="card back">
+        <h2>Coming back</h2>
+        <div class="grid kpis">
+          <div class="card kpi"><div class="label">Returning visitors</div><div class="value">${pct(t.back, told)}</div><div class="note">${num(t.back)} of ${num(told)} had been here before</div></div>
+          ${rate(1, 'Back the next day')}
+          ${rate(7, 'Back a week later')}
+          ${rate(30, 'Back a month later')}
+        </div>
+        <div class="legend"><span><i style="background:var(--accent-dim)"></i>New</span><span><i style="background:var(--accent)"></i>Returning</span></div>
+        ${chart(daily, 'told', 'back', (d, day) => `${day}: ${d.fresh} new, ${d.back} returning`)}
+        ${grid}
+        <p class="muted small">Counted per browser: a cleared browser, a private window or another device looks new. Browsers that visited before this started count as returning, but aren't in the day-N figures. Today is still counting, so it isn't used as a return day.</p>
+      </div>`;
   }
 
   function eventBlock(ev, props) {
@@ -195,6 +252,8 @@
         <div class="legend"><span><i style="background:var(--accent-dim)"></i>Visitors</span><span><i style="background:var(--accent)"></i>Watched highlights</span></div>
         ${chart(s.daily)}
       </div>
+
+      ${comingBack(s)}
 
       <div class="grid two">
         <div class="card"><h2>Where visitors came from</h2>${table(s.refs, (k) => k, 'No other sites yet')}<p class="muted small">Landings with no referring site (typed, bookmarks, apps) aren't listed.</p></div>
