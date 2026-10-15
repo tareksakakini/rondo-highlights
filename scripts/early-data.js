@@ -3,17 +3,18 @@
 // parsed, instead of after the app's JS has downloaded and started. src/lib/data.ts
 // and src/lib/region.ts pick these requests up.
 //
-//   - index.json from the data branch (always revalidated);
-//   (from jsDelivr, and also from raw.githubusercontent when jsDelivr is slow to answer:
-//   see race() below; GitHub throttles anonymous downloads at limits it doesn't publish,
-//   so it backs jsDelivr up rather than replacing it)
+//   - index.json from the data branch (always revalidated), from jsDelivr and
+//   raw.githubusercontent at once, keeping the newer copy (see newest() below);
+//   other files come from jsDelivr, and from raw.githubusercontent too when jsDelivr is
+//   slow to answer (see race() below; GitHub throttles anonymous downloads at limits it
+//   doesn't publish, so it backs jsDelivr up rather than replacing it)
 //   - the round file the page will show, and condensed.json, as soon as an index
 //     names the data commit (`rev`) they live at;
 //   - /geo.json (the visitor's country), unless this tab already knows it.
 //
 // Repeat visits: the index saved on the last visit (if recent) names a commit whose
 // files are already in the browser's cache, so the round shows without waiting for
-// the network. The fresh index replaces it when it arrives.
+// the network. The fresh index replaces it when it arrives, unless it is older.
 //
 // Which round: prerendered pages carry <meta name="rondo-route" content="CODE [ROUND]">
 // (empty on the home page). The app makes the same choice in App.tsx: the page's
@@ -68,6 +69,53 @@
       start();
     });
   }
+  // index.json comes from the moving branch, and jsDelivr's copy of it can lag hours
+  // behind (it served a 3-hour-old one through every purge on 2026-10-15). So ask every
+  // base at once and keep the newest copy (by publishedAt, which only goes up; see
+  // scripts/stamp-rev.mjs) that arrives within INDEX_GRACE_MS of the first good answer.
+  var INDEX_GRACE_MS = 400;
+  function stamp(idx) {
+    return (idx && Date.parse(idx.publishedAt)) || 0;
+  }
+  function newer(a, b) {
+    return stamp(a) > stamp(b) ? a : b; // b on a tie
+  }
+  function newest(path, init) {
+    if (BASES.length < 2) return fetch(url('data', path), init).then(json);
+    return new Promise(function (resolve, reject) {
+      var ctrls = [];
+      var best = null;
+      var error = null;
+      var settled = 0;
+      var done = false;
+      var timer = null;
+      function finish() {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        ctrls.forEach(function (c) { if (c) c.abort(); });
+        if (best) resolve(best);
+        else reject(error);
+      }
+      BASES.forEach(function (_, i) {
+        var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+        ctrls[i] = ctrl;
+        var opts = {};
+        for (var k in init) opts[k] = init[k];
+        if (ctrl) opts.signal = ctrl.signal;
+        fetch(url('data', path, i), opts).then(json).then(function (body) {
+          if (done) return;
+          if (!best) timer = setTimeout(finish, INDEX_GRACE_MS);
+          best = best ? newer(body, best) : body;
+        }, function (e) {
+          error = e;
+        }).then(function () {
+          ctrls[i] = null; // nothing left to cancel
+          if (++settled === BASES.length) finish();
+        });
+      });
+    });
+  }
   function read(key) {
     try { return JSON.parse(localStorage.getItem('rondo:' + key)); } catch (e) { return null; }
   }
@@ -76,7 +124,7 @@
     return p;
   }
   try {
-    var fresh = quiet(race('data', 'index.json', { cache: 'no-cache' }));
+    var fresh = quiet(newest('index.json', { cache: 'no-cache' }));
     w.__rondoIndex = fresh;
 
     var meta = document.querySelector('meta[name="rondo-route"]');
@@ -124,7 +172,8 @@
       }
       if (stale) document.documentElement.classList.add('pre-stale');
     }
-    quiet(fresh.then(prefetch));
+    // A saved index newer than the network's stays on screen (src/lib/data.ts), so its round is the one to load.
+    quiet(fresh.then(function (idx) { prefetch(newer(savedIdx, idx)); }));
 
     var region = null;
     try { region = sessionStorage.getItem('rondo:netRegion'); } catch (e) { /* ignore */ }

@@ -57,9 +57,11 @@ export async function writeDataset(root, results, { source, merge }) {
     generatedAt: new Date().toISOString(),
     source: sources.size === 1 ? [...sources][0] : 'mixed',
     // The data-branch commit holding the round files. Kept as is here; the refresh
-    // workflow re-stamps it (scripts/stamp-rev.mjs) when round files or crests change.
+    // workflow re-stamps it (scripts/stamp-rev.mjs) when round files or crests change,
+    // and moves publishedAt when anything here does.
     rev: previous?.rev,
     crestsRev: previous?.crestsRev,
+    publishedAt: previous?.publishedAt,
     competitions,
   };
   // Keep the old timestamp when nothing changed, so scheduled runs don't create empty commits/deploys.

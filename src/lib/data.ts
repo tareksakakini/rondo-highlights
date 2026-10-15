@@ -81,6 +81,51 @@ function race<T>(path: string, ref: string, pinned: boolean): Promise<T> {
   });
 }
 
+/** When an index was published (scripts/stamp-rev.mjs); 0 for one from before the stamp existed. */
+const publishedAt = (idx: DataIndex | null | undefined) => Date.parse(idx?.publishedAt ?? '') || 0;
+/** The later of two indexes; `b` on a tie. */
+const newer = (a: DataIndex | null | undefined, b: DataIndex) => (a && publishedAt(a) > publishedAt(b) ? a : b);
+
+/** How long the other bases get to answer after the first good index.json (as in scripts/early-data.js). */
+const INDEX_GRACE_MS = 400;
+
+/**
+ * index.json from every base at once, keeping the newest copy that arrives within
+ * INDEX_GRACE_MS of the first good answer. It comes from the moving branch, and
+ * jsDelivr's copy can lag hours behind (it served a 3-hour-old one through every purge
+ * on 2026-10-15), so the first answer isn't necessarily the latest.
+ */
+function newestIndex(): Promise<DataIndex> {
+  if (BASES.length === 1) return get<DataIndex>(`${baseAt(0, 'data')}/index.json`, false);
+  return new Promise<DataIndex>((resolve, reject) => {
+    const ctrls: (AbortController | null)[] = BASES.map(() => new AbortController());
+    let best: { idx: DataIndex; i: number } | null = null;
+    let error: unknown;
+    let settled = 0;
+    let done = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      ctrls.forEach((c) => c?.abort());
+      if (!best) { reject(error); return; }
+      active = best.i;
+      resolve(best.idx);
+    };
+    BASES.forEach((_, i) => {
+      get<DataIndex>(`${baseAt(i, 'data')}/index.json`, false, ctrls[i]!.signal).then((idx) => {
+        if (done) return;
+        if (!best) timer = setTimeout(finish, INDEX_GRACE_MS);
+        if (!best || newer(idx, best.idx) === idx) best = { idx, i };
+      }, (e: unknown) => { error = e; }).finally(() => {
+        ctrls[i] = null; // nothing left to cancel
+        if (++settled === BASES.length) finish();
+      });
+    });
+  });
+}
+
 async function fetchFrom<T>(path: string, ref: string, pinned: boolean): Promise<T> {
   // scripts/early-data.js files its requests (also races) under the first base's URL.
   const early = takeEarly<T>(`${baseAt(0, ref)}/${path}`);
@@ -109,8 +154,12 @@ function save(idx: DataIndex) {
   try { localStorage.setItem(SAVED, JSON.stringify({ t: Date.now(), idx })); } catch { /* full or unavailable */ }
 }
 
-/** The index from the network (memoized); round files are read at the commit it names from then on. */
-const fetchFreshIndex = () =>
+/**
+ * The index from the network (memoized); round files are read at the commit it names from
+ * then on. An index older than `saved` (a CDN still serving an old copy) is ignored, so
+ * highlights already seen never disappear again.
+ */
+const fetchFreshIndex = (saved: DataIndex | null) =>
   memo('index.json', async () => {
     // Started by an inline script in index.html while the page was still loading.
     const early = window.__rondoIndex;
@@ -119,9 +168,10 @@ const fetchFreshIndex = () =>
     if (early) {
       try { idx = await early; } catch { /* fall back to the normal path */ }
     }
-    idx ??= await fetchFrom<DataIndex>('index.json', 'data', false);
+    idx ??= await newestIndex();
+    idx = newer(saved, idx);
     adopt(idx);
-    save(idx);
+    if (idx !== saved) save(idx);
     return idx;
   });
 
@@ -130,20 +180,22 @@ export interface IndexLoad {
   first: Promise<DataIndex>;
   /** True when `first` is the saved copy. */
   saved: boolean;
-  /** The network's index (the same object as `first` when nothing was saved). */
+  /** The network's index, or the saved one if that is newer (the same object as `first` when nothing was saved). */
   fresh: Promise<DataIndex>;
 }
 
 /**
  * Load the data index. On a repeat visit the copy saved last time (if under 12 hours
  * old, see vite.config.ts) is shown at once: its round files are already in the
- * browser's cache. The caller swaps in `fresh` when it arrives and differs.
+ * browser's cache. The caller swaps in `fresh` when it arrives and differs (it is the
+ * saved copy itself when the network only had older ones).
  */
 export function loadIndex(): IndexLoad {
-  const fresh = fetchFreshIndex();
-  const saved = window.__rondoSavedIndex;
+  let saved = window.__rondoSavedIndex ?? null;
   window.__rondoSavedIndex = undefined;
-  if (saved && Array.isArray(saved.competitions) && validRev(saved)) {
+  if (saved && !(Array.isArray(saved.competitions) && validRev(saved))) saved = null;
+  const fresh = fetchFreshIndex(saved);
+  if (saved) {
     if (!rev) adopt(saved);
     return { first: Promise.resolve(saved), saved: true, fresh };
   }

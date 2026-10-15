@@ -62,6 +62,8 @@ export interface DataIndex {
   rev?: string;
   /** Data-branch commit to read crests at: the last one that added a crest (they never change). */
   crestsRev?: string;
+  /** When this index was published; only ever goes up (scripts/stamp-rev.mjs). Missing on indexes from before 2026-10-15. */
+  publishedAt?: string;
   competitions: Competition[];
 }
 
