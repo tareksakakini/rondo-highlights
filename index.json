@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-10-14T21:31:25.993Z",
+ "generatedAt": "2026-10-15T19:01:53.937Z",
  "source": "live",
- "rev": "c7f3de18f9ae7fbf6cf54c218b1b17bbcc4a7956",
+ "rev": "7250f18e3849731ac39fde8e68dc11c219eac5e5",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
  "competitions": [
   {
@@ -1427,7 +1427,7 @@
    "color": "#F59E0B",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-1",
+   "currentRound": "md-2",
    "rounds": [
     {
      "key": "md-1",
@@ -1441,7 +1441,7 @@
      "label": "League phase · MD 2",
      "firstDate": "2026-10-15T16:45:00Z",
      "matches": 17,
-     "withHighlights": 0
+     "withHighlights": 3
     },
     {
      "key": "md-3",
