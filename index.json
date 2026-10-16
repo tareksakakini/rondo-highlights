@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-10-16T21:01:49.028Z",
+ "generatedAt": "2026-10-16T21:11:18.852Z",
  "source": "live",
- "rev": "968998007e83898cc8bfb91380e545b5cb147c29",
+ "rev": "3b5e40eed6d8898ed04004c94ec8ebf748007c59",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
- "publishedAt": "2026-10-16T21:01:51.063Z",
+ "publishedAt": "2026-10-16T21:11:19.998Z",
  "competitions": [
   {
    "code": "PL",
@@ -294,7 +294,7 @@
    "color": "#F97316",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-8",
+   "currentRound": "md-9",
    "rounds": [
     {
      "key": "md-1",
@@ -623,7 +623,7 @@
      "label": "Matchweek 7",
      "firstDate": "2026-10-16T18:45:00Z",
      "matches": 10,
-     "withHighlights": 0
+     "withHighlights": 1
     },
     {
      "key": "md-8",
@@ -1155,7 +1155,7 @@
      "label": "Matchweek 7",
      "firstDate": "2026-10-16T18:45:00Z",
      "matches": 9,
-     "withHighlights": 0
+     "withHighlights": 1
     },
     {
      "key": "md-8",
