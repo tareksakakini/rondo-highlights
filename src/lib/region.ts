@@ -20,6 +20,7 @@ export function detectRegion(): string | null {
 let names: Intl.DisplayNames | null = null;
 export function countryName(code: string) {
   try {
+    if (code === 'PS' && /^en\b/i.test(navigator.language || 'en')) return 'Palestine';
     names ??= new Intl.DisplayNames([navigator.language || 'en'], { type: 'region' });
     return names.of(code) ?? code;
   } catch {
