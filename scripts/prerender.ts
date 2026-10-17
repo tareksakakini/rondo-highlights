@@ -116,10 +116,9 @@ function card(m: ModelMatch): string {
   const thumb = m.hl
     ? `<div class="thumb">${teams}</div>`
     : `<button class="thumb" disabled>${teams}<span class="no-hl">Highlights not in yet</span></button>`;
-  // As in MatchCard: home, score (here "v"), away on one line.
-  const name = (t: ModelTeam) => `<span class="tname" title="${esc(t.name)}">${esc(t.short)}</span>`;
-  const fixture = `<div class="fixture"><span class="side">${badge(m.home, 20)}${name(m.home)}</span>` +
-    `<span class="score hidden">v</span><span class="side away">${name(m.away)}${badge(m.away, 20)}</span></div>`;
+  // As in MatchCard: one team per line (no scores before the data).
+  const row = (t: ModelTeam) => `<div class="team-row">${badge(t, 20)}<span class="tname" title="${esc(t.name)}">${esc(t.short)}</span></div>`;
+  const fixture = `<div class="teams">${row(m.home)}${row(m.away)}</div>`;
   const actions = m.hl
     ? '<div class="card-actions pre-ghost" aria-hidden="true"><div class="versions"><span class="chip">Short<span class="chip-dur">0:00</span></span>' +
       `<span class="chip">Ext.<span class="chip-dur">00:00</span></span></div><span class="btn-icon">${QUEUE_ICON}</span></div>`

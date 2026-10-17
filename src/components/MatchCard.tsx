@@ -69,19 +69,16 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
       </button>
 
       <div className="card-body">
-        {/* One line: home, score (or "v"), away; long names are cut off with "…". */}
-        <div className="fixture">
-          <span className="side">
-            <TeamBadge team={home} size={20} />
-            <span className="tname" title={home.name}>{home.short}</span>
-          </span>
-          <span className={`score${showScore ? '' : ' hidden'}`} aria-label={showScore ? `${score.home} to ${score.away}` : undefined}>
-            {showScore ? <>{score.home}<i>–</i>{score.away}</> : 'v'}
-          </span>
-          <span className="side away">
-            <span className="tname" title={away.name}>{away.short}</span>
-            <TeamBadge team={away} size={20} />
-          </span>
+        {/* One team per line, score on the right (never in spoiler-free mode); the loser is greyed out.
+            Names get the card's full width and wrap rather than being cut off. */}
+        <div className="teams">
+          {([['home', home, score.home, score.away], ['away', away, score.away, score.home]] as const).map(([side, team, own, other]) => (
+            <div key={side} className={`team-row${showScore && own! < other! ? ' lose' : ''}`}>
+              <TeamBadge team={team} size={20} />
+              <span className="tname" title={team.name}>{team.short}</span>
+              {showScore && <span className="tscore">{own}</span>}
+            </div>
+          ))}
         </div>
         <div className="meta">
           <span>{fmtDay(match.utcDate)}</span>

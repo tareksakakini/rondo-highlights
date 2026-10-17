@@ -394,14 +394,12 @@ a.comp { text-decoration: none; }
 .no-hl { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 12px; color: var(--muted); }
 
 .card-body { padding: 12px 12px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-/* Home, score, away on one line; each side gets half of what the score leaves. */
-.fixture { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
-.fixture .side { display: flex; align-items: center; gap: 7px; min-width: 0; }
-.fixture .side.away { justify-content: flex-end; text-align: right; }
-.tname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.score { font-weight: 850; font-stretch: 115%; font-size: 17px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.score i { font-style: normal; margin: 0 3px; color: var(--muted); }
-.score.hidden { color: var(--muted); font-size: 13px; font-weight: 700; font-stretch: 100%; text-transform: uppercase; }
+/* Teams: one per line (crest, name, score), so long names get the full width and wrap instead of being cut off. */
+.teams { display: flex; flex-direction: column; gap: 5px; }
+.team-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; column-gap: 9px; font-weight: 700; font-size: 15px; line-height: 1.25; }
+.team-row.lose { color: var(--muted); }
+.tname { min-width: 0; text-wrap: balance; overflow-wrap: break-word; }
+.tscore { font-weight: 850; font-stretch: 115%; font-size: 17px; font-variant-numeric: tabular-nums; text-align: right; min-width: 12px; }
 .meta { display: flex; gap: 6px; font-size: 12px; color: var(--muted); min-width: 0; }
 .meta > span:first-child { white-space: nowrap; }
 .meta-2 { margin-top: -4px; }
@@ -616,10 +614,10 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
   .card .dur { right: 6px; bottom: 6px; font-size: 11px; }
   .card .no-hl { font-size: 10.5px; bottom: 6px; padding: 0 6px; line-height: 1.25; }
   .card-body { padding: 9px 10px 9px 12px; gap: 5px; }
-  .fixture { font-size: 14px; gap: 6px; }
-  .fixture .side { gap: 6px; }
-  .fixture .badge { width: 18px !important; height: 18px !important; font-size: 6.5px !important; }
-  .score { font-size: 15px; }
+  .teams { gap: 3px; margin-bottom: 1px; }
+  .team-row { grid-template-columns: 18px minmax(0, 1fr) auto; column-gap: 7px; font-size: 14px; }
+  .team-row .badge { width: 18px !important; height: 18px !important; font-size: 6.5px !important; }
+  .tscore { font-size: 15px; }
   .meta-2 { margin-top: -2px; }
   .meta { font-size: 11.5px; }
   .card-actions { gap: 6px; }
