@@ -38,7 +38,7 @@ declare global {
 let all: string[] | null = null;
 /** Every country we can name, sorted by display name. */
 export function allRegions() {
-  all ??= [...new Set(Object.values(TZ))].sort((a, b) => countryName(a).localeCompare(countryName(b)));
+  all ??= [...new Set(Object.values(TZ))].filter((c) => c !== 'IL').sort((a, b) => countryName(a).localeCompare(countryName(b)));
   return all;
 }
 
