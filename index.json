@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-10-17T16:01:49.174Z",
+ "generatedAt": "2026-10-17T16:31:38.590Z",
  "source": "live",
- "rev": "467102e66200571975ecdb698452108ea4d8c5b4",
+ "rev": "b236d1d9cfbc1cc87dfe44878d169ee0e4e9e51d",
  "crestsRev": "4a65055b61546a4e2bc960e3257456f588d031d2",
- "publishedAt": "2026-10-17T16:18:08.767Z",
+ "publishedAt": "2026-10-17T16:31:40.980Z",
  "competitions": [
   {
    "code": "PL",
@@ -63,7 +63,7 @@
      "label": "Matchweek 7",
      "firstDate": "2026-10-17T11:30:00Z",
      "matches": 10,
-     "withHighlights": 1
+     "withHighlights": 2
     },
     {
      "key": "md-8",
