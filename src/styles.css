@@ -383,10 +383,16 @@ a.comp { text-decoration: none; }
 .play-glyph svg { width: 26px; height: 26px; }
 .thumb:hover:not(:disabled) .play-glyph, .thumb:focus-visible .play-glyph { opacity: 1; scale: 1; }
 .now-tag { position: absolute; left: 8px; top: 8px; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-.watched-tag { background: rgb(0 0 0 / 0.78); color: var(--text); }
-/* How far this browser got with the match (src/lib/watched.ts), along the thumbnail's bottom edge. */
-.watched-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgb(255 255 255 / 0.28); }
-.watched-bar i { display: block; height: 100%; background: var(--accent); }
+/* Watched to the end (src/lib/watched.ts): a green check with a white ring, so it holds up on grass. */
+.watched-mark {
+  position: absolute; left: 8px; top: 8px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: #16a34a; border: 2px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+.watched-mark svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+/* How far this browser got with the match, along the thumbnail's bottom edge: red on a dark
+   track (as on YouTube), which stands apart from the pitch and the lime of the site. */
+.watched-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgb(0 0 0 / 0.55); }
+.watched-bar i { display: block; height: 100%; background: #ff3b3b; }
 .views { white-space: nowrap; }
 .no-hl { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 12px; color: var(--muted); }
 
@@ -606,6 +612,8 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
   .card .thumb-teams .badge { width: 36px !important; height: 36px !important; font-size: 11px !important; }
   .card .thumb-teams .vs { font-size: 11px; }
   .card .now-tag { font-size: 9.5px; left: 6px; top: 6px; }
+  .card .watched-mark { left: 6px; top: 6px; width: 22px; height: 22px; }
+  .card .watched-mark svg { width: 13px; height: 13px; }
   .card .dur { right: 6px; bottom: 6px; font-size: 11px; }
   .card .no-hl { font-size: 10.5px; bottom: 6px; padding: 0 6px; line-height: 1.25; }
   .card-body { padding: 9px 10px 9px 12px; gap: 5px; }

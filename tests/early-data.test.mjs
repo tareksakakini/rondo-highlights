@@ -17,7 +17,8 @@ const idx = (rev, current = 'md-5') => ({
   ],
 });
 
-async function run({ route, pre = null, path = '/', hash = '', stored = {}, session = {}, index = idx(REV), bases = [BASE], respond = null, settle = null }) {
+// views.json (view counts) is asked for on every page; `views: true` keeps it in `fetched`.
+async function run({ route, pre = null, path = '/', hash = '', stored = {}, session = {}, index = idx(REV), bases = [BASE], respond = null, settle = null, views = false }) {
   const fetched = [];
   const classes = [];
   const json = (body) => ({ ok: true, json: async () => body });
@@ -47,7 +48,10 @@ async function run({ route, pre = null, path = '/', hash = '', stored = {}, sess
   };
   vm.runInNewContext(SRC.replace('__BASES__', JSON.stringify(bases)).replace('__MAX_AGE__', String(12 * 3600e3)), ctx);
   await new Promise((r) => setTimeout(r, settle ?? (respond ? 80 : 10)));
-  return { fetched: fetched.map((u) => u.replace('https://cdn.jsdelivr.net/gh/me/repo', '')), window, stale: classes.includes('pre-stale') };
+  return {
+    fetched: fetched.filter((u) => views || !u.endsWith('/views.json')).map((u) => u.replace('https://cdn.jsdelivr.net/gh/me/repo', '')),
+    window, stale: classes.includes('pre-stale'),
+  };
 }
 
 test('a round page loads its round as soon as the index names the commit', async () => {
@@ -149,7 +153,7 @@ test('with two data bases: a slow first base gets the second asked too; the firs
   // Filed under the first base's URL (where data.ts looks), with GitHub's answer.
   const round = await window.__rondoEarly[`https://cdn.jsdelivr.net/gh/me/repo@${REV}/PL/md-1.json`];
   assert.equal(round.from, `https://raw.githubusercontent.com/me/repo/${REV}/PL/md-1.json`);
-  assert.equal(aborted.length, 3);
+  assert.equal(aborted.filter((u) => !u.endsWith('/views.json')).length, 3); // views.json is hedged the same way
   assert.ok(aborted.every((u) => u.startsWith('https://cdn.jsdelivr.net')));
 });
 
@@ -242,4 +246,11 @@ test('stamp-rev compares with the index committed in its folder', async () => {
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('view counts load from the moving branch with the index, except in spoiler-free mode', async () => {
+  const { fetched, window } = await run({ route: 'PL md-1', views: true });
+  assert.deepEqual(fetched.slice(0, 2), ['@data/index.json', '@data/views.json']);
+  assert.ok(window.__rondoEarly['https://cdn.jsdelivr.net/gh/me/repo@data/views.json']);
+  assert.ok(!(await run({ route: 'PL md-1', views: true, stored: { 'rondo:spoilerFree': true } })).fetched.includes('@data/views.json'));
 });

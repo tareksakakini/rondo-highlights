@@ -19,7 +19,7 @@ import {
 } from '../src/lib/routes';
 
 interface ModelTeam { name: string; short: string; tla: string; crest: string | null }
-interface ModelMatch { home: ModelTeam; away: ModelTeam; hl: boolean }
+interface ModelMatch { home: ModelTeam; away: ModelTeam; hl: boolean; views?: number }
 interface ModelRound { key: string; label: string; fixtures: string[]; matches: ModelMatch[] }
 interface ModelComp {
   code: string; name: string; short: string | null; group: string; color: string; seasonLabel: string;
@@ -181,8 +181,9 @@ const page = (comps: ModelComp[], current: string | undefined, heading: string, 
 /** A round's headline, Play all row and match cards (round pages, and the current round on home and competition pages). */
 function roundBrowse(c: ModelComp, i: number): string {
   const r = c.rounds[i];
-  // As in the app: matches with highlights first (as of the build).
-  const matches = [...r.matches.filter((m) => m.hl), ...r.matches.filter((m) => !m.hl)];
+  // As in the app: matches with highlights first (as of the build), most viewed on YouTube first.
+  const withHl = r.matches.filter((m) => m.hl).sort((a, b) => (b.views ?? -1) - (a.views ?? -1));
+  const matches = [...withHl, ...r.matches.filter((m) => !m.hl)];
   return roundBar(c, roundNav(c, i)) + `<div class="grid">${matches.map(card).join('')}</div>`;
 }
 

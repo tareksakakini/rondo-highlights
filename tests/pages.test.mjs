@@ -83,3 +83,11 @@ test('repo loader reads crests at crestsRev when the index names one, else at re
   const m2 = await loadModelFromRepo('me/repo', { fetchImpl: make({ ...index, rev }) });
   assert.equal(m2.crestSource.base, `https://raw.githubusercontent.com/me/repo/${rev}/`);
 });
+
+test('cards carry the YouTube views of their most viewed highlight, not in the fingerprint', async () => {
+  const ms = [match(1, 'Arsenal', 'Chelsea', { highlights: [{ videoId: 'a' }, { videoId: 'b' }] }), match(2, 'Leeds', 'Fulham')];
+  const m = await buildModel(index, async (c, k) => files(ms)[`${c}/${k}`] ?? null, { a: 1200, b: 56000 });
+  assert.deepEqual(m.competitions[0].rounds[0].matches.map((x) => x.views), [56000, undefined]);
+  const plain = await buildModel(index, async (c, k) => files(ms)[`${c}/${k}`] ?? null);
+  assert.equal(fingerprint(m), fingerprint(plain));
+});

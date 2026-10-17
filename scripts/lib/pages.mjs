@@ -20,8 +20,9 @@ const team = (t) => ({
 /**
  * @param {any} index  index.json
  * @param {(code: string, key: string) => Promise<any>} readRound  a round file
+ * @param {Record<string, number> | null} [views]  views.json: YouTube views by videoId
  */
-export async function buildModel(index, readRound) {
+export async function buildModel(index, readRound, views = null) {
   const competitions = [];
   const crests = new Set(); // self-hosted crests the rounds use (copied into the site: scripts/lib/site-crests.mjs)
   for (const c of index.competitions) {
@@ -32,9 +33,13 @@ export async function buildModel(index, readRound) {
       const shown = (file?.matches ?? []).filter((m) => !isExcludedMatch(m));
       for (const m of shown) for (const t of [m.home, m.away]) if (CREST.test(t?.crest ?? '')) crests.add(t.crest);
       const fixtures = shown.map((m) => `${teamName(m.home)} v ${teamName(m.away)}`);
-      // For the prerendered match cards: who plays (names, crest) and whether highlights were
-      // in at build time (cards with highlights come first, as in the app). Not fingerprinted.
-      const matches = shown.map((m) => ({ home: team(m.home), away: team(m.away), hl: (m.highlights ?? []).length > 0 }));
+      // For the prerendered match cards: who plays (names, crest), whether highlights were
+      // in at build time (cards with highlights come first, as in the app) and the YouTube
+      // views of its most viewed highlight (they're ordered by views, as in the app). Not fingerprinted.
+      const matches = shown.map((m) => {
+        const v = Math.max(0, ...(m.highlights ?? []).map((h) => views?.[h.videoId] ?? 0));
+        return { home: team(m.home), away: team(m.away), hl: (m.highlights ?? []).length > 0, ...(v ? { views: v } : {}) };
+      });
       if (fixtures.length) rounds.push({ key: r.key, label: r.label, fixtures, matches });
     }
     if (rounds.length) {
@@ -61,10 +66,12 @@ export function fingerprint(model) {
 /** From a checked-out data branch (public/data locally and in the refresh workflow). */
 export async function loadModelFromDir(dir) {
   const index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  const viewsFile = path.join(dir, 'views.json');
+  const views = fs.existsSync(viewsFile) ? JSON.parse(fs.readFileSync(viewsFile, 'utf8')) : null;
   const model = await buildModel(index, async (code, key) => {
     const f = path.join(dir, code, `${key}.json`);
     return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null;
-  });
+  }, views);
   return { ...model, crestSource: { dir } };
 }
 
@@ -96,7 +103,9 @@ export async function loadModelFromRepo(repo, { fetchImpl = fetch, concurrency =
       files.set(id, await get(raw(ref, `${id}.json`)));
     }
   }));
-  const model = await buildModel(index, async (code, key) => files.get(`${code}/${key}`) ?? null);
+  // View counts only order the cards; a build without them still works.
+  const views = await get(raw('data', 'views.json')).catch(() => null);
+  const model = await buildModel(index, async (code, key) => files.get(`${code}/${key}`) ?? null, views);
   // Crests never change once stored; read them at the commit the site would (crestsRev, else rev).
   const crestsRef = /^[0-9a-f]{40}$/.test(index.crestsRev ?? '') ? index.crestsRev : ref;
   return { ...model, crestSource: { base: raw(crestsRef, '') } };

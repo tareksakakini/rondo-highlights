@@ -1,5 +1,5 @@
 import type { Kind, Match } from '../types';
-import { availableIn, cutSec, fmtDay, fmtDuration, fmtViews, pickCut } from '../lib/format';
+import { availableIn, cutSec, fmtCount, fmtDay, fmtDuration, pickCut } from '../lib/format';
 import { isDone, type Watched } from '../lib/watched';
 import type { CondensedMap } from '../lib/moments';
 import { countryName } from '../lib/region';
@@ -64,7 +64,11 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
         {watched && hl && (
           <span className="watched-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, Math.round((watched.e ? 1 : watched.f) * 100))}%` }} /></span>
         )}
-        {playing ? <span className="now-tag">Playing</span> : done && hl && <span className="now-tag watched-tag">Watched</span>}
+        {playing ? <span className="now-tag">Playing</span> : done && hl && (
+          <span className="watched-mark" title="You've watched this" role="img" aria-label="Watched">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+          </span>
+        )}
         {!hl && <span className="no-hl">{blocked ? `Not available in ${region ? countryName(region) : 'your country'}` : 'Highlights not in yet'}</span>}
       </button>
 
@@ -81,7 +85,11 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
         <div className="meta">
           <span>{fmtDay(match.utcDate)}</span>
           {viewCount != null && <span className="dot">·</span>}
-          {viewCount != null && <span className="views">{fmtViews(viewCount)}</span>}
+          {viewCount != null && (
+            <span className="views" title={`${viewCount.toLocaleString('en-US')} views of this video on YouTube (not on Rondo), rounded`}>
+              {fmtCount(viewCount)} YouTube {viewCount === 1 ? 'view' : 'views'}
+            </span>
+          )}
           {hl && <span className="dot">·</span>}
           {hl && <span className="channel" title={hl.channel}>{hl.channel}</span>}
         </div>
