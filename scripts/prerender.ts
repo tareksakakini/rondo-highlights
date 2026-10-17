@@ -116,14 +116,16 @@ function card(m: ModelMatch): string {
   const thumb = m.hl
     ? `<div class="thumb">${teams}</div>`
     : `<button class="thumb" disabled>${teams}<span class="no-hl">Highlights not in yet</span></button>`;
-  const lines = [m.home, m.away].map((t) =>
-    `<div class="line">${badge(t, 22)}<span class="tname" title="${esc(t.name)}">${esc(t.short)}</span><span class="goals hidden">&nbsp;</span></div>`).join('');
+  // As in MatchCard: home, score (here "v"), away on one line.
+  const name = (t: ModelTeam) => `<span class="tname" title="${esc(t.name)}">${esc(t.short)}</span>`;
+  const fixture = `<div class="fixture"><span class="side">${badge(m.home, 20)}${name(m.home)}</span>` +
+    `<span class="score hidden">v</span><span class="side away">${name(m.away)}${badge(m.away, 20)}</span></div>`;
   const actions = m.hl
     ? '<div class="card-actions pre-ghost" aria-hidden="true"><div class="versions"><span class="chip">Short<span class="chip-dur">0:00</span></span>' +
       `<span class="chip">Ext.<span class="chip-dur">00:00</span></span></div><span class="btn-icon">${QUEUE_ICON}</span></div>`
     : '';
-  return `<article class="card${m.hl ? '' : ' is-empty'}">${thumb}<div class="card-body"><div class="fixture">${lines}</div>` +
-    `<div class="meta"><span>&nbsp;</span></div>${actions}</div></article>`;
+  return `<article class="card${m.hl ? '' : ' is-empty'}">${thumb}<div class="card-body">${fixture}` +
+    `<div class="meta"><span>&nbsp;</span></div><div class="meta meta-2"><span>&nbsp;</span></div>${actions}</div></article>`;
 }
 
 const skeletonGrid = () => `<div class="grid loading">${'<div class="card skeleton"></div>'.repeat(6)}</div>`;

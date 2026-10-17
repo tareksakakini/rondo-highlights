@@ -64,34 +64,42 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
         {watched && hl && (
           <span className="watched-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, Math.round((watched.e ? 1 : watched.f) * 100))}%` }} /></span>
         )}
-        {playing ? <span className="now-tag">Playing</span> : done && hl && (
-          <span className="watched-mark" title="You've watched this" role="img" aria-label="Watched">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-          </span>
-        )}
+        {playing && <span className="now-tag">Playing</span>}
         {!hl && <span className="no-hl">{blocked ? `Not available in ${region ? countryName(region) : 'your country'}` : 'Highlights not in yet'}</span>}
       </button>
 
       <div className="card-body">
+        {/* One line: home, score (or "v"), away; long names are cut off with "…". */}
         <div className="fixture">
-          {[{ t: home, g: score.home }, { t: away, g: score.away }].map(({ t, g }, i) => (
-            <div className="line" key={i}>
-              <TeamBadge team={t} size={22} />
-              <span className="tname" title={t.name}>{t.short}</span>
-              <span className={`goals${showScore ? '' : ' hidden'}`}>{showScore ? g : spoilerFree && score.home != null ? '•' : ''}</span>
-            </div>
-          ))}
+          <span className="side">
+            <TeamBadge team={home} size={20} />
+            <span className="tname" title={home.name}>{home.short}</span>
+          </span>
+          <span className={`score${showScore ? '' : ' hidden'}`} aria-label={showScore ? `${score.home} to ${score.away}` : undefined}>
+            {showScore ? <>{score.home}<i>–</i>{score.away}</> : 'v'}
+          </span>
+          <span className="side away">
+            <span className="tname" title={away.name}>{away.short}</span>
+            <TeamBadge team={away} size={20} />
+          </span>
         </div>
         <div className="meta">
           <span>{fmtDay(match.utcDate)}</span>
-          {viewCount != null && <span className="dot">·</span>}
-          {viewCount != null && (
+          {hl && <span className="dot">·</span>}
+          {hl && <span className="channel" title={hl.channel}>{hl.channel}</span>}
+        </div>
+        {/* Its own line, always there (so nothing moves when the counts arrive): YouTube views, and whether you've watched it. */}
+        <div className="meta meta-2">
+          {viewCount != null ? (
             <span className="views" title={`${viewCount.toLocaleString('en-US')} views of this video on YouTube (not on Rondo), rounded`}>
               {fmtCount(viewCount)} YouTube {viewCount === 1 ? 'view' : 'views'}
             </span>
+          ) : <span>&nbsp;</span>}
+          {done && hl && (
+            <span className="watched-tag" title="You've watched this highlight to the end">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>Watched
+            </span>
           )}
-          {hl && <span className="dot">·</span>}
-          {hl && <span className="channel" title={hl.channel}>{hl.channel}</span>}
         </div>
 
         {hl && (
