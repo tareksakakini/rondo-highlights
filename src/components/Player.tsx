@@ -4,6 +4,9 @@ import { FADE_IN_MS, FADE_OUT_MS, LEAD_SEC, momentAt, type Moment } from '../lib
 
 const PLAYING = 1;
 
+/** What a watch is reported with (onWatched): the competition and cut that played. */
+export type WatchTag = Record<string, string>;
+
 interface Props {
   videoId: string | null;
   /** changes whenever playback (re)starts, so the same video can be replayed */
@@ -20,7 +23,28 @@ interface Props {
   docked?: boolean;
   /** What the mini player's Expand does; by default, scroll back to the full player. */
   onExpand?: () => void;
+  /** Handed back with onWatched for the video loaded with it. */
+  tag?: WatchTag | null;
+  /**
+   * Once per video load, when it stops being watched (the viewer moved on or closed it,
+   * it ended, or the page went away): the seconds it actually played, pauses and
+   * buffering left out, and whether it played to the end.
+   */
+  onWatched?: (seconds: number, ended: boolean, tag: WatchTag) => void;
 }
+
+interface Watch {
+  /** time spent playing so far, not counting the stretch in progress */
+  ms: number;
+  /** when the stretch in progress started playing; null while not playing */
+  since: number | null;
+  tag: WatchTag | null;
+  /** reported already (or nothing loaded): later playing isn't counted */
+  done: boolean;
+}
+
+/** Phones and tablets: leaving the tab pauses an embed, so it ends the watch. */
+const coarse = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
 interface Run {
   moments: Moment[] | null;
@@ -48,28 +72,40 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * each one ends it fades the sound out, seeks to the next and fades back in. If the
  * viewer scrubs to somewhere between moments, it stops steering for that video.
  */
-export function Player({ videoId, seq, label, moments = null, onMoment, onEnded, onError, onClose, docked = false, onExpand }: Props) {
+export function Player({ videoId, seq, label, moments = null, onMoment, onEnded, onError, onClose, docked = false, onExpand, tag = null, onWatched }: Props) {
   const slotRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const player = useRef<YTPlayer | null>(null);
   const ready = useRef(false);
-  const pending = useRef<{ id: string | null; moments: Moment[] | null }>({ id: videoId, moments });
-  const cb = useRef({ onEnded, onError, onMoment });
-  cb.current = { onEnded, onError, onMoment };
+  const pending = useRef<{ id: string | null; moments: Moment[] | null; tag: WatchTag | null }>({ id: videoId, moments, tag });
+  const cb = useRef({ onEnded, onError, onMoment, onWatched });
+  cb.current = { onEnded, onError, onMoment, onWatched };
+  const watch = useRef<Watch>({ ms: 0, since: null, tag: null, done: true });
   const gen = useRef(0);
   const run = useRef<Run>({ moments: null, idx: 0, free: false, busy: false, lastT: 0, settleUntil: 0, base: null });
   const [scrolledAway, setScrolledAway] = useState(false);
   const mini = docked || scrolledAway;
   const [apiError, setApiError] = useState<string | null>(null);
 
+  /** Stop the clock on the video loaded and report how long it played, once. */
+  const flush = (ended: boolean) => {
+    const w = watch.current;
+    if (w.done) return;
+    w.done = true;
+    if (w.since != null) { w.ms += performance.now() - w.since; w.since = null; }
+    if (w.tag && w.ms >= 1000) cb.current.onWatched?.(w.ms / 1000, ended, w.tag);
+  };
+
   const load = () => {
     const p = player.current;
     const { id, moments: m } = pending.current;
     if (!p || !ready.current) return;
+    flush(false);
     gen.current++;
     const r = run.current;
     if (r.base != null) { p.setVolume(r.base); r.base = null; }
     if (!id) { p.pauseVideo(); return; }
+    watch.current = { ms: 0, since: null, tag: pending.current.tag, done: false };
     const steer = m?.length ? m : null;
     run.current = { moments: steer, idx: 0, free: false, busy: false, lastT: steer ? steer[0][0] : 0, settleUntil: performance.now() + 4000, base: null };
     p.loadVideoById(steer ? { videoId: id, startSeconds: steer[0][0] } : id);
@@ -94,7 +130,17 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
               ready.current = true;
               load();
             },
-            onStateChange: (e: { data: number }) => { if (e.data === YT.PlayerState.ENDED) cb.current.onEnded(); },
+            onStateChange: (e: { data: number }) => {
+              const w = watch.current;
+              if (!w.done) {
+                if (e.data === YT.PlayerState.PLAYING) w.since ??= performance.now();
+                else if (w.since != null) { w.ms += performance.now() - w.since; w.since = null; }
+              }
+              if (e.data === YT.PlayerState.ENDED) {
+                flush(true);
+                cb.current.onEnded();
+              }
+            },
             onError: (e: { data: number }) => cb.current.onError(e.data),
           },
         });
@@ -102,6 +148,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
       .catch((e: Error) => setApiError(e.message));
     return () => {
       cancelled = true;
+      flush(false);
       player.current?.destroy();
       player.current = null;
       hostRef.current?.replaceChildren();
@@ -113,7 +160,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
   // Load a new video whenever the item changes.
   const momentsKey = moments ? JSON.stringify(moments) : '';
   useEffect(() => {
-    pending.current = { id: videoId, moments };
+    pending.current = { id: videoId, moments, tag };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId, seq, momentsKey]);
@@ -146,6 +193,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
         p.pauseVideo();
         p.setVolume(base);
         run.current = { ...r, free: true, busy: false, base: null };
+        flush(true);
         cb.current.onEnded();
         return;
       }
@@ -190,6 +238,20 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
       if (t >= m[r.idx][1] - LEAD_SEC) void jump(r.idx + 1 < m.length ? r.idx + 1 : null);
     }, 200);
     return () => clearInterval(timer);
+  }, []);
+
+  // Leaving the page ends the watch. So does hiding the tab on phones, where the embed
+  // pauses; on a computer the video keeps playing in a background tab, so it goes on counting.
+  useEffect(() => {
+    const hidden = () => { if (document.visibilityState === 'hidden' && coarse()) flush(false); };
+    const gone = () => flush(false);
+    document.addEventListener('visibilitychange', hidden);
+    window.addEventListener('pagehide', gone);
+    return () => {
+      document.removeEventListener('visibilitychange', hidden);
+      window.removeEventListener('pagehide', gone);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Dock into a mini player when scrolled out of view.

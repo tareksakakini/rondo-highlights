@@ -9,7 +9,7 @@ import { usePersistentState } from './lib/storage';
 import { describeYtError } from './lib/youtube';
 import { compHead, compHeading, compPath, homeHead, legacyHash, resolvePath, roundHead, roundHeading, roundPath } from './lib/routes';
 import { applyHead } from './lib/head';
-import { track, trackView } from './lib/track';
+import { track, trackView, trackWatch } from './lib/track';
 import { Logo } from './components/Logo';
 import { CompSwitcher } from './components/CompSwitcher';
 import { RoundPicker } from './components/RoundPicker';
@@ -577,6 +577,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                 onClose={closePlayer}
                 docked={docked}
                 onExpand={docked ? () => toStage() : watching ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : undefined}
+                tag={playing}
+                onWatched={trackWatch}
               />
               {current && <div className="now">
                 <div className="now-main">

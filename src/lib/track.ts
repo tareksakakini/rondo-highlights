@@ -5,7 +5,10 @@
 // To tell new visitors from returning ones, the browser keeps the time of its first visit
 // (rondo:first) and a landing view sends the hours since then, never the time itself.
 
-export type TrackEvent = 'play' | 'video' | 'finish' | 'queue' | 'setting';
+export type TrackEvent = 'play' | 'video' | 'finish' | 'queue' | 'setting' | 'watch';
+
+/** Watches of this many minutes or more share the last bin (netlify/lib/analytics.mjs WATCH_MAX). */
+export const WATCH_MAX = 20;
 
 const enabled = (() => {
   if (!import.meta.env.PROD) return false;
@@ -61,4 +64,15 @@ export function trackView(path: string) {
 
 export function track(name: TrackEvent, props: Record<string, string | undefined> = {}) {
   send({ t: 'event', n: name, p: location.pathname, d: props });
+}
+
+/**
+ * How long a highlight played (pauses and buffering left out), in whole minutes, sent as
+ * `min: "<cut>:<minutes>:<1 if it played to the end, else 0>"`, so the stats page can
+ * draw minutes by cut and by finished or not.
+ */
+export function trackWatch(seconds: number, ended: boolean, tag: { comp?: string; cut?: string }) {
+  if (!tag.cut) return;
+  const minutes = Math.min(WATCH_MAX, Math.floor(seconds / 60));
+  track('watch', { comp: tag.comp, cut: tag.cut, min: `${tag.cut}:${minutes}:${ended ? 1 : 0}` });
 }

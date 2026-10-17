@@ -14,9 +14,17 @@
 //   pages, entries, refs      page views by path, landings by path, landings by referrer host
 //   countries, devices        visitors by country code and by mobile/tablet/desktop
 //   events { name: { n, by: { prop: { value: n } } } }
+//                             `watch` events (one per highlight played) carry
+//                             min: "<cut>:<whole minutes played>:<1 if it ended, else 0>",
+//                             which summarize() turns into the watch-length histogram
 
 /** Events the site sends (src/lib/track.ts); anything else is dropped. */
-export const EVENTS = ['play', 'video', 'finish', 'queue', 'setting'];
+export const EVENTS = ['play', 'video', 'finish', 'queue', 'setting', 'watch'];
+
+/** Watch lengths in whole minutes; WATCH_MAX and over share the last bin (src/lib/track.ts). */
+export const WATCH_MAX = 20;
+export const CUTS = ['short', 'extended', 'condensed'];
+const WATCH = /^(short|extended|condensed):(\d{1,4}):([01])$/;
 
 /** Most distinct keys kept in one day's map; the rest are counted under OTHER. */
 const MAX_KEYS = 500;
@@ -172,6 +180,23 @@ function retention(days, ages) {
 }
 
 /**
+ * The watch-length histogram from `watch` events' min values ({ "short:3:1": n, … }):
+ * bins[m] is { short: [watches, ended], extended: […], condensed: […] } for watches of m
+ * whole minutes (m = WATCH_MAX: that long or longer). Values that don't parse are skipped.
+ */
+export function watchBins(mins = {}) {
+  const bins = Array.from({ length: WATCH_MAX + 1 }, () => Object.fromEntries(CUTS.map((c) => [c, [0, 0]])));
+  for (const [key, n] of Object.entries(mins)) {
+    const m = WATCH.exec(key);
+    if (!m) continue;
+    const cell = bins[Math.min(Number(m[2]), WATCH_MAX)][m[1]];
+    cell[0] += n;
+    if (m[3] === '1') cell[1] += n;
+  }
+  return bins;
+}
+
+/**
  * What the stats page shows for a run of days ending today: `records` is
  * [dayKey, record | null] pairs, oldest first. Visitors can't be matched across days (the
  * salt changes daily), so multi-day visitor totals add up each day's visitors; whether they
@@ -224,6 +249,7 @@ export function summarize(records) {
     countries: top(sums.countries, 30),
     devices: top(sums.devices),
     retention: retention(records.map(([day]) => day), ages),
+    watch: { max: WATCH_MAX, bins: watchBins(events.watch?.by.min) },
     events: Object.fromEntries(Object.entries(events).map(([name, ev]) => [name, {
       n: ev.n,
       by: Object.fromEntries(Object.entries(ev.by).map(([prop, vals]) => [prop, top(vals, 30)])),

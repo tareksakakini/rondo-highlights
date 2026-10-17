@@ -74,6 +74,13 @@
   .cohorts td { text-align: right; padding: 2px 0 2px 4px; white-space: nowrap; font-size: 13px; }
   .cohorts td:first-child { text-align: left; }
   .cohorts td.c span { display: block; border-radius: 4px; padding: 3px 6px; }
+  .watch { margin-top: 14px; }
+  .watch .top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .watch .top h2 { margin: 0; }
+  .watch .ranges button { padding: 4px 11px; font-size: 13px; }
+  .watch .kpis { margin: 0 0 14px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  .watch .kpi { background: var(--surface-2); }
+  .watch .bin:hover rect { filter: brightness(1.25); }
   footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
   footer button { padding: 4px 10px; font-size: 13px; }
 </style>
@@ -220,6 +227,76 @@
       </div>`;
   }
 
+  // How long each highlight was watched: one bar per minute, the part played to the end on top.
+  let watchCut = store.get('rondo:stats-watchcut') || 'all';
+  const CUT_KEYS = ['short', 'extended', 'condensed'];
+  const minLabel = (m, max) => (m === 0 ? 'Under 1 min' : m >= max ? `${max} min or more` : `${m}–${m + 1} min`);
+
+  function watchBins(w, cut) {
+    const keys = cut === 'all' ? CUT_KEYS : [cut];
+    return w.bins.map((b, m) => keys.reduce((t, k) => ({ m, n: t.n + b[k][0], ended: t.ended + b[k][1] }), { m, n: 0, ended: 0 }));
+  }
+
+  function histogram(bins, max) {
+    // Drawn at about the width it's shown, so the labels stay legible on a phone.
+    const W = Math.round(Math.min(960, Math.max(300, (app.querySelector('.watch-body')?.clientWidth || 960)))), H = 240, top = 10, bottom = 44, left = 34;
+    const most = Math.max(4, ...bins.map((b) => b.n));
+    const step = Math.pow(10, Math.floor(Math.log10(most)));
+    const ceil = Math.ceil(most / step) * step;
+    const y = (v) => top + (H - top - bottom) * (1 - v / ceil);
+    const bw = (W - left) / bins.length;
+    const barW = Math.max(2, bw - 4);
+    const every = bw < 24 ? 2 : 1;
+    const grid = [0, ceil / 2, ceil].map((t) => `
+      <line x1="${left}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" />
+      <text x="${left - 8}" y="${y(t) + 4}" text-anchor="end" font-size="12" fill="var(--muted)">${num(t)}</text>`).join('');
+    const bars = bins.map((b) => {
+      const x = left + b.m * bw + 2;
+      const tick = b.m === 0 ? '<1' : b.m >= max ? `${max}+` : String(b.m);
+      return `
+        <g class="bin"><title>${minLabel(b.m, max)}: ${num(b.n)} ${b.n === 1 ? 'watch' : 'watches'}${b.n ? `, ${num(b.ended)} to the end (${pct(b.ended, b.n)})` : ''}</title>
+          <rect x="${x - 2}" y="${top}" width="${bw}" height="${y(0) - top}" fill="transparent" />
+          ${b.n ? `<rect x="${x}" y="${y(b.n)}" width="${barW}" height="${y(0) - y(b.n)}" rx="3" fill="var(--accent-dim)" />` : ''}
+          ${b.ended ? `<rect x="${x}" y="${y(b.ended)}" width="${barW}" height="${y(0) - y(b.ended)}" rx="3" fill="var(--accent)" />` : ''}
+          ${b.m % every === 0 || b.m === max ? `<text x="${x + barW / 2}" y="${H - 26}" text-anchor="middle" font-size="12" fill="var(--muted)">${tick}</text>` : ''}
+        </g>`;
+    }).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Highlights by minutes watched">${grid}${bars}
+      <text x="${left + (W - left) / 2}" y="${H - 4}" text-anchor="middle" font-size="12" fill="var(--muted)">Minutes watched (3 means 3:00 to 3:59)</text></svg>`;
+  }
+
+  function watchBody(w) {
+    const bins = watchBins(w, watchCut);
+    const n = bins.reduce((t, b) => t + b.n, 0);
+    if (!n) return `<p class="empty">No watches${watchCut === 'all' ? '' : ' of this cut'} in this range yet. Watch lengths are counted from the release that added this chart.</p>`;
+    const ended = bins.reduce((t, b) => t + b.ended, 0);
+    let seen = 0;
+    const median = bins.find((b) => (seen += b.n) >= n / 2).m;
+    return `
+      <div class="grid kpis">
+        <div class="card kpi"><div class="label">Typical watch</div><div class="value">${median === 0 ? '<1' : median >= w.max ? `${w.max}+` : `${median}–${median + 1}`}<span class="small muted"> min</span></div><div class="note">Half of watches were shorter</div></div>
+        <div class="card kpi"><div class="label">Under a minute</div><div class="value">${pct(bins[0].n, n)}</div><div class="note">${num(bins[0].n)} of ${num(n)} watches</div></div>
+        <div class="card kpi"><div class="label">Played to the end</div><div class="value">${pct(ended, n)}</div><div class="note">${num(ended)} of ${num(n)} watches</div></div>
+      </div>
+      <div class="legend"><span><i style="background:var(--accent-dim)"></i>Stopped before the end</span><span><i style="background:var(--accent)"></i>Played to the end</span></div>
+      ${histogram(bins, w.max)}`;
+  }
+
+  function watchCard(s) {
+    const w = s.watch;
+    if (!w) return '';
+    const cuts = [['all', 'All cuts'], ...CUT_KEYS.map((k) => [k, LABELS.cut[k]])];
+    return `
+      <div class="card chart watch">
+        <div class="top">
+          <h2>How long highlights were watched</h2>
+          <div class="ranges">${cuts.map(([k, text]) => `<button data-cut="${k}" class="${watchCut === k ? 'on' : ''}">${text}</button>`).join('')}</div>
+        </div>
+        <div class="watch-body">${watchBody(w)}</div>
+        <p class="muted small">One watch per highlight played: the time it was actually playing (pauses and buffering left out), until the viewer moved on, closed it or left the page. On phones, switching away from the tab ends the watch. Auto-condensed cuts count only the moments played.</p>
+      </div>`;
+  }
+
   function eventBlock(ev, props) {
     if (!ev) return '<div class="empty">Nothing yet</div>';
     return props.filter(([p]) => ev.by[p]?.length).map(([p, title]) => `
@@ -253,6 +330,8 @@
         ${chart(s.daily)}
       </div>
 
+      ${watchCard(s)}
+
       ${comingBack(s)}
 
       <div class="grid two">
@@ -277,6 +356,21 @@
       store.set('rondo:stats-days', String(days));
       load();
     }));
+    app.querySelectorAll('[data-cut]').forEach((b) => b.addEventListener('click', () => {
+      watchCut = b.dataset.cut;
+      store.set('rondo:stats-watchcut', watchCut);
+      app.querySelectorAll('[data-cut]').forEach((o) => o.classList.toggle('on', o === b));
+      app.querySelector('.watch-body').innerHTML = watchBody(s.watch);
+    }));
+    // The histogram is drawn to the card's width: again once it's on the page, and on resize.
+    let lastW = 960;
+    onresize = () => {
+      const body = app.querySelector('.watch-body');
+      if (!body || !s.watch || body.clientWidth === lastW) return;
+      lastW = body.clientWidth;
+      body.innerHTML = watchBody(s.watch);
+    };
+    onresize();
     app.querySelector('#forget').addEventListener('click', () => { store.del(KEY); login(); });
   }
 

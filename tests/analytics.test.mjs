@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addHit, ageDays, dayKey, device, emptyDay, isBot, lastDays, parseHit, summarize } from '../netlify/lib/analytics.mjs';
+import { addHit, ageDays, dayKey, device, emptyDay, isBot, lastDays, parseHit, summarize, WATCH_MAX } from '../netlify/lib/analytics.mjs';
 
 const CHROME = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36';
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
@@ -155,4 +155,33 @@ test('summarize tells new visitors from returning ones and follows each day\'s n
   ]);
   assert.deepEqual(s.retention.rates[1], { back: 2, of: 4 });
   assert.equal(s.retention.rates[7], null);
+});
+
+test('watch lengths add up into minute bins by cut, ended or not', () => {
+  const watch = (min) => parseHit({ t: 'event', n: 'watch', p: '/', d: { comp: 'PL', cut: min.split(':')[0], min } });
+  assert.deepEqual(watch('short:3:1').props, { comp: 'PL', cut: 'short', min: 'short:3:1' });
+  const d1 = emptyDay();
+  const d2 = emptyDay();
+  for (const m of ['short:3:1', 'short:3:0', 'short:0:0', 'extended:12:1']) addHit(d1, watch(m), who('a'));
+  for (const m of ['short:3:1', 'condensed:5:0', 'extended:20:1', 'extended:95:0']) addHit(d2, watch(m), who('b'));
+  // Not ours: skipped, not counted anywhere.
+  addHit(d2, parseHit({ t: 'event', n: 'watch', p: '/', d: { min: 'other:3:1' } }), who('b'));
+  addHit(d2, parseHit({ t: 'event', n: 'watch', p: '/', d: { min: 'short:-1:1' } }), who('b'));
+
+  const { watch: w } = summarize([['2026-10-16', d1], ['2026-10-17', d2]]);
+  assert.equal(w.max, WATCH_MAX);
+  assert.equal(w.bins.length, WATCH_MAX + 1);
+  assert.deepEqual(w.bins[0], { short: [1, 0], extended: [0, 0], condensed: [0, 0] });
+  assert.deepEqual(w.bins[3], { short: [3, 2], extended: [0, 0], condensed: [0, 0] });
+  assert.deepEqual(w.bins[5].condensed, [1, 0]);
+  assert.deepEqual(w.bins[12].extended, [1, 1]);
+  // 20 minutes and over share the last bin.
+  assert.deepEqual(w.bins[WATCH_MAX].extended, [2, 1]);
+  const total = w.bins.reduce((t, b) => t + b.short[0] + b.extended[0] + b.condensed[0], 0);
+  assert.equal(total, 8);
+});
+
+test('no watches yet gives empty bins', () => {
+  const { watch: w } = summarize([['2026-10-17', null]]);
+  assert.ok(w.bins.every((b) => b.short[0] + b.extended[0] + b.condensed[0] === 0));
 });
