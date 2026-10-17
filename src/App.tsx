@@ -10,7 +10,7 @@ import { describeYtError } from './lib/youtube';
 import { compHead, compHeading, compPath, homeHead, legacyHash, resolvePath, roundHead, roundHeading, roundPath } from './lib/routes';
 import { applyHead } from './lib/head';
 import { track, trackView, trackWatch } from './lib/track';
-import { addWatch, type WatchedMap } from './lib/watched';
+import { addProgress, saveWatched, shareOf, type Progress, type WatchedMap } from './lib/watched';
 import type { WatchTag } from './components/Player';
 import { Logo } from './components/Logo';
 import { CompSwitcher } from './components/CompSwitcher';
@@ -467,12 +467,22 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.uid, !!playing]);
 
-  // What the player reports back when a video stops being watched: to the stats, and to
-  // this browser's list of watched matches (the cards' progress bar and "Watched" tag).
-  const watchTag = current && picked && playing ? { ...playing, match: String(current.match.id), len: String(cutSec(picked)) } : null;
-  const onWatched = useCallback((seconds: number, ended: boolean, tag: WatchTag) => {
-    trackWatch(seconds, ended, tag);
-    if (tag.match) setWatched((w) => addWatch(w, tag.match, seconds, Number(tag.len), ended));
+  // What the player reports back about the video it has loaded: once it stops being watched,
+  // to the stats (trackWatch); and as it goes, to this browser's list of watched matches
+  // (the cards' progress bar and "Watched"), saved at once so a reload can't lose it.
+  const watchTag = current && picked && playing
+    ? { ...playing, match: String(current.match.id), len: String(cutSec(picked)), condensed: picked.condensed ? '1' : '' }
+    : null;
+  const watchedRef = useRef(watched);
+  watchedRef.current = watched;
+  const onProgress = useCallback((p: Progress, tag: WatchTag) => {
+    if (!tag.match) return;
+    const before = watchedRef.current;
+    const next = addProgress(before, tag.match, shareOf(p, Number(tag.len), !!tag.condensed), p.ended);
+    if (next === before) return;
+    watchedRef.current = next;
+    saveWatched(next);
+    setWatched(next);
   }, [setWatched]);
 
   const onEnded = useCallback(() => {
@@ -606,7 +616,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                 docked={docked}
                 onExpand={docked ? () => toStage() : watching ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : undefined}
                 tag={watchTag}
-                onWatched={onWatched}
+                onWatched={trackWatch}
+                onProgress={onProgress}
               />
               {current && <div className="now">
                 <div className="now-main">

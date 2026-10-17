@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadYouTubeApi, type YTPlayer } from '../lib/youtube';
 import { FADE_IN_MS, FADE_OUT_MS, LEAD_SEC, momentAt, type Moment } from '../lib/moments';
+import type { Progress } from '../lib/watched';
 
 const PLAYING = 1;
 
@@ -31,6 +32,11 @@ interface Props {
    * buffering left out, and whether it played to the end.
    */
   onWatched?: (seconds: number, ended: boolean, tag: WatchTag) => void;
+  /**
+   * How far the video loaded with `tag` has got: every couple of seconds while it plays,
+   * when it pauses, and when it stops being watched (as onWatched; also the last report).
+   */
+  onProgress?: (p: Progress, tag: WatchTag) => void;
 }
 
 interface Watch {
@@ -38,8 +44,9 @@ interface Watch {
   ms: number;
   /** when the stretch in progress started playing; null while not playing */
   since: number | null;
+  /** the video loaded with it; null once it's unloaded (onProgress stops) */
   tag: WatchTag | null;
-  /** reported already (or nothing loaded): later playing isn't counted */
+  /** onWatched has had it (the stats get one report per load); progress goes on */
   done: boolean;
 }
 
@@ -72,29 +79,47 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * each one ends it fades the sound out, seeks to the next and fades back in. If the
  * viewer scrubs to somewhere between moments, it stops steering for that video.
  */
-export function Player({ videoId, seq, label, moments = null, onMoment, onEnded, onError, onClose, docked = false, onExpand, tag = null, onWatched }: Props) {
+export function Player({ videoId, seq, label, moments = null, onMoment, onEnded, onError, onClose, docked = false, onExpand, tag = null, onWatched, onProgress }: Props) {
   const slotRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const player = useRef<YTPlayer | null>(null);
   const ready = useRef(false);
   const pending = useRef<{ id: string | null; moments: Moment[] | null; tag: WatchTag | null }>({ id: videoId, moments, tag });
-  const cb = useRef({ onEnded, onError, onMoment, onWatched });
-  cb.current = { onEnded, onError, onMoment, onWatched };
-  const watch = useRef<Watch>({ ms: 0, since: null, tag: null, done: true });
+  const cb = useRef({ onEnded, onError, onMoment, onWatched, onProgress });
+  cb.current = { onEnded, onError, onMoment, onWatched, onProgress };
+  const watch = useRef<Watch>({ ms: 0, since: null, tag: null, done: true }); // nothing loaded
   const gen = useRef(0);
   const run = useRef<Run>({ moments: null, idx: 0, free: false, busy: false, lastT: 0, settleUntil: 0, base: null });
   const [scrolledAway, setScrolledAway] = useState(false);
   const mini = docked || scrolledAway;
   const [apiError, setApiError] = useState<string | null>(null);
 
-  /** Stop the clock on the video loaded and report how long it played, once. */
+  /** Where the video loaded is (onProgress), while it's still the one loaded. */
+  const report = (ended: boolean) => {
+    const w = watch.current;
+    const p = player.current;
+    if (!w.tag || !p) return;
+    const played = (w.ms + (w.since != null ? performance.now() - w.since : 0)) / 1000;
+    let pos = 0;
+    let dur = 0;
+    try { pos = p.getCurrentTime() || 0; dur = p.getDuration() || 0; } catch { /* not ready */ }
+    cb.current.onProgress?.({ played, pos, dur, ended }, w.tag);
+  };
+
+  /**
+   * The watch of the video loaded ends here for the stats: report how long it played, once
+   * (onWatched). Its progress is reported again too, and keeps being reported while it
+   * stays loaded (a phone tab that comes back, say).
+   */
   const flush = (ended: boolean) => {
     const w = watch.current;
+    report(ended);
     if (w.done) return;
     w.done = true;
-    if (w.since != null) { w.ms += performance.now() - w.since; w.since = null; }
-    if (w.tag && w.ms >= 1000) cb.current.onWatched?.(w.ms / 1000, ended, w.tag);
+    const ms = w.ms + (w.since != null ? performance.now() - w.since : 0);
+    if (w.tag && ms >= 1000) cb.current.onWatched?.(ms / 1000, ended, w.tag);
   };
+  const NONE: Watch = { ms: 0, since: null, tag: null, done: true };
 
   const load = () => {
     const p = player.current;
@@ -104,7 +129,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
     gen.current++;
     const r = run.current;
     if (r.base != null) { p.setVolume(r.base); r.base = null; }
-    if (!id) { p.pauseVideo(); return; }
+    if (!id) { watch.current = { ...NONE }; p.pauseVideo(); return; }
     watch.current = { ms: 0, since: null, tag: pending.current.tag, done: false };
     const steer = m?.length ? m : null;
     run.current = { moments: steer, idx: 0, free: false, busy: false, lastT: steer ? steer[0][0] : 0, settleUntil: performance.now() + 4000, base: null };
@@ -132,9 +157,10 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
             },
             onStateChange: (e: { data: number }) => {
               const w = watch.current;
-              if (!w.done) {
+              if (w.tag) {
                 if (e.data === YT.PlayerState.PLAYING) w.since ??= performance.now();
                 else if (w.since != null) { w.ms += performance.now() - w.since; w.since = null; }
+                if (e.data === YT.PlayerState.PAUSED) report(false);
               }
               if (e.data === YT.PlayerState.ENDED) {
                 flush(true);
@@ -149,6 +175,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
     return () => {
       cancelled = true;
       flush(false);
+      watch.current = { ...NONE };
       player.current?.destroy();
       player.current = null;
       hostRef.current?.replaceChildren();
@@ -238,6 +265,14 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
       if (t >= m[r.idx][1] - LEAD_SEC) void jump(r.idx + 1 < m.length ? r.idx + 1 : null);
     }, 200);
     return () => clearInterval(timer);
+  }, []);
+
+  // While a video plays, report how far it has got every couple of seconds, so the cards
+  // keep up and a reload or a closed tab loses at most that.
+  useEffect(() => {
+    const timer = setInterval(() => { if (watch.current.since != null) report(false); }, 2000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Leaving the page ends the watch. So does hiding the tab on phones, where the embed
