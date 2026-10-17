@@ -1,6 +1,6 @@
 // YouTube view counts for the cards: public/data/views.json, { "<videoId>": views }.
 //
-//   node scripts/views.mjs [data-dir] [--quick]
+//   node scripts/views.mjs [data-dir] [--quick]     (npm run views: public/data, key from .env)
 //
 // Reads every round file for its highlights and asks the YouTube Data API for their
 // counts (videos.list, part=statistics: 1 quota unit per 50 videos; ~35 units for the
@@ -36,7 +36,18 @@ async function readJSON(file) {
   try { return JSON.parse(await fs.readFile(file, 'utf8')); } catch { return null; }
 }
 
+/** YOUTUBE_API_KEY from .env when it isn't set (as scripts/ingest.mjs does), for local runs. */
+async function loadEnv() {
+  try {
+    for (const line of (await fs.readFile('.env', 'utf8')).split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, '');
+    }
+  } catch { /* no .env */ }
+}
+
 async function main() {
+  await loadEnv();
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) { console.log('views: no YOUTUBE_API_KEY, skipped'); return; }
   const now = Date.now();
