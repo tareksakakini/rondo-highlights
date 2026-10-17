@@ -81,11 +81,17 @@ When a match has no short cut in the visitor's country, the **Short** option pla
 
 To try it locally against the live data: `npm run dev:live`.
 
+## View counts and watched matches
+
+- **View counts:** `scripts/views.mjs` (`npm run views`, a refresh workflow step after the condensed cuts) writes `views.json` on the data branch: `{ videoId: views }`, rounded to 2 significant figures. It uses the YouTube Data API's `videos.list` (part `statistics`, 1 unit per 50 videos): quick runs re-read only videos published in the last 3 days, the daily full run all of them (~35 units). The cards show the count of the cut they'd play next to the date, except in spoiler-free mode (a big count hints at a big game).
+- `views.json` changes don't move the data commit (`rev`) the round files are read at, so new counts don't send visitors to uncached round files. The site reads it from the moving `data` branch, like `index.json`, and the workflow purges it on jsDelivr when it changed.
+- **Watched:** the player tells the app how long each video actually played. The app keeps, per match, the furthest share played and whether it reached the end in localStorage (`rondo:watched`, `src/lib/watched.ts`, at most 800 matches). Cards show a progress bar along the thumbnail and a "Watched" tag once a highlight was played to the end (or 90% of it). It stays in the browser and is never sent.
+
 ## Project layout
 
 ```
 scripts/        config.mjs (competitions + channels), ingest.mjs, build-sample.mjs, prerender.ts (pages), check-pages.mjs, lib/
-public/data/    generated JSON (index.json + <CODE>/<round>.json, condensed.json)
+public/data/    generated JSON (index.json + <CODE>/<round>.json, condensed.json, views.json)
 src/            React app (built with Preact, see below): App.tsx, components/, lib/playback.ts (queue/autoplay), lib/region.ts (country detection)
 docs/           landscape.md (competitor comparison)
 ```

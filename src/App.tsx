@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
-import { fetchCondensed, fetchRound, loadIndex } from './lib/data';
+import { fetchCondensed, fetchRound, fetchViews, loadIndex } from './lib/data';
 import type { CondensedMap } from './lib/moments';
 import { cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
 import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
@@ -10,6 +10,8 @@ import { describeYtError } from './lib/youtube';
 import { compHead, compHeading, compPath, homeHead, legacyHash, resolvePath, roundHead, roundHeading, roundPath } from './lib/routes';
 import { applyHead } from './lib/head';
 import { track, trackView, trackWatch } from './lib/track';
+import { addWatch, type WatchedMap } from './lib/watched';
+import type { WatchTag } from './components/Player';
 import { Logo } from './components/Logo';
 import { CompSwitcher } from './components/CompSwitcher';
 import { RoundPicker } from './components/RoundPicker';
@@ -83,6 +85,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   // of its extended cut instead, when YouTube's chapters give us those moments.
   const [autoCondense, setAutoCondense] = usePersistentState('autoCondense', true);
   const [condensed, setCondensed] = useState<CondensedMap | null>(null);
+  const [views, setViews] = useState<Record<string, number> | null>(null);
+  const [watched, setWatched] = usePersistentState<WatchedMap>('watched', {});
   const cmap = autoCondense ? condensed : null;
   const [moment, setMoment] = useState<number | null>(null);
   const [revealTitle, setRevealTitle] = useState(false);
@@ -325,6 +329,15 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoCondense, !!index, dataRev]);
 
+  // View counts load after the cards and never hold them up.
+  useEffect(() => {
+    if (!index || views) return;
+    let alive = true;
+    fetchViews().then((v) => { if (alive) setViews(v); }).catch(() => { /* not generated yet */ });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!index]);
+
   // ---- helpers ----
   const toItem = useCallback(
     (m: Match, kind?: Kind): PlayItem => ({
@@ -449,6 +462,14 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.uid, !!playing]);
 
+  // What the player reports back when a video stops being watched: to the stats, and to
+  // this browser's list of watched matches (the cards' progress bar and "Watched" tag).
+  const watchTag = current && picked && playing ? { ...playing, match: String(current.match.id), len: String(cutSec(picked)) } : null;
+  const onWatched = useCallback((seconds: number, ended: boolean, tag: WatchTag) => {
+    trackWatch(seconds, ended, tag);
+    if (tag.match) setWatched((w) => addWatch(w, tag.match, seconds, Number(tag.len), ended));
+  }, [setWatched]);
+
   const onEnded = useCallback(() => {
     if (playingRef.current) track('finish', playingRef.current);
     if (autoplay) dispatch({ type: 'next' });
@@ -502,6 +523,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
       onPin={(k) => setPins((p) => ({ ...p, [m.id]: k }))}
       onPlay={(k) => playMatch(m, k)}
       onQueue={(k) => queueMatch(m, k)}
+      views={spoilerFree ? null : views}
+      watched={watched[String(m.id)]}
     />
   );
 
@@ -577,8 +600,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                 onClose={closePlayer}
                 docked={docked}
                 onExpand={docked ? () => toStage() : watching ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : undefined}
-                tag={playing}
-                onWatched={trackWatch}
+                tag={watchTag}
+                onWatched={onWatched}
               />
               {current && <div className="now">
                 <div className="now-main">

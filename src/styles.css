@@ -383,6 +383,11 @@ a.comp { text-decoration: none; }
 .play-glyph svg { width: 26px; height: 26px; }
 .thumb:hover:not(:disabled) .play-glyph, .thumb:focus-visible .play-glyph { opacity: 1; scale: 1; }
 .now-tag { position: absolute; left: 8px; top: 8px; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.watched-tag { background: rgb(0 0 0 / 0.78); color: var(--text); }
+/* How far this browser got with the match (src/lib/watched.ts), along the thumbnail's bottom edge. */
+.watched-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgb(255 255 255 / 0.28); }
+.watched-bar i { display: block; height: 100%; background: var(--accent); }
+.views { white-space: nowrap; }
 .no-hl { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 12px; color: var(--muted); }
 
 .card-body { padding: 12px 12px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }

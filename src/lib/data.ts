@@ -217,6 +217,12 @@ export const fetchCondensed = () => {
 };
 
 /**
+ * YouTube view counts by videoId (scripts/views.mjs). Read from the moving branch, like
+ * index.json: they change more often than the data commit the round files are read at.
+ */
+export const fetchViews = () => memo('views.json', () => fetchFrom<Record<string, number>>('views.json', 'data', false));
+
+/**
  * Where a crest loads from. Production builds copy the rounds' crests into the site
  * itself (scripts/lib/site-crests.mjs): same host and connection as the page, cached
  * for good. A crest added to the data after the last build isn't there yet, so the

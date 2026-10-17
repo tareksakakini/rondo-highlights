@@ -131,6 +131,16 @@ jobs:
           CONDENSE_MAX: ${{ inputs.condense_max }}
         run: npm run condense
 
+      # YouTube view counts for the cards (public/data/views.json). 1 quota unit per 50
+      # videos: quick runs re-read only the last 3 days' videos. Never blocks the refresh.
+      - name: View counts
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          MODE: ${{ inputs.mode || (github.event.schedule == '17 3 * * *' && 'full') || (github.event_name == 'schedule' && 'quick') || 'full' }}
+        run: node scripts/views.mjs public/data $([ "$MODE" = quick ] && echo --quick)
+
       - name: Commit to the data branch and refresh the CDN
         id: publish
         working-directory: public/data
@@ -146,7 +156,11 @@ jobs:
           #    (jsDelivr @<sha>), which is cached forever, so they never need purging.
           git add -A -- . ':(exclude)index.json'
           visible=no
-          git diff --cached --quiet -- . ':(exclude)cache' || visible=yes   # cache/ is internal
+          # cache/ is internal; views.json is read from the moving branch (purged below), so
+          # new view counts alone don't move the commit visitors' cached round files are at.
+          git diff --cached --quiet -- . ':(exclude)cache' ':(exclude)views.json' || visible=yes
+          views_changed=no
+          git diff --cached --quiet -- views.json || views_changed=yes
           if ! git diff --cached --quiet; then
             commit "data: refresh highlights $stamp"
           fi
@@ -185,6 +199,10 @@ jobs:
             exit 0
           fi
           git push origin HEAD:data
+          if [ "$views_changed" = yes ]; then
+            curl -fsS -o /dev/null "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@data/views.json" \
+              && echo "purged views.json" || echo "purge failed for views.json (will expire on its own)"
+          fi
           [ "$index_changed" = yes ] || exit 0
           # jsDelivr caches branch files for up to 12 h; purge the index so visitors see it now.
           curl -fsS -o /dev/null "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@data/index.json" \

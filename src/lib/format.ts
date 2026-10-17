@@ -1,6 +1,13 @@
 import type { Highlight, Kind, Match, PlayItem } from '../types';
 import type { CondensedEntry, CondensedMap } from './moments';
 
+/** "850 views", "12K views", "1.2M views". */
+export function fmtViews(n: number) {
+  const short = (v: number, unit: string) => `${v >= 10 ? Math.round(v) : Math.round(v * 10) / 10}${unit}`;
+  const text = n >= 1e9 ? short(n / 1e9, 'B') : n >= 1e6 ? short(n / 1e6, 'M') : n >= 1e3 ? short(n / 1e3, 'K') : String(n);
+  return `${text} ${n === 1 ? 'view' : 'views'}`;
+}
+
 export function fmtDuration(sec: number) {
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);

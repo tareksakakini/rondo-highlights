@@ -1,5 +1,6 @@
 import type { Kind, Match } from '../types';
-import { availableIn, cutSec, fmtDay, fmtDuration, pickCut } from '../lib/format';
+import { availableIn, cutSec, fmtDay, fmtDuration, fmtViews, pickCut } from '../lib/format';
+import { isDone, type Watched } from '../lib/watched';
 import type { CondensedMap } from '../lib/moments';
 import { countryName } from '../lib/region';
 import { TeamBadge } from './TeamBadge';
@@ -20,11 +21,15 @@ interface Props {
   onPin: (kind: Kind) => void;
   onPlay: (kind: Kind | undefined) => void;
   onQueue: (kind: Kind | undefined) => void;
+  /** YouTube view counts by videoId; null while they load, or in spoiler-free mode (a big count hints at a big game). */
+  views?: Record<string, number> | null;
+  /** How far this browser got with this match, if it watched it. */
+  watched?: Watched;
 }
 
 const KINDS: Kind[] = ['short', 'extended'];
 
-export function MatchCard({ match, first = false, pref, condensed, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue }: Props) {
+export function MatchCard({ match, first = false, pref, condensed, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue, views = null, watched }: Props) {
   const picked = pickCut(match, pinned ?? pref, condensed, [], region, avoid);
   const hl = picked?.h ?? null;
   // The "short" slot holds the official short cut, or else the auto-condensed extended cut.
@@ -37,6 +42,8 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
   const { home, away, score } = match;
   const showScore = !spoilerFree && score.home != null && score.away != null;
   const label = `${home.short} v ${away.short}`;
+  const viewCount = hl ? views?.[hl.videoId] : undefined;
+  const done = isDone(watched);
 
   return (
     <article className={`card${playing ? ' is-playing' : ''}${hl ? '' : ' is-empty'}`} data-match={match.id}>
@@ -54,7 +61,10 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
         )}
         {picked && <span className="dur">{fmtDuration(cutSec(picked))}</span>}
         {hl && <span className="play-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span>}
-        {playing && <span className="now-tag">Playing</span>}
+        {watched && hl && (
+          <span className="watched-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, Math.round((watched.e ? 1 : watched.f) * 100))}%` }} /></span>
+        )}
+        {playing ? <span className="now-tag">Playing</span> : done && hl && <span className="now-tag watched-tag">Watched</span>}
         {!hl && <span className="no-hl">{blocked ? `Not available in ${region ? countryName(region) : 'your country'}` : 'Highlights not in yet'}</span>}
       </button>
 
@@ -70,6 +80,8 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
         </div>
         <div className="meta">
           <span>{fmtDay(match.utcDate)}</span>
+          {viewCount != null && <span className="dot">·</span>}
+          {viewCount != null && <span className="views">{fmtViews(viewCount)}</span>}
           {hl && <span className="dot">·</span>}
           {hl && <span className="channel" title={hl.channel}>{hl.channel}</span>}
         </div>
