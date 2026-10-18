@@ -10,7 +10,7 @@
 //   doesn't publish, so it backs jsDelivr up rather than replacing it)
 //   - the round file the page will show, and condensed.json, as soon as an index
 //     names the data commit (`rev`) they live at;
-//   - views.json (YouTube view counts, which order the cards), except in spoiler-free mode;
+//   - views.json (YouTube view counts, which order the cards);
 //   - /geo.json (the visitor's country), unless this tab already knows it.
 //
 // Repeat visits: the index saved on the last visit (if recent) names a commit whose
@@ -128,7 +128,7 @@
     var fresh = quiet(newest('index.json', { cache: 'no-cache' }));
     w.__rondoIndex = fresh;
     // YouTube view counts (the cards' order), from the moving branch like the index.
-    if (read('spoilerFree') !== true) early[url('data', 'views.json')] = quiet(race('data', 'views.json', { cache: 'no-cache' }));
+    early[url('data', 'views.json')] = quiet(race('data', 'views.json', { cache: 'no-cache' }));
 
     var meta = document.querySelector('meta[name="rondo-route"]');
     var route = meta ? meta.content.split(' ') : location.pathname === '/' ? [''] : null;

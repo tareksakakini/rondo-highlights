@@ -21,7 +21,7 @@ interface Props {
   onPin: (kind: Kind) => void;
   onPlay: (kind: Kind | undefined) => void;
   onQueue: (kind: Kind | undefined) => void;
-  /** YouTube view counts by videoId; null while they load, or in spoiler-free mode (a big count hints at a big game). */
+  /** YouTube view counts by videoId (shown in spoiler-free mode too); null while they load. */
   views?: Record<string, number> | null;
   /** How far this browser got with this match, if it watched it. */
   watched?: Watched;

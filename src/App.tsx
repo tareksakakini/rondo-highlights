@@ -349,11 +349,10 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   );
   const cutFor = (m: Match) => pickCut(m, pins[m.id] ?? pref, cmap, [], region, avoid);
   const byDate = useMemo(() => round?.matches.filter((m) => pickHighlight(m, pref, [], region)) ?? [], [round, pref, region]);
-  // Most viewed on YouTube first (the count each card shows), once the counts are in; Play
-  // all and the suggestions follow the same order. Spoiler-free keeps kick-off order: a
-  // big count hints at a big game.
+  // Most viewed on YouTube first (the count each card shows), once the counts are in, in
+  // spoiler-free mode too; Play all and the suggestions follow the same order.
   const viewsOf = (m: Match) => { const c = cutFor(m); return (c && views?.[c.h.videoId]) ?? -1; };
-  const playable = !spoilerFree && views ? [...byDate].sort((a, b) => viewsOf(b) - viewsOf(a)) : byDate;
+  const playable = views ? [...byDate].sort((a, b) => viewsOf(b) - viewsOf(a)) : byDate;
   const withAny = round?.matches.filter((m) => m.highlights.length).length ?? 0;
   const blockedHere = useMemo(() => round?.matches.filter((m) => m.highlights.length && !pickHighlight(m, pref, [], region)) ?? [], [round, pref, region]);
   const notYet = useMemo(() => round?.matches.filter((m) => !m.highlights.length) ?? [], [round]);
@@ -538,7 +537,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
       onPin={(k) => setPins((p) => ({ ...p, [m.id]: k }))}
       onPlay={(k) => playMatch(m, k)}
       onQueue={(k) => queueMatch(m, k)}
-      views={spoilerFree ? null : views}
+      views={views}
       watched={watched[String(m.id)]}
     />
   );

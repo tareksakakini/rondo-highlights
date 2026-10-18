@@ -248,9 +248,9 @@ test('stamp-rev compares with the index committed in its folder', async () => {
   }
 });
 
-test('view counts load from the moving branch with the index, except in spoiler-free mode', async () => {
+test('view counts load from the moving branch with the index, in spoiler-free mode too', async () => {
   const { fetched, window } = await run({ route: 'PL md-1', views: true });
   assert.deepEqual(fetched.slice(0, 2), ['@data/index.json', '@data/views.json']);
   assert.ok(window.__rondoEarly['https://cdn.jsdelivr.net/gh/me/repo@data/views.json']);
-  assert.ok(!(await run({ route: 'PL md-1', views: true, stored: { 'rondo:spoilerFree': true } })).fetched.includes('@data/views.json'));
+  assert.ok((await run({ route: 'PL md-1', views: true, stored: { 'rondo:spoilerFree': true } })).fetched.includes('@data/views.json'));
 });
