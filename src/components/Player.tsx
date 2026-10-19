@@ -70,6 +70,15 @@ interface Run {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * Leave fullscreen if the embed holds it. With nothing left to play the player gets
+ * hidden, and a hidden fullscreen iframe still covers the page and swallows every click.
+ */
+const leaveFullscreen = (host: HTMLElement | null) => {
+  const fs = document.fullscreenElement;
+  if (fs && host?.contains(fs)) document.exitFullscreen().catch(() => {});
+};
+
+/**
  * YouTube IFrame player with a "mini player" mode: when the page scrolls the
  * player out of view it docks (bottom-right on desktop, top on phones) so it
  * stays visible — YouTube's embed policy requires the player to be visible
@@ -129,7 +138,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
     gen.current++;
     const r = run.current;
     if (r.base != null) { p.setVolume(r.base); r.base = null; }
-    if (!id) { watch.current = { ...NONE }; p.pauseVideo(); return; }
+    if (!id) { watch.current = { ...NONE }; p.pauseVideo(); leaveFullscreen(hostRef.current); return; }
     watch.current = { ms: 0, since: null, tag: pending.current.tag, done: false };
     const steer = m?.length ? m : null;
     run.current = { moments: steer, idx: 0, free: false, busy: false, lastT: steer ? steer[0][0] : 0, settleUntil: performance.now() + 4000, base: null };
@@ -140,6 +149,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
   // Create the player once.
   useEffect(() => {
     let cancelled = false;
+    const host = hostRef.current;
     loadYouTubeApi()
       .then((YT) => {
         if (cancelled || !hostRef.current) return;
@@ -176,6 +186,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
       cancelled = true;
       flush(false);
       watch.current = { ...NONE };
+      leaveFullscreen(host);
       player.current?.destroy();
       player.current = null;
       hostRef.current?.replaceChildren();
