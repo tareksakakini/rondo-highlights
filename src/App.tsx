@@ -17,7 +17,7 @@ import { CompSwitcher } from './components/CompSwitcher';
 import { RoundPicker } from './components/RoundPicker';
 import { MatchCard } from './components/MatchCard';
 import { Player } from './components/Player';
-import { QueueBar, QueueSuggestions, UpNext } from './components/UpNext';
+import { QueueBar, QueueSuggestions, Suggestions, UpNext } from './components/UpNext';
 import { Settings } from './components/Settings';
 import { isExcludedMatch } from './lib/excluded';
 
@@ -547,11 +547,24 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     (index?.competitions ?? []).filter((c) => seen[c.code] != null && seen[c.code] !== seenSig(c)).map((c) => c.code)), [index, seen]);
   const hasUpNext = pb.queue.length > 0;
   // While a match plays, the queue column stays on wide screens even when the queue is
-  // empty, so the player keeps its size; it then suggests the rest of the browsed round.
+  // empty, so the player keeps its size. While something plays it suggests the rest of the
+  // browsed round, under the queue too (minus what's queued), so adding one keeps the others.
   const showAside = narrow ? watching || (hasUpNext && !current) : hasUpNext || !!current;
-  const suggestions = !hasUpNext && current && round && round.competition === comp?.code
-    ? playable.filter((m) => m.id !== current.match.id).map((m) => toItem(m, pins[m.id]))
+  const suggestions = current && round && round.competition === comp?.code
+    ? playable.filter((m) => m.id !== current.match.id && !queuedIds.has(m.id)).map((m) => toItem(m, pins[m.id]))
     : [];
+  const suggestProps = {
+    items: suggestions,
+    roundName: comp && round ? `${comp.short ?? comp.name} · ${round.round.label}` : 'this round',
+    pref, condensed: cmap, region, avoid,
+    onPlay: (it: PlayItem) => { track('play', { from: 'suggestion', comp: it.comp.code }); dispatch({ type: 'playOne', item: it }); },
+    onQueue: (it: PlayItem) => {
+      track('queue', { from: 'suggestion', comp: it.comp.code });
+      dispatch({ type: 'enqueue', items: [it] });
+      setToast(`Queued ${matchTitle(it.match)}`);
+    },
+    onQueueAll: queueAll,
+  };
 
   return (
     <div className={`app${watching ? ' watching' : ''}${docked ? ' docked' : ''}`}>
@@ -776,20 +789,11 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
             {narrow && !current ? (
               <QueueBar state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} onPlay={playQueue} onClear={() => dispatch({ type: 'clearQueue' })} />
             ) : hasUpNext ? (
-              <UpNext state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} dispatch={queueDispatch} />
+              <UpNext state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} dispatch={queueDispatch}>
+                <Suggestions {...suggestProps} />
+              </UpNext>
             ) : (
-              <QueueSuggestions
-                items={suggestions}
-                roundName={comp && round ? `${comp.short ?? comp.name} · ${round.round.label}` : 'this round'}
-                pref={pref} condensed={cmap} region={region} avoid={avoid}
-                onPlay={(it) => { track('play', { from: 'suggestion', comp: it.comp.code }); dispatch({ type: 'playOne', item: it }); }}
-                onQueue={(it) => {
-                  track('queue', { from: 'suggestion', comp: it.comp.code });
-                  dispatch({ type: 'enqueue', items: [it] });
-                  setToast(`Queued ${matchTitle(it.match)}`);
-                }}
-                onQueueAll={queueAll}
-              />
+              <QueueSuggestions {...suggestProps} />
             )}
             {watching && (
               <button className="btn-ghost browse-more" onClick={toBrowse}>

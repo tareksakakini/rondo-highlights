@@ -13,6 +13,8 @@ interface Props {
   region: string | null;
   avoid?: string[];
   dispatch: Dispatch<Action>;
+  /** Shown under the queue (the suggestions). */
+  children?: React.ReactNode;
 }
 
 function Row({ item, pref, condensed, region, avoid, onPlay, children, className, style }: { item: PlayItem; pref: Kind; condensed: CondensedMap | null; region: string | null; avoid: string[]; onPlay: () => void; children?: React.ReactNode; className?: string; style?: CSSProperties }) {
@@ -41,7 +43,7 @@ const queueTotal = (queue: PlayItem[], pref: Kind, condensed: CondensedMap | nul
   queue.reduce((t, it) => { const c = resolveItem(it, pref, condensed, [], region, avoid); return t + (c ? cutSec(c) : 0); }, 0);
 
 /** The queue: everything that plays after the current match, as one list. Hidden when empty. */
-export function UpNext({ state, pref, condensed, region, avoid = [], dispatch }: Props) {
+export function UpNext({ state, pref, condensed, region, avoid = [], dispatch, children }: Props) {
   const { queue } = state;
   if (!queue.length) return null;
   const total = queueTotal(queue, pref, condensed, region, avoid);
@@ -66,6 +68,7 @@ export function UpNext({ state, pref, condensed, region, avoid = [], dispatch }:
       <div className="upnext-body">
         <QueueRows queue={queue} pref={pref} condensed={condensed} region={region} avoid={avoid} dispatch={dispatch} />
       </div>
+      {children}
     </div>
   );
 }
@@ -214,11 +217,7 @@ export function QueueBar({ state, pref, condensed, region, avoid = [], onPlay, o
   );
 }
 
-/**
- * Something playing, nothing queued: offers the rest of the round being browsed (in the
- * queue column on wide screens, which also keeps the player's size; under the player otherwise).
- */
-export function QueueSuggestions({ items, roundName, pref, condensed, region, avoid = [], onPlay, onQueue, onQueueAll }: {
+interface SuggestProps {
   items: PlayItem[];
   roundName: string;
   pref: Kind;
@@ -228,7 +227,13 @@ export function QueueSuggestions({ items, roundName, pref, condensed, region, av
   onPlay: (item: PlayItem) => void;
   onQueue: (item: PlayItem) => void;
   onQueueAll: () => void;
-}) {
+}
+
+/**
+ * Something playing, nothing queued: offers the rest of the round being browsed (in the
+ * queue column on wide screens, which also keeps the player's size; under the player otherwise).
+ */
+export function QueueSuggestions(props: SuggestProps) {
   return (
     <div className="upnext open suggest">
       <div className="panel-bar">
@@ -237,27 +242,36 @@ export function QueueSuggestions({ items, roundName, pref, condensed, region, av
         </div>
       </div>
       <p className="suggest-note muted">
-        Your queue is empty.{items.length === 0 && ' Add matches from any round.'}
+        Your queue is empty.{props.items.length === 0 && ' Add matches from any round.'}
       </p>
-      {items.length > 0 && (
-        <section className="suggest-section" aria-labelledby="suggest-title">
-          <div className="suggest-head">
-            <span className="suggest-title">
-              <h3 id="suggest-title">Suggestions</h3>
-            </span>
-            <button className="btn-ghost sm" onClick={onQueueAll}>+ Queue all</button>
-          </div>
-          <ol className="rows" aria-label={`Suggestions: more from ${roundName}`}>
-            {items.map((item) => (
-              <Row key={item.match.id} item={item} pref={pref} condensed={condensed} region={region} avoid={avoid} onPlay={() => onPlay(item)}>
-                <button className="btn-icon sm" aria-label="Add to queue" title="Add to queue" onClick={() => onQueue(item)}>
-                  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" /></svg>
-                </button>
-              </Row>
-            ))}
-          </ol>
-        </section>
-      )}
+      <Suggestions {...props} />
     </div>
+  );
+}
+
+/**
+ * The rest of the round being browsed, minus what's playing or queued: under the queue
+ * too, so adding one doesn't take the others away.
+ */
+export function Suggestions({ items, roundName, pref, condensed, region, avoid = [], onPlay, onQueue, onQueueAll }: SuggestProps) {
+  if (!items.length) return null;
+  return (
+    <section className="suggest-section" aria-labelledby="suggest-title">
+      <div className="suggest-head">
+        <span className="suggest-title">
+          <h3 id="suggest-title">Suggestions</h3>
+        </span>
+        <button className="btn-ghost sm" onClick={onQueueAll}>+ Queue all</button>
+      </div>
+      <ol className="rows" aria-label={`Suggestions: more from ${roundName}`}>
+        {items.map((item) => (
+          <Row key={item.match.id} item={item} pref={pref} condensed={condensed} region={region} avoid={avoid} onPlay={() => onPlay(item)}>
+            <button className="btn-icon sm" aria-label="Add to queue" title="Add to queue" onClick={() => onQueue(item)}>
+              <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" /></svg>
+            </button>
+          </Row>
+        ))}
+      </ol>
+    </section>
   );
 }
