@@ -104,6 +104,18 @@ export const resolveItem = (
 /** Does the match have any cut that plays in `region`? */
 export const playableIn = (m: Match, region: string | null) => m.highlights.some((h) => availableIn(h, region));
 
+/**
+ * How long after kick-off a match whose videos don't play in the viewer's country still
+ * counts as "not out yet" rather than "not available": the first upload is often one
+ * broadcaster's (Sky, UK only) and the local one (NBC, US) follows hours later. Matches the
+ * refresh plan's LATE_UNTIL_H, which keeps looking for a widely playable cut that long.
+ */
+export const REGION_WAIT_H = 54;
+
+/** Has videos, none of them play in `region`, and one that does may still come. */
+export const awaitingIn = (m: Match, region: string | null, now = Date.now()) =>
+  m.highlights.length > 0 && !playableIn(m, region) && now - Date.parse(m.utcDate) < REGION_WAIT_H * 3600e3;
+
 export function matchTitle(m: Match) {
   return `${m.home.short} v ${m.away.short}`;
 }

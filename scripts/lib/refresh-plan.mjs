@@ -5,7 +5,7 @@
 // on a quiet Tuesday. Instead:
 //   - "hot" matches, from HOT_FROM_MIN after kick-off until HOT_UNTIL_H: refresh every
 //     HOT_EVERY_MIN, reading only the competitions involved (a quick run);
-//   - finished matches still without a highlight: every LATE_EVERY_MIN until LATE_SOON_H
+//   - finished matches still without a widely playable highlight (see isCovered): every LATE_EVERY_MIN until LATE_SOON_H
 //     after kick-off, then every LATER_EVERY_H until LATE_UNTIL_H (the Bundesliga holds
 //     Saturday 15:30 games back ~30 h; Ligue 1 is sometimes a day late);
 //   - otherwise every IDLE_EVERY_H (fixture changes, scores), quick, every competition;
@@ -24,6 +24,20 @@ export const FULL_RETRY_H = 2; // after a failed full run (not every tick: a run
 // A run started this much early still counts (GitHub starts runs a little late or early).
 const SLACK_MS = 2 * 60e3;
 
+/**
+ * Countries most of our visitors are in. A match whose videos so far are all limited to
+ * other countries (Sky's cut is UK only; NBC's US cut comes later) isn't covered yet.
+ */
+export const KEY_REGIONS = ['US', 'GB'];
+
+const playsIn = (h, c) => (h.allow ? h.allow.includes(c) : !h.block?.includes(c));
+
+/** Has a highlight that plays everywhere, or one for each of KEY_REGIONS. */
+export function isCovered(highlights = []) {
+  return highlights.some((h) => !h.allow && !h.block?.length)
+    || (highlights.length > 0 && KEY_REGIONS.every((c) => highlights.some((h) => playsIn(h, c))));
+}
+
 const MIN = 60e3;
 const HOUR = 3600e3;
 const SKIP = /^(POSTPONED|CANCELLED|SUSPENDED)$/;
@@ -38,7 +52,7 @@ const comps = (list) => [...new Set(list.map((m) => m.comp))];
 
 /**
  * @param now       ms
- * @param matches   [{ comp, label, utcDate, status, covered }] (covered: has a highlight already)
+ * @param matches   [{ comp, label, utcDate, status, covered }] (covered: isCovered, a widely playable highlight is in)
  * @param lastRun   ms when the last refresh run started (any mode), or null
  * @param lastFull  ms when the last successful full run started, or null
  * @param lastFullFailed ms when the last full run that failed started, if it came after that, or null
@@ -65,7 +79,7 @@ export function planRefresh({ now, matches, lastRun = null, lastFull = null, las
   } else if (hot.length && waited(HOT_EVERY_MIN * MIN)) {
     plan = { due: true, mode: 'quick', only: comps([...hot, ...late]), reason: `just finished: ${names(hot)}` };
   } else if (late.length && waited(lateEvery)) {
-    plan = { due: true, mode: 'quick', only: comps(late), reason: `still no highlights: ${names(late)}` };
+    plan = { due: true, mode: 'quick', only: comps(late), reason: `still no widely playable highlights: ${names(late)}` };
   } else if (waited(IDLE_EVERY_H * HOUR)) {
     plan = { due: true, mode: 'quick', only: null, reason: 'routine check' };
   }
@@ -101,7 +115,7 @@ export async function matchesFrom(index, readRound, now) {
           label: `${m.home?.short ?? m.home?.name} v ${m.away?.short ?? m.away?.name}`,
           utcDate: m.utcDate,
           status: m.status,
-          covered: (m.highlights ?? []).length > 0,
+          covered: isCovered(m.highlights),
         });
       }
     }

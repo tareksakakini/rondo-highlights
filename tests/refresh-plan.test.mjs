@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  planRefresh, matchesFrom, HOT_FROM_MIN, HOT_EVERY_MIN, IDLE_EVERY_H, FULL_EVERY_H, FULL_RETRY_H, LATE_EVERY_MIN, LATER_EVERY_H,
+  planRefresh, matchesFrom, isCovered, HOT_FROM_MIN, HOT_EVERY_MIN, IDLE_EVERY_H, FULL_EVERY_H, FULL_RETRY_H, LATE_EVERY_MIN, LATER_EVERY_H,
 } from '../scripts/lib/refresh-plan.mjs';
 
 const MIN = 60e3;
@@ -51,7 +51,7 @@ test('finished matches still without highlights: hourly at first, then every few
   const plan = (koAgo, lastRunAgo, extra) => planRefresh({ now: NOW, matches: [match('BL1', 'Mainz v Leverkusen', koAgo, extra)], lastRun: NOW - lastRunAgo, lastFull: recentFull });
   assert.equal(plan(5 * HOUR, 30 * MIN).due, false);
   const p = plan(5 * HOUR, LATE_EVERY_MIN * MIN);
-  assert.deepEqual([p.due, p.only, p.reason], [true, ['BL1'], 'still no highlights: Mainz v Leverkusen']);
+  assert.deepEqual([p.due, p.only, p.reason], [true, ['BL1'], 'still no widely playable highlights: Mainz v Leverkusen']);
   assert.equal(plan(20 * HOUR, 2 * HOUR).due, false, 'past LATE_SOON_H: every LATER_EVERY_H');
   assert.equal(plan(20 * HOUR, LATER_EVERY_H * HOUR).due, true);
   assert.equal(plan(60 * HOUR, 5 * HOUR).due, false, 'given up after LATE_UNTIL_H');
@@ -83,4 +83,23 @@ test('matchesFrom reads the current round and recent ones of live competitions',
   }, NOW);
   assert.deepEqual(read, ['PL/md-5', 'PL/md-6']);
   assert.deepEqual(out[0], { comp: 'PL', label: 'Man United v Tottenham', utcDate: '2026-10-10T16:30:00Z', status: 'FINISHED', covered: true });
+});
+
+test('isCovered: a cut that plays everywhere, or one for each key country', () => {
+  assert.equal(isCovered([]), false);
+  assert.equal(isCovered(undefined), false);
+  assert.equal(isCovered([{}]), true); // no restriction
+  assert.equal(isCovered([{ allow: ['GB', 'IE'] }]), false); // Sky first: nothing for the US yet
+  assert.equal(isCovered([{ allow: ['GB', 'IE'] }, { allow: ['US'] }]), true); // then NBC
+  assert.equal(isCovered([{ block: ['US'] }]), false);
+  assert.equal(isCovered([{ block: ['FR'] }]), true); // plays in the US and GB
+  assert.equal(isCovered([{ allow: ['ZZ'] }]), false); // nowhere
+});
+
+test('matchesFrom: a match with only another country\'s cut is not covered', async () => {
+  const index = { competitions: [{ code: 'PL', source: 'live', currentRound: 'md-6', rounds: [{ key: 'md-6', firstDate: '2026-10-10T11:30:00Z' }] }] };
+  const out = await matchesFrom(index, async () => ({
+    matches: [{ utcDate: '2026-10-10T16:30:00Z', status: 'FINISHED', home: { short: 'Man United' }, away: { short: 'Tottenham' }, highlights: [{ allow: ['GB'] }] }],
+  }), NOW);
+  assert.equal(out[0].covered, false);
 });

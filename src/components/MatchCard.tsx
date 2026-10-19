@@ -1,5 +1,5 @@
 import type { Kind, Match } from '../types';
-import { availableIn, cutSec, fmtCount, fmtDay, fmtDuration, pickCut } from '../lib/format';
+import { availableIn, awaitingIn, cutSec, fmtCount, fmtDay, fmtDuration, pickCut } from '../lib/format';
 import { isDone, type Watched } from '../lib/watched';
 import type { CondensedMap } from '../lib/moments';
 import { countryName } from '../lib/region';
@@ -41,6 +41,10 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
   const slot = picked?.condensed ? 'short' : hl?.kind;
   const fallback = hl && slot !== (pinned ?? pref);
   const blocked = !hl && match.highlights.length > 0;
+  // Only another country's cut so far: say it isn't out here yet, not that it never will be.
+  const where = region ? countryName(region) : 'your country';
+  const waiting = blocked && awaitingIn(match, region);
+  const note = waiting ? `Not out in ${where} yet` : blocked ? `Not available in ${where}` : 'Highlights not in yet';
   const { home, away, score } = match;
   // Only the final score: a live one would be stale by the time the data is read.
   const showScore = !spoilerFree && FINAL.test(match.status) && score.home != null && score.away != null;
@@ -51,7 +55,7 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
   return (
     <article className={`card${playing ? ' is-playing' : ''}${hl ? '' : ' is-empty'}`} data-match={match.id}>
       <button className="thumb" onClick={() => hl && onPlay(pinned)} disabled={!hl}
-        aria-label={hl ? `Play ${label}` : blocked ? `${label}: not available in your country` : `${label}: no highlights yet`}>
+        aria-label={hl ? `Play ${label}` : `${label}: ${note}`}>
         {/* The crests, also under the thumbnail until it loads (as on the prerendered page). */}
         <span className="thumb-teams" aria-hidden={hl && !spoilerFree ? true : undefined}>
           <TeamBadge team={home} size={56} />
@@ -68,7 +72,7 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
           <span className="watched-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, Math.round((watched.e ? 1 : watched.f) * 100))}%` }} /></span>
         )}
         {playing && <span className="now-tag">Playing</span>}
-        {!hl && <span className="no-hl">{blocked ? `Not available in ${region ? countryName(region) : 'your country'}` : 'Highlights not in yet'}</span>}
+        {!hl && <span className="no-hl">{note}</span>}
       </button>
 
       <div className="card-body">

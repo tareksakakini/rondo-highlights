@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
 import { fetchCondensed, fetchRound, fetchViews, loadIndex } from './lib/data';
 import type { CondensedMap } from './lib/moments';
-import { cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
+import { awaitingIn, cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
 import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
 import { initialPlayback, playbackReducer, type Action } from './lib/playback';
 import { usePersistentState } from './lib/storage';
@@ -353,9 +353,11 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   // spoiler-free mode too; Play all and the suggestions follow the same order.
   const viewsOf = (m: Match) => { const c = cutFor(m); return (c && views?.[c.h.videoId]) ?? -1; };
   const playable = views ? [...byDate].sort((a, b) => viewsOf(b) - viewsOf(a)) : byDate;
-  const withAny = round?.matches.filter((m) => m.highlights.length).length ?? 0;
-  const blockedHere = useMemo(() => round?.matches.filter((m) => m.highlights.length && !pickHighlight(m, pref, [], region)) ?? [], [round, pref, region]);
-  const notYet = useMemo(() => round?.matches.filter((m) => !m.highlights.length) ?? [], [round]);
+  // A match whose only videos so far don't play here stays with the ones not in yet for a
+  // couple of days (the local broadcaster's cut often comes hours after another country's),
+  // and only then moves to "Not available in …".
+  const blockedHere = useMemo(() => round?.matches.filter((m) => m.highlights.length && !pickHighlight(m, pref, [], region) && !awaitingIn(m, region)) ?? [], [round, pref, region]);
+  const notYet = useMemo(() => round?.matches.filter((m) => !m.highlights.length || awaitingIn(m, region)) ?? [], [round, region]);
   const roundTotal = playable.reduce((t, m) => { const c = cutFor(m); return t + (c ? cutSec(c) : 0); }, 0);
   const condensedHere = playable.filter((m) => cutFor(m)?.condensed).length;
 
@@ -736,7 +738,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                       <span>{fmtRange(round.matches[0].utcDate, round.matches[round.matches.length - 1].utcDate)}</span>
                       <span>
                         {playable.length}/{round.matches.length} playable{region ? ` in ${flag(region)}` : ''}
-                        {withAny > playable.length && <button className="linkish inline" onClick={() => setSettingsOpen(true)}>why?</button>}
+                        {blockedHere.length > 0 && <button className="linkish inline" onClick={() => setSettingsOpen(true)}>why?</button>}
                       </span>
                       {roundTotal > 0 && <span>{fmtTotal(roundTotal)}</span>}
                     </p>
@@ -751,7 +753,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                 </div>
               )}
 
-              {round && !playable.length && blockedHere.length > 0 && (
+              {round && !playable.length && !notYet.length && blockedHere.length > 0 && (
                 <div className="region-note">
                   <strong>None of this round&apos;s highlights are licensed on YouTube in {region ? `${flag(region)} ${countryName(region)}` : 'your country'}.</strong>
                   <span> Broadcasters sell highlight rights country by country. Try another competition, or <button className="linkish inline" onClick={() => setSettingsOpen(true)}>change your country</button> if we guessed wrong.</span>
@@ -771,7 +773,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                 </p>
               )}
 
-              {blockedHere.length > 0 && playable.length > 0 && (
+              {blockedHere.length > 0 && (playable.length > 0 || notYet.length > 0) && (
                 <details className="blocked-group">
                   <summary>
                     Not available in {region ? `${flag(region)} ${countryName(region)}` : 'your country'} <span className="count">{blockedHere.length}</span>
@@ -779,7 +781,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                   <div className="grid">{blockedHere.map((m) => renderCard(m))}</div>
                 </details>
               )}
-              {blockedHere.length > 0 && !playable.length && <div className="grid">{blockedHere.map((m) => renderCard(m))}</div>}
+              {blockedHere.length > 0 && !playable.length && !notYet.length && <div className="grid">{blockedHere.map((m) => renderCard(m))}</div>}
             </section>
           )}
         </main>
