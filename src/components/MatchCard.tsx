@@ -28,6 +28,8 @@ interface Props {
 }
 
 const KINDS: Kind[] = ['short', 'extended'];
+/** football-data.org statuses with a final result (AWARDED: a result given by the league). */
+const FINAL = /^(FINISHED|AWARDED)$/;
 
 export function MatchCard({ match, first = false, pref, condensed, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue, views = null, watched }: Props) {
   const picked = pickCut(match, pinned ?? pref, condensed, [], region, avoid);
@@ -40,7 +42,8 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
   const fallback = hl && slot !== (pinned ?? pref);
   const blocked = !hl && match.highlights.length > 0;
   const { home, away, score } = match;
-  const showScore = !spoilerFree && score.home != null && score.away != null;
+  // Only the final score: a live one would be stale by the time the data is read.
+  const showScore = !spoilerFree && FINAL.test(match.status) && score.home != null && score.away != null;
   const label = `${home.short} v ${away.short}`;
   const viewCount = hl ? views?.[hl.videoId] : undefined;
   const done = isDone(watched);
