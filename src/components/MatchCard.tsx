@@ -1,5 +1,5 @@
 import type { Kind, Match } from '../types';
-import { availableIn, awaitingIn, cutSec, fmtCount, fmtDay, fmtDuration, pickCut, usable } from '../lib/format';
+import { availableIn, awaitingIn, cutSec, fmtCount, fmtDay, fmtDuration, matchViews, pickCut, usable } from '../lib/format';
 import { isDone, type Watched } from '../lib/watched';
 import type { CondensedMap } from '../lib/moments';
 import { countryName } from '../lib/region';
@@ -51,7 +51,7 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
   // Only the final score: a live one would be stale by the time the data is read.
   const showScore = !spoilerFree && FINAL.test(match.status) && score.home != null && score.away != null;
   const label = `${home.short} v ${away.short}`;
-  const viewCount = hl ? views?.[hl.videoId] : undefined;
+  const viewCount = hl ? matchViews(match, views) : undefined;
   const done = isDone(watched);
 
   return (
@@ -97,7 +97,7 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
         {/* Its own line, always there (so nothing moves when the counts arrive): YouTube views, and whether you've watched it. */}
         <div className="meta meta-2">
           {viewCount != null ? (
-            <span className="views" title={`${viewCount.toLocaleString('en-US')} views of this video on YouTube (not on Rondo), rounded`}>
+            <span className="views" title={`${viewCount.toLocaleString('en-US')} views on YouTube of all this match's highlights, short and extended (not on Rondo), rounded`}>
               {fmtCount(viewCount)} YouTube {viewCount === 1 ? 'view' : 'views'}
             </span>
           ) : <span>&nbsp;</span>}

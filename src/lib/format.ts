@@ -108,6 +108,17 @@ export const resolveItem = (
   item: PlayItem, pref: Kind, condensed: CondensedMap | null, exclude: string[] = [], region: string | null = null, avoid: string[] = [],
 ) => pickCut(item.match, item.kind ?? pref, condensed, exclude, region, avoid);
 
+/**
+ * YouTube views of the match: every video we have for it added up, short and extended, in
+ * any country, playable here or not. Undefined until one of them has a count.
+ */
+export function matchViews(m: Match, views: Record<string, number> | null) {
+  if (!views) return undefined;
+  let total: number | undefined;
+  for (const h of m.highlights) if (views[h.videoId] != null) total = (total ?? 0) + views[h.videoId];
+  return total;
+}
+
 /** Does the match have any cut that plays in `region`? */
 export const playableIn = (m: Match, region: string | null, avoid: string[] = []) => usable(m, avoid).some((h) => availableIn(h, region));
 

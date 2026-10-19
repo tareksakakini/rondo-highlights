@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
 import { fetchCondensed, fetchRound, fetchViews, loadIndex } from './lib/data';
 import type { CondensedMap } from './lib/moments';
-import { awaitingIn, cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid, usable } from './lib/format';
+import { awaitingIn, cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, matchViews, pickCut, pickHighlight, resolveItem, scrubScore, uid, usable } from './lib/format';
 import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
 import { initialPlayback, playbackReducer, type Action } from './lib/playback';
 import { usePersistentState } from './lib/storage';
@@ -360,9 +360,9 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   );
   const cutFor = (m: Match) => pickCut(m, pins[m.id] ?? pref, cmap, [], region, avoid);
   const byDate = useMemo(() => round?.matches.filter((m) => pickHighlight(m, pref, [], region, avoid)) ?? [], [round, pref, region, avoid]);
-  // Most viewed on YouTube first (the count each card shows), once the counts are in, in
-  // spoiler-free mode too; Play all and the suggestions follow the same order.
-  const viewsOf = (m: Match) => { const c = cutFor(m); return (c && views?.[c.h.videoId]) ?? -1; };
+  // Most viewed on YouTube first (the count each card shows: all of the match's videos),
+  // once the counts are in, in spoiler-free mode too; Play all and the suggestions follow the same order.
+  const viewsOf = (m: Match) => matchViews(m, views) ?? -1;
   const playable = views ? [...byDate].sort((a, b) => viewsOf(b) - viewsOf(a)) : byDate;
   // A match whose only videos so far don't play here stays with the ones not in yet for a
   // couple of days (the local broadcaster's cut often comes hours after another country's),
