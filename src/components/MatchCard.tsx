@@ -1,5 +1,5 @@
 import type { Kind, Match } from '../types';
-import { availableIn, awaitingIn, cutSec, fmtCount, fmtDay, fmtDuration, pickCut } from '../lib/format';
+import { availableIn, awaitingIn, cutSec, fmtCount, fmtDay, fmtDuration, pickCut, usable } from '../lib/format';
 import { isDone, type Watched } from '../lib/watched';
 import type { CondensedMap } from '../lib/moments';
 import { countryName } from '../lib/region';
@@ -34,16 +34,18 @@ const FINAL = /^(FINISHED|AWARDED)$/;
 export function MatchCard({ match, first = false, pref, condensed, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue, views = null, watched }: Props) {
   const picked = pickCut(match, pinned ?? pref, condensed, [], region, avoid);
   const hl = picked?.h ?? null;
+  // Videos that won't embed for this viewer count as missing, chips and notes alike.
+  const videos = usable(match, avoid);
   // The "short" slot holds the official short cut, or else the auto-condensed extended cut.
-  const official = (k: Kind) => match.highlights.find((h) => h.kind === k && availableIn(h, region));
+  const official = (k: Kind) => videos.find((h) => h.kind === k && availableIn(h, region));
   const shortSlot = official('short') ? null : pickCut(match, 'short', condensed, [], region, avoid);
   const condensedCut = shortSlot?.condensed ? shortSlot : null;
   const slot = picked?.condensed ? 'short' : hl?.kind;
   const fallback = hl && slot !== (pinned ?? pref);
-  const blocked = !hl && match.highlights.length > 0;
+  const blocked = !hl && videos.length > 0;
   // Only another country's cut so far: say it isn't out here yet, not that it never will be.
   const where = region ? countryName(region) : 'your country';
-  const waiting = blocked && awaitingIn(match, region);
+  const waiting = blocked && awaitingIn(match, region, avoid);
   const note = waiting ? `Not out in ${where} yet` : blocked ? `Not available in ${where}` : 'Highlights not in yet';
   const { home, away, score } = match;
   // Only the final score: a live one would be stale by the time the data is read.

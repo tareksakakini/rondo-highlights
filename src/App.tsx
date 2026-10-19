@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
 import { fetchCondensed, fetchRound, fetchViews, loadIndex } from './lib/data';
 import type { CondensedMap } from './lib/moments';
-import { awaitingIn, cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid } from './lib/format';
+import { awaitingIn, cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, pickCut, pickHighlight, resolveItem, scrubScore, uid, usable } from './lib/format';
 import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
 import { initialPlayback, playbackReducer, type Action } from './lib/playback';
 import { usePersistentState } from './lib/storage';
@@ -30,6 +30,10 @@ function readQueue(): PlayItem[] {
 
 /** Below this width the queue has no column of its own: playing opens a watch view instead. */
 const NARROW = '(max-width: 1099px)';
+/** How long a video that refused to embed stays missing, and the failures that count against its channel. */
+const EMBED_FAIL_DAYS = 30;
+/** Failed videos from one channel (in one country) before all of its videos count as missing. */
+const EMBED_FAIL_CHANNEL = 5;
 function useMedia(query: string) {
   const [on, setOn] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(query).matches);
   useEffect(() => {
@@ -105,12 +109,19 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   useTrackSetting('autoplay', autoplay ? 'on' : 'off');
   useTrackSetting('country', regionOverride || 'auto');
   const [embedErrors, setEmbedErrors] = useState(0);
-  // Channels whose embeds failed with 101/150, per country, remembered for a week.
-  const [embedBlocked, setEmbedBlocked] = usePersistentState<Record<string, Record<string, number>>>('embedBlocked', {});
+  // Videos whose embeds failed with 101/150, per country: videoId -> [channelId, when],
+  // remembered for EMBED_FAIL_DAYS. Those videos count as missing, and so do all of a
+  // channel's once EMBED_FAIL_CHANNEL of its videos have failed (it refuses embeds here).
+  const [embedFailed, setEmbedFailed] = usePersistentState<Record<string, Record<string, [string, number]>>>('embedFailed', {});
   const avoid = useMemo(() => {
-    const week = Date.now() - 7 * 864e5;
-    return Object.entries(embedBlocked[region ?? '??'] ?? {}).filter(([, t]) => t > week).map(([id]) => id);
-  }, [embedBlocked, region]);
+    const since = Date.now() - EMBED_FAIL_DAYS * 864e5;
+    const fresh = Object.entries(embedFailed[region ?? '??'] ?? {}).filter(([, [, t]]) => t > since);
+    const perChannel = new Map<string, number>();
+    for (const [, [ch]] of fresh) if (ch) perChannel.set(ch, (perChannel.get(ch) ?? 0) + 1);
+    return [...fresh.map(([id]) => id), ...[...perChannel].filter(([, n]) => n >= EMBED_FAIL_CHANNEL).map(([ch]) => ch)];
+  }, [embedFailed, region]);
+  // The list this replaced held whole channels after a single failure.
+  useEffect(() => { try { localStorage.removeItem('rondo:embedBlocked'); } catch { /* ignore */ } }, []);
 
   useEffect(() => {
     let alive = true;
@@ -348,7 +359,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     [comp, round],
   );
   const cutFor = (m: Match) => pickCut(m, pins[m.id] ?? pref, cmap, [], region, avoid);
-  const byDate = useMemo(() => round?.matches.filter((m) => pickHighlight(m, pref, [], region)) ?? [], [round, pref, region]);
+  const byDate = useMemo(() => round?.matches.filter((m) => pickHighlight(m, pref, [], region, avoid)) ?? [], [round, pref, region, avoid]);
   // Most viewed on YouTube first (the count each card shows), once the counts are in, in
   // spoiler-free mode too; Play all and the suggestions follow the same order.
   const viewsOf = (m: Match) => { const c = cutFor(m); return (c && views?.[c.h.videoId]) ?? -1; };
@@ -356,8 +367,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   // A match whose only videos so far don't play here stays with the ones not in yet for a
   // couple of days (the local broadcaster's cut often comes hours after another country's),
   // and only then moves to "Not available in …".
-  const blockedHere = useMemo(() => round?.matches.filter((m) => m.highlights.length && !pickHighlight(m, pref, [], region) && !awaitingIn(m, region)) ?? [], [round, pref, region]);
-  const notYet = useMemo(() => round?.matches.filter((m) => !m.highlights.length || awaitingIn(m, region)) ?? [], [round, region]);
+  const blockedHere = useMemo(() => round?.matches.filter((m) => usable(m, avoid).length && !pickHighlight(m, pref, [], region, avoid) && !awaitingIn(m, region, avoid)) ?? [], [round, pref, region, avoid]);
+  const notYet = useMemo(() => round?.matches.filter((m) => !usable(m, avoid).length || awaitingIn(m, region, avoid)) ?? [], [round, region, avoid]);
   const roundTotal = playable.reduce((t, m) => { const c = cutFor(m); return t + (c ? cutSec(c) : 0); }, 0);
   const condensedHere = playable.filter((m) => cutFor(m)?.condensed).length;
 
@@ -498,15 +509,16 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
       // couple of those, suggest checking the country setting (VPNs, travel).
       if (code === 101 || code === 150) {
         setEmbedErrors((n) => n + 1);
-        const ch = video.channelId;
-        if (ch) {
-          const key = region ?? '??';
-          setEmbedBlocked((b) => ({ ...b, [key]: { ...b[key], [ch]: Date.now() } }));
-        }
+        const key = region ?? '??';
+        const since = Date.now() - EMBED_FAIL_DAYS * 864e5;
+        setEmbedFailed((f) => ({
+          ...f,
+          [key]: { ...Object.fromEntries(Object.entries(f[key] ?? {}).filter(([, [, t]]) => t > since)), [video.videoId]: [video.channelId ?? '', Date.now()] },
+        }));
       }
       dispatch({ type: 'failed', videoId: video.videoId });
     },
-    [video, region, setEmbedBlocked],
+    [video, region, setEmbedFailed],
   );
 
   // Keyboard: Shift+N next, Shift+P previous

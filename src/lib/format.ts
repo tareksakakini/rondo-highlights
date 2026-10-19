@@ -48,12 +48,21 @@ export function availableIn(h: Highlight, region: string | null) {
 }
 
 /**
+ * Videos whose embeds refuse to play for this viewer (error 101/150): `avoid` holds their
+ * ids, and the ids of channels where that keeps happening (FIFA's World Cup uploads play on
+ * youtube.com in the US but refuse embeds there, and the Data API doesn't say so).
+ */
+export const avoided = (h: Highlight, avoid: string[]) =>
+  avoid.includes(h.videoId) || (!!h.channelId && avoid.includes(h.channelId));
+
+/** The match's videos minus the avoided ones, which count as missing: they won't play here. */
+export const usable = (m: Match, avoid: string[]) => (avoid.length ? m.highlights.filter((h) => !avoided(h, avoid)) : m.highlights);
+
+/**
  * Pick the video to play for a match: the pinned/preferred length first,
  * falling back to the other length, among cuts that play in the viewer's country.
  * `exclude` holds videos that already failed. Unknown region: prefer unrestricted cuts.
- * `avoid` holds channels whose embeds refused to play for this viewer: their cuts are used
- * only when nothing else is left (FIFA's World Cup uploads play on youtube.com in the US
- * but refuse embeds there, and the Data API doesn't say so).
+ * Avoided videos are left out (see `avoided`).
  */
 export function pickHighlight(
   match: Match, want: Kind, exclude: string[] = [], region: string | null = null, avoid: string[] = [],
@@ -63,10 +72,8 @@ export function pickHighlight(
 }
 
 function poolFor(match: Match, exclude: string[], region: string | null, avoid: string[]) {
-  const ok = match.highlights.filter((h) => !exclude.includes(h.videoId) && availableIn(h, region));
-  const ranked = region ? ok : [...ok.filter((h) => !h.allow && !h.block), ...ok.filter((h) => h.allow || h.block)];
-  const trusted = ranked.filter((h) => !h.channelId || !avoid.includes(h.channelId));
-  return trusted.length ? trusted : ranked;
+  const ok = usable(match, avoid).filter((h) => !exclude.includes(h.videoId) && availableIn(h, region));
+  return region ? ok : [...ok.filter((h) => !h.allow && !h.block), ...ok.filter((h) => h.allow || h.block)];
 }
 
 /** What plays for a match: a video, and its key moments when it plays auto-condensed. */
@@ -102,7 +109,7 @@ export const resolveItem = (
 ) => pickCut(item.match, item.kind ?? pref, condensed, exclude, region, avoid);
 
 /** Does the match have any cut that plays in `region`? */
-export const playableIn = (m: Match, region: string | null) => m.highlights.some((h) => availableIn(h, region));
+export const playableIn = (m: Match, region: string | null, avoid: string[] = []) => usable(m, avoid).some((h) => availableIn(h, region));
 
 /**
  * How long after kick-off a match whose videos don't play in the viewer's country still
@@ -113,8 +120,8 @@ export const playableIn = (m: Match, region: string | null) => m.highlights.some
 export const REGION_WAIT_H = 54;
 
 /** Has videos, none of them play in `region`, and one that does may still come. */
-export const awaitingIn = (m: Match, region: string | null, now = Date.now()) =>
-  m.highlights.length > 0 && !playableIn(m, region) && now - Date.parse(m.utcDate) < REGION_WAIT_H * 3600e3;
+export const awaitingIn = (m: Match, region: string | null, avoid: string[] = [], now = Date.now()) =>
+  usable(m, avoid).length > 0 && !playableIn(m, region, avoid) && now - Date.parse(m.utcDate) < REGION_WAIT_H * 3600e3;
 
 export function matchTitle(m: Match) {
   return `${m.home.short} v ${m.away.short}`;
