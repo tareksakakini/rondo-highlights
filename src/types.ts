@@ -16,6 +16,7 @@ export interface Highlight {
 }
 
 export interface Team {
+  /** The same club's name in the football-data competitions, when this one comes from Highlightly under another name. */
   key?: string;
   name: string;
   short: string;

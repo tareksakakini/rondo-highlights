@@ -439,7 +439,11 @@ const byKindThenPriority = (a, b) =>
   (a.kind === b.kind ? 0 : a.kind === 'short' ? -1 : 1) || (a.priority ?? 99) - (b.priority ?? 99);
 
 function slimTeam(t) {
-  return { name: t.name, short: t.shortName || t.name, tla: t.tla || (t.shortName || t.name).slice(0, 3).toUpperCase(), crest: t.crest || null };
+  return {
+    name: t.name, short: t.shortName || t.name, tla: t.tla || (t.shortName || t.name).slice(0, 3).toUpperCase(), crest: t.crest || null,
+    // Highlightly clubs we know from football-data: that club's name, the team's identity across competitions.
+    ...(t.key && t.key !== t.name ? { key: t.key } : {}),
+  };
 }
 
 /**

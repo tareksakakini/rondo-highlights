@@ -47,6 +47,9 @@ test('clubs borrow football-data identity only when it is really the same club',
   const turku = toTeam({ name: 'Inter Turku' }, { national: false, clubRegistry: () => ({ key: 'c:99', name: 'FC Internazionale Milano', short: 'Inter', tla: 'INT' }) });
   assert.equal(turku.shortName, 'Inter Turku');
   assert.ok(!turku.extraAliases.includes('FC Internazionale Milano'));
+  // The football-data name is kept as the team's key, so the site knows it's the same club in every competition.
+  assert.equal(fixtures[0].awayTeam.key, 'AFC Bournemouth');
+  assert.equal(turku.key, undefined);
 });
 
 test('club acronyms become aliases ("Juventus 5-0 NEC"), club-type prefixes do not', () => {

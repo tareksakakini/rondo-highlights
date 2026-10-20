@@ -115,6 +115,9 @@ export function toTeam(t, { national, clubRegistry } = {}) {
     tla: fd?.tla ?? raw.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase(),
     crest: logo ?? fd?.crest ?? null,
     extraAliases,
+    // The same club's name in football-data's competitions, so the site can tell it's one team
+    // ("Juventus" in the Europa League is "Juventus FC" in Serie A).
+    ...(fd ? { key: fd.name } : {}),
   };
 }
 
