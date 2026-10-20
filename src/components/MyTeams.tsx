@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { DataIndex, Kind, Match, Team } from '../types';
 import type { FollowsApi } from '../lib/follows';
-import { cutSec, fmtRange, fmtTotal, pickHighlight, type Cut } from '../lib/format';
+import { awaitingIn, cutSec, fmtRange, fmtTotal, pickHighlight, usable, type Cut } from '../lib/format';
 import { groupSlates, loadRecentRounds, loadTeamMatches, teamDirectory, teamId, type PickerGroup, type Slate, type TeamMatch } from '../lib/digest';
 import { SlateRow } from './SlateRow';
 import { TeamPicker } from './TeamPicker';
@@ -104,9 +104,14 @@ export function MyTeams({ index, fol, tabs, arrival, onArrived, openMyTeams, pre
               <p className="muted digest-none">No matches for your teams in the last four weeks.</p>
             )}
             {slates?.map((sl) => {
-              const ready = sl.matches.filter((tm) => pickHighlight(tm.match, pref, [], region, avoid));
+              // Playable first, then not in yet, then not available here (as on a round's page);
+              // your team order within each. A match waiting on its local cut counts as not in yet.
+              const tier = (m: Match) => (pickHighlight(m, pref, [], region, avoid) ? 0 : !usable(m, avoid).length || awaitingIn(m, region, avoid) ? 1 : 2);
+              const tiered = sl.matches.map((tm) => ({ tm, t: tier(tm.match) })).sort((a, b) => a.t - b.t);
+              const cards = tiered.map(({ tm }) => tm);
+              const ready = tiered.filter(({ t }) => t === 0).map(({ tm }) => tm);
               const total = ready.reduce((t, tm) => { const c = cutFor(tm.match); return t + (c ? cutSec(c) : 0); }, 0);
-              // First and last kick-off (the cards are in your team order, not by date).
+              // First and last kick-off (the cards aren't in date order).
               const dates = sl.matches.map((tm) => tm.match.utcDate).sort();
               const days = fmtRange(dates[0], dates[dates.length - 1]);
               return (
@@ -118,7 +123,7 @@ export function MyTeams({ index, fol, tabs, arrival, onArrived, openMyTeams, pre
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>Play all
                     </button>
                   </>}>
-                    {sl.matches.map((tm) => renderCard(tm.match, false, { comp: tm.comp, roundLabel: tm.roundLabel }))}
+                    {cards.map((tm) => renderCard(tm.match, false, { comp: tm.comp, roundLabel: tm.roundLabel }))}
                   </SlateRow>
                 </section>
               );
