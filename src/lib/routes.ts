@@ -127,7 +127,7 @@ export function roundHead(c: CompLike & { rounds: RoundLike[] }, r: RoundLike, f
 export const roundHeading = (c: CompLike, r: RoundLike) => `${c.name} ${roundName(r.label)} highlights`;
 export const compHeading = (c: CompLike) => `${c.name} highlights`;
 
-/** "★ My teams", the favorites digest (beta, src/lib/digest.ts): only in the app, never prerendered. */
+/** "★ My teams", the favorites digest (src/lib/digest.ts): only in the app, never prerendered. */
 export const TEAMS_PATH = '/my-teams/';
 export const isTeamsPath = (pathname: string) => pathname === TEAMS_PATH || pathname === '/my-teams';
 export const teamsHead = (): Head => ({

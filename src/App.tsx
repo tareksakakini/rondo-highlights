@@ -20,7 +20,7 @@ import { Player } from './components/Player';
 import { QueueBar, QueueSuggestions, Suggestions, UpNext } from './components/UpNext';
 import { Settings } from './components/Settings';
 import { isExcludedMatch } from './lib/excluded';
-import { followBeta } from './lib/beta';
+import { accountsAvailable } from './lib/account';
 import { useFollows } from './lib/follows';
 import { AccountSheet } from './components/AccountSheet';
 import { TeamPicker } from './components/TeamPicker';
@@ -67,7 +67,7 @@ function useTrackSetting(name: string, value: string) {
 /** Where a match card's match comes from, when it isn't the round on screen (the favorites digest). */
 type CardCtx = { comp: Competition; roundLabel: string };
 
-/** Which kind of page the URL names: the app shows a round on the first three; 'teams' is "★ My teams" (beta). */
+/** Which kind of page the URL names: the app shows a round on the first three; 'teams' is "★ My teams". */
 type Page = 'home' | 'comp' | 'round' | 'teams';
 
 /** A slate's heading: "This weekend", "Midweek"… */
@@ -142,8 +142,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     return () => { alive = false; };
   }, []);
   const [toast, setToast] = useState<string | null>(null);
-  // "★ My teams" (beta, src/lib/beta.ts): your teams, kept with an account.
-  const fol = useFollows(followBeta);
+  // "★ My teams": your teams, kept with an account (src/lib/follows.ts).
+  const fol = useFollows();
   const [pb, dispatch] = useReducer(playbackReducer, undefined, () => initialPlayback(readQueue()));
   const stageRef = useRef<HTMLDivElement>(null);
   // The YouTube player loads its API, embed page and ~2 MB of player code before it can
@@ -188,7 +188,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
         setIndex(idx);
         const byCode = (code: string | null | undefined) => idx.competitions.find((c) => c.code === code);
         // The URL decides (/premier-league/matchweek-5/); an unknown path (404 page) goes home.
-        const onTeams = followBeta && isTeamsPath(location.pathname);
+        const onTeams = accountsAvailable && isTeamsPath(location.pathname);
         let route = onTeams ? { code: null, round: null } : resolvePath(idx.competitions, location.pathname);
         if (!route) {
           history.replaceState(null, '', '/');
@@ -304,7 +304,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
           else window.scrollTo({ top: y });
         });
       }
-      if (followBeta && isTeamsPath(location.pathname)) { setPage('teams'); return; }
+      if (accountsAvailable && isTeamsPath(location.pathname)) { setPage('teams'); return; }
       const route = resolvePath(index.competitions, location.pathname);
       if (!route) return;
       const c = index.competitions.find((x) => x.code === route.code);
@@ -393,7 +393,9 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   const roundTotal = playable.reduce((t, m) => { const c = cutFor(m); return t + (c ? cutSec(c) : 0); }, 0);
   const condensedHere = playable.filter((m) => cutFor(m)?.condensed).length;
 
-  // ---- "★ My teams" (beta): the favorites digest, src/lib/digest.ts ----
+  // ---- "★ My teams": the favorites digest, src/lib/digest.ts ----
+  // On its page, accounts are needed straight away (opened from a link, or a reload).
+  useEffect(() => { if (page === 'teams') fol.start(); }, [page, fol.start]);
   const [teamMatches, setTeamMatches] = useState<TeamMatch[] | null>(null);
   const teamsKey = fol.teams.join('|');
   // Which teams, whatever their order: reordering them needs no new data.
@@ -658,17 +660,17 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     onQueueAll: queueAll,
   };
 
-  // Beta: the regular site and "★ My teams", as two tabs over the page.
-  const viewTabs = followBeta && (
+  // The regular site and "★ My teams", as two tabs over the page.
+  const viewTabs = accountsAvailable && (
     <nav className="view-tabs" aria-label="Views">
       <a href={comp ? pathFor(comp, page === 'round' ? roundKey : null) : '/'} aria-current={page !== 'teams' ? 'page' : undefined}
         onClick={(e) => onNav(e, () => { if (page === 'teams' && comp) navigate(comp, roundKey !== comp.currentRound ? roundKey : null); })}>
         Competitions
       </a>
-      <a href={TEAMS_PATH} aria-current={page === 'teams' ? 'page' : undefined} aria-disabled={!fol.ready || undefined}
+      <a href={TEAMS_PATH} aria-current={page === 'teams' ? 'page' : undefined}
         onClick={(e) => onNav(e, () => { if (page !== 'teams') openMyTeams(); })}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.2 2.6 5.5 6 .7-4.4 4.1 1.1 5.9L12 16.5l-5.3 2.9 1.1-5.9-4.4-4.1 6-.7z" /></svg>
-        My teams
+        My teams <span className="beta-tag">Beta</span>
       </a>
     </nav>
   );
@@ -983,7 +985,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
         open={settingsOpen} onClose={() => setSettingsOpen(false)}
         autoplay={autoplay} setAutoplay={setAutoplay}
         detected={detected} detectedFrom={detectedFrom} override={regionOverride} setOverride={(c) => { setRegionOverride(c); setEmbedErrors(0); }}
-        account={fol.ready ? { name: fol.user ? fol.user.name || fol.user.email : null, open: () => { setSettingsOpen(false); fol.openAccount(); } } : undefined}
+        account={accountsAvailable ? { name: fol.user ? fol.user.name || fol.user.email : null, open: () => { setSettingsOpen(false); fol.openAccount(); } } : undefined}
       />
       {fol.ready && <AccountSheet f={fol} onEditTeams={() => openMyTeams(true)} />}
       {pickerOpen && <TeamPicker groups={pickerGroups} selected={fol.teams} onClose={closePicker} />}

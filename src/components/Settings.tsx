@@ -10,7 +10,7 @@ interface Props {
   detectedFrom: 'network' | 'timezone' | null;
   override: string;
   setOverride: (code: string) => void;
-  /** "★ My teams" (beta): who is signed in (null: nobody), and opening the account sheet. */
+  /** "★ My teams": who is signed in (null: nobody), and opening the account sheet. */
   account?: { name: string | null; open: () => void };
 }
 

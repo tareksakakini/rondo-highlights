@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { FollowsApi } from '../lib/follows';
 
 /**
- * The account sheet (beta): signed out, why to make an account and the Google button
+ * The account sheet: signed out, why to make an account and the Google button
  * (shown first when "★ My teams" is opened); signed in, who you are, your teams and
  * Sign out. Same sheet as Settings.
  */

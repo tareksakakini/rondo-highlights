@@ -1,7 +1,7 @@
 import type { Competition, DataIndex, Match, RoundFile, Team } from '../types';
 import { fetchRound } from './data';
 
-// The favorites digest (beta, "★ My teams"): your teams' matches from every competition,
+// The favorites digest ("★ My teams"): your teams' matches from every competition,
 // grouped the way football is played. Leagues play Friday to Monday and the European
 // cups Tuesday to Thursday, so each group ("slate") is a weekend or a midweek, in the
 // viewer's own time zone.

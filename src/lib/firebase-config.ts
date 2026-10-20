@@ -1,4 +1,4 @@
-// The Firebase project that holds accounts and follows (beta, see src/lib/beta.ts).
+// The Firebase project that holds accounts and their teams ("★ My teams", src/lib/follows.ts).
 // A web app's Firebase config is public by design: what each account may read and
 // write is decided by firestore.rules, not by keeping these secret.
 // Empty apiKey: accounts are off in production builds, and `npm run dev` signs in a local test account.

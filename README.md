@@ -91,11 +91,11 @@ To try it locally against the live data: `npm run dev:live`.
 
 A **★ My teams** tab next to *Competitions* opens the favorites digest at `/my-teams/`: the matches of the teams you picked, from every league and cup, grouped the way football is played. Each group is a **weekend** (Friday to Monday, when the leagues play) or a **midweek** (Tuesday to Thursday, the European cups), in the viewer's time zone, newest first, each one row of cards that scrolls sideways (swipe, or the arrows by its heading), with its own *Play all*. A match between two of your teams is listed once, cards say which competition they're from. Matches of the current weekend or midweek still to be played show as cards whose highlights aren't in yet. It goes back four weeks (`src/lib/digest.ts`).
 
-- **Off for everyone** until a browser opens the site with `?beta=follow` (kept in localStorage as `rondo:beta`; `?beta=off` turns it off). `src/lib/beta.ts`.
+- **Open to everyone, marked Beta** on the tab, the page and the account sheet.
 - **Account first:** tapping *★ My teams* signed out asks you to make an account (Google). Once signed in, the team picker opens: every team in the data as a crest under its league (clubs only in a cup, and national teams, under that competition), with a search box that ignores accents. Your teams are listed at the top of the picker in your order (drag one by its ≡ handle, or focus the handle and press ↑/↓; new picks join at the end): your first team's matches come first in each weekend and midweek, and *Play all* follows that order. Over the digest, your teams are one sideways-scrolling row of chips, also in your order: drag a chip by its grip, the dotted end cap (or focus the grip and press ←/→), to reorder them there, saved at once. Both use `src/lib/reorder.ts`. *Edit teams* opens the picker again. Settings → *Account* shows who's signed in and has Sign out.
 - **Which teams appear:** the picker lists the teams in each competition's current and previous rounds. The digest reads further rounds only of competitions where your teams play. Round files are cached for good, so a repeat visit costs nothing.
 - **One team across competitions:** teams are saved by their football-data name ("Juventus FC"). Highlightly names clubs its own way ("Juventus" in the Europa League), so the ingest writes the matching football-data name as the team's `key` in the round files (`scripts/lib/highlightly.mjs`, `scripts/lib/match.mjs`), and the site uses `key ?? name`.
-- **Firebase** (free Spark plan): Google sign-in, and one Firestore document per account, `follows/<uid>` = `{ teams, comps, updated }` (`comps` is unused for now). `firestore.rules` lets each account read and write only its own document. The browser talks to Firebase directly (no Netlify functions), and the Firebase SDK (`src/lib/account-firebase.ts`) is its own chunk, downloaded only by browsers with the beta on.
+- **Firebase** (free Spark plan): Google sign-in, and one Firestore document per account, `follows/<uid>` = `{ teams, comps, updated }` (`comps` is unused for now). `firestore.rules` lets each account read and write only its own document. The browser talks to Firebase directly (no Netlify functions), and the Firebase SDK (`src/lib/account-firebase.ts`, ~55 KB gzipped) is its own chunk, downloaded only when it's needed: on the way to *My teams* or the account sheet, or, in a browser that has signed in before, once the page is idle.
 - **Local dev without Firebase:** with an empty `apiKey` in `src/lib/firebase-config.ts`, `npm run dev` signs in a local test account (kept in localStorage) so the flow can be tried. A production build without it leaves the feature off.
 
 **Setup:** the Firebase project is `rondo-highlights` (console.firebase.google.com/project/rondo-highlights), with one web app whose config is in `src/lib/firebase-config.ts` (public by design) and `.firebaserc` pointing the CLI at it.
@@ -108,8 +108,8 @@ A **★ My teams** tab next to *Competitions* opens the favorites digest at `/my
 ```
 scripts/        config.mjs (competitions + channels), ingest.mjs, build-sample.mjs, prerender.ts (pages), check-pages.mjs, lib/
 public/data/    generated JSON (index.json + <CODE>/<round>.json, condensed.json, views.json)
-src/            React app (built with Preact, see below): App.tsx, components/, lib/playback.ts (queue/autoplay), lib/region.ts (country detection), lib/follows.ts + lib/digest.ts (My teams, beta)
-firestore.rules who can read and write each account's teams (Firebase, beta)
+src/            React app (built with Preact, see below): App.tsx, components/, lib/playback.ts (queue/autoplay), lib/region.ts (country detection), lib/follows.ts + lib/digest.ts (My teams)
+firestore.rules who can read and write each account's teams (Firebase)
 docs/           landscape.md (competitor comparison)
 ```
 

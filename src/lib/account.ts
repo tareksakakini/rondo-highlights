@@ -1,7 +1,7 @@
 import { firebaseConfig } from './firebase-config';
 
-// Accounts, for following teams and leagues (beta). Firebase (src/lib/account-firebase.ts)
-// is its own chunk, loaded only in browsers that opted into the beta.
+// Accounts, for "★ My teams". Firebase (src/lib/account-firebase.ts) is its own chunk,
+// loaded only when accounts are needed (src/lib/follows.ts).
 
 export interface AccountUser {
   uid: string;
@@ -29,6 +29,9 @@ export interface Account {
 /** The person closed the sign-in popup: not an error worth showing. */
 export const isCancelled = (e: unknown) =>
   /popup-closed-by-user|cancelled-popup-request/.test(String((e as { code?: string })?.code ?? ''));
+
+/** Whether this build has accounts at all: a Firebase project, or `npm run dev`'s test account. */
+export const accountsAvailable = !!firebaseConfig.apiKey || import.meta.env.DEV;
 
 /** Firebase when it's configured; a local test account in `npm run dev` when it isn't; else none. */
 export async function loadAccount(): Promise<Account | null> {

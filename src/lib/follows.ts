@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isCancelled, loadAccount, type Account, type AccountUser, type Follows } from './account';
+import { accountsAvailable, isCancelled, loadAccount, type Account, type AccountUser, type Follows } from './account';
 import { usePersistentState } from './storage';
 
 const NONE: Follows = { teams: [], comps: [] };
 
 /**
- * Your teams (beta, "★ My teams"). Picking teams needs an account, so it comes first:
+ * Your teams ("★ My teams"). Picking teams needs an account, so it comes first:
  * `withAccount(next)` runs `next` at once when signed in, else opens the sign-in sheet
  * and runs it once the sign-in finishes. The account's teams are also kept in
  * localStorage, so a reload shows them at once while the account loads.
+ *
+ * Firebase (~55 KB) only loads when it's needed: on the way to "My teams" or the account
+ * sheet (`start`), or, for a browser that has signed in before, once the page is idle.
  */
-export function useFollows(enabled: boolean) {
+export function useFollows() {
   const [account, setAccount] = useState<Account | null>(null);
   const [user, setUser] = useState<AccountUser | null>(null);
   // Known once the first sign-in state has arrived (before that, nobody counts as signed out).
@@ -22,30 +25,49 @@ export function useFollows(enabled: boolean) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const after = useRef<(() => void) | null>(null);
+  // For callers waiting on `start`: state updates land after its promise resolves.
+  const accountRef = useRef<Account | null>(null);
+  const userRef = useRef<AccountUser | null>(null);
+  const started = useRef<Promise<void> | null>(null);
 
-  useEffect(() => {
-    if (!enabled) return;
-    let alive = true;
-    let off = () => {};
-    loadAccount().then((acc) => {
-      if (!alive || !acc) return;
-      setAccount(acc);
-      off = acc.onChange((u) => {
-        setUser(u);
-        setKnown(true);
-        if (!u) return;
-        acc.load(u.uid).then((remote) => {
-          if (!alive) return;
-          setCached({ ...remote, uid: u.uid });
-          // Signed in from the sheet: carry on to where the person was going.
-          const next = after.current;
-          after.current = null;
-          if (next) { setSheet(null); next(); }
-        }, () => setError("Couldn't load your teams. Check your connection and try again."));
-      });
+  /** Load accounts (once); resolves when the first sign-in state is known. */
+  const start = useCallback(() => {
+    if (!accountsAvailable) return Promise.resolve();
+    started.current ??= new Promise<void>((resolve) => {
+      loadAccount().then((acc) => {
+        if (!acc) { resolve(); return; }
+        accountRef.current = acc;
+        setAccount(acc);
+        acc.onChange((u) => {
+          userRef.current = u;
+          setUser(u);
+          setKnown(true);
+          resolve();
+          if (!u) return;
+          acc.load(u.uid).then((remote) => {
+            setCached({ ...remote, uid: u.uid });
+            // Signed in from the sheet: carry on to where the person was going.
+            const next = after.current;
+            after.current = null;
+            if (next) { setSheet(null); next(); }
+          }, () => setError("Couldn't load your teams. Check your connection and try again."));
+        });
+      }, () => { started.current = null; resolve(); });
     });
-    return () => { alive = false; off(); };
-  }, [enabled, setCached]);
+    return started.current;
+  }, [setCached]);
+
+  // Signed in on an earlier visit: refresh the account's teams once the page is idle.
+  const signedInBefore = !!cached.uid;
+  useEffect(() => {
+    if (!signedInBefore) return;
+    if (window.requestIdleCallback) {
+      const id = window.requestIdleCallback(() => { start(); }, { timeout: 5000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(start, 3000);
+    return () => clearTimeout(id);
+  }, [signedInBefore, start]);
 
   /** Save the account's teams. */
   const setTeams = useCallback((teams: string[]) => {
@@ -56,11 +78,13 @@ export function useFollows(enabled: boolean) {
   }, [account, user, follows.comps, setCached]);
 
   const withAccount = (next: () => void) => {
-    if (!account || !known) return;
-    if (user) { next(); return; }
-    after.current = next;
-    setError(null);
-    setSheet({ forTeams: true });
+    start().then(() => {
+      if (!accountRef.current) return;
+      if (userRef.current) { next(); return; }
+      after.current = next;
+      setError(null);
+      setSheet({ forTeams: true });
+    });
   };
 
   const signIn = async () => {
@@ -79,11 +103,11 @@ export function useFollows(enabled: boolean) {
   };
 
   return {
-    /** False until accounts have loaded (and always when the beta is off or there's no Firebase project). */
+    /** False until accounts have loaded and the sign-in state is known (always, when the build has no accounts). */
     ready: !!account && known,
-    user, teams: follows.teams, setTeams, withAccount, signIn, signOut, busy, error,
+    start, user, teams: follows.teams, setTeams, withAccount, signIn, signOut, busy, error,
     sheet,
-    openAccount: () => { setError(null); setSheet({ forTeams: false }); },
+    openAccount: () => { start().then(() => { if (accountRef.current) { setError(null); setSheet({ forTeams: false }); } }); },
     closeAccount: () => { after.current = null; setSheet(null); },
   };
 }

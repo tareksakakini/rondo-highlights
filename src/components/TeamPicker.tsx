@@ -6,7 +6,7 @@ import { CompMark } from './CompSwitcher';
 import { TeamBadge } from './TeamBadge';
 
 /**
- * Pick your teams (beta): every team in the data as a crest, under its league (or its
+ * Pick your teams: every team in the data as a crest, under its league (or its
  * cup or national competition), with a search box. Your teams are listed first, in your
  * order (new ones join at the end; drag one by its handle to move it), which orders the
  * digest. Changes are saved when it closes.

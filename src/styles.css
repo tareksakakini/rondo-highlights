@@ -663,7 +663,7 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
-/* ---------- "★ My teams" (beta: src/lib/follows.ts, src/lib/digest.ts) ---------- */
+/* ---------- "★ My teams" (src/lib/follows.ts, src/lib/digest.ts) ---------- */
 .beta-tag { display: inline-block; vertical-align: middle; margin-left: 4px; padding: 1px 6px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--accent); font-size: 10px; font-weight: 750; font-stretch: 100%; letter-spacing: .06em; text-transform: uppercase; line-height: 1.4; }
 
 /* The two views, as tabs over the page. */
@@ -673,7 +673,7 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
 .view-tabs a:hover { color: var(--text); }
 .view-tabs a[aria-current="page"] { color: var(--text); border-bottom-color: var(--accent); }
 .view-tabs a[aria-current="page"] svg { color: var(--accent); }
-.view-tabs a[aria-disabled] { opacity: .5; pointer-events: none; }
+.view-tabs .beta-tag { margin-left: 2px; font-size: 9px; padding: 0 5px; }
 
 .digest-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin: 4px 0 12px; }
 .digest-head h1 { margin: 0; font-size: clamp(24px, 2.6vw, 34px); font-weight: 800; font-stretch: 112%; letter-spacing: -0.02em; line-height: 1.1; }
