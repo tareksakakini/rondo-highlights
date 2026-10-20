@@ -14,6 +14,11 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Netlify's secrets scan fails the build on the Firebase web key in
+  # src/lib/firebase-config.ts. That key is public by design (it names the project;
+  # firestore.rules decide what each account may do), so let this one value through and
+  # keep scanning for everything else.
+  SECRETS_SCAN_SMART_DETECTION_OMIT_VALUES = "AIzaSyCC48S2ElaUA0m7pK-yxSBdkJqzxSyrvGg"
 
 # "My teams" (beta) is drawn by the app, so it's served the home page with a 200
 # (not the 404 page). It only applies when no file exists at the path.
