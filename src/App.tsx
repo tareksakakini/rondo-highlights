@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
-import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile, Team } from './types';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
+import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
 import { fetchCondensed, fetchRound, fetchViews, loadIndex } from './lib/data';
 import type { CondensedMap } from './lib/moments';
 import { awaitingIn, cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, matchViews, pickCut, pickHighlight, resolveItem, scrubScore, uid, usable } from './lib/format';
@@ -22,11 +22,14 @@ import { Settings } from './components/Settings';
 import { isExcludedMatch } from './lib/excluded';
 import { accountsAvailable } from './lib/account';
 import { useFollows } from './lib/follows';
-import { AccountSheet } from './components/AccountSheet';
-import { TeamPicker } from './components/TeamPicker';
-import { SlateRow } from './components/SlateRow';
-import { TeamWheel } from './components/TeamWheel';
-import { groupSlates, loadRecentRounds, loadTeamMatches, teamDirectory, teamId, type PickerGroup, type Slate, type TeamMatch } from './lib/digest';
+import type { TeamMatch } from './lib/digest';
+
+// "★ My teams" (the digest and team picker) and the account sheet are chunks of their own,
+// loaded the first time they're wanted, so visitors who never open them don't download them.
+const loadMyTeams = () => import('./components/MyTeams');
+const loadAccountSheet = () => import('./components/AccountSheet');
+const MyTeams = lazy(() => loadMyTeams().then((m) => ({ default: m.MyTeams })));
+const AccountSheet = lazy(() => loadAccountSheet().then((m) => ({ default: m.AccountSheet })));
 
 function readQueue(): PlayItem[] {
   try {
@@ -69,9 +72,6 @@ type CardCtx = { comp: Competition; roundLabel: string };
 
 /** Which kind of page the URL names: the app shows a round on the first three; 'teams' is "★ My teams". */
 type Page = 'home' | 'comp' | 'round' | 'teams';
-
-/** A slate's heading: "This weekend", "Midweek"… */
-const slateName = (s: Slate) => (s.current ? `This ${s.kind}` : s.kind === 'weekend' ? 'Weekend' : 'Midweek');
 
 /** Follow an in-app link with a plain click; let modified clicks (new tab etc.) through. */
 /** A round's URL; rounds without fixtures have no page of their own, so they use the competition's. */
@@ -393,58 +393,23 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   const roundTotal = playable.reduce((t, m) => { const c = cutFor(m); return t + (c ? cutSec(c) : 0); }, 0);
   const condensedHere = playable.filter((m) => cutFor(m)?.condensed).length;
 
-  // ---- "★ My teams": the favorites digest, src/lib/digest.ts ----
+  // ---- "★ My teams": the favorites digest, src/components/MyTeams.tsx ----
   // On its page, accounts are needed straight away (opened from a link, or a reload).
   useEffect(() => { if (page === 'teams') fol.start(); }, [page, fol.start]);
-  const [teamMatches, setTeamMatches] = useState<TeamMatch[] | null>(null);
-  const teamsKey = fol.teams.join('|');
-  // Which teams, whatever their order: reordering them needs no new data.
-  const teamSetKey = [...fol.teams].sort().join('|');
-  useEffect(() => {
-    if (!index || page !== 'teams' || !fol.user || !fol.teams.length) return;
-    let alive = true;
-    setTeamMatches(null);
-    loadTeamMatches(index, fol.teams).then((tm) => { if (alive) setTeamMatches(tm); }, () => { if (alive) setTeamMatches([]); });
-    return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, page, fol.user?.uid, teamSetKey]);
-  const slates = useMemo(() => (teamMatches ? groupSlates(teamMatches, fol.teams) : null), [teamMatches, teamsKey]);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerGroups, setPickerGroups] = useState<PickerGroup[] | null>(null);
-  useEffect(() => {
-    if (!pickerOpen || !index || pickerGroups) return;
-    let alive = true;
-    loadRecentRounds(index).then((r) => { if (alive) setPickerGroups(teamDirectory(r, index.competitions)); });
-    return () => { alive = false; };
-  }, [pickerOpen, index, pickerGroups]);
-  // Opened from the tab with no teams picked yet: go straight to the picker.
-  const pickOnArrival = useRef(false);
-  useEffect(() => {
-    if (!pickOnArrival.current || page !== 'teams' || !fol.user) return;
-    pickOnArrival.current = false;
-    if (!fol.teams.length) setPickerOpen(true);
-  }, [page, fol.user, fol.teams.length]);
+  /** How "★ My teams" was last opened, until the digest has acted on it (it may open the picker). */
+  const [teamsArrival, setTeamsArrival] = useState<{ pick: boolean } | null>(null);
   /** "★ My teams": the account comes first, then the digest (and the picker, the first time). */
-  const openMyTeams = (pick = false) => fol.withAccount(() => {
-    if (pick) setPickerOpen(true);
-    else pickOnArrival.current = true;
-    setPage('teams');
-    if (!isTeamsPath(location.pathname)) history.pushState(null, '', TEAMS_PATH);
-    window.scrollTo({ top: 0 });
-  });
-  const closePicker = (teams: string[]) => {
-    setPickerOpen(false);
-    if (teams.join('|') !== teamsKey) fol.setTeams(teams);
+  const openMyTeams = (pick = false) => {
+    // Their code loads alongside the account's.
+    loadMyTeams();
+    loadAccountSheet();
+    fol.withAccount(() => {
+      setTeamsArrival({ pick });
+      setPage('teams');
+      if (!isTeamsPath(location.pathname)) history.pushState(null, '', TEAMS_PATH);
+      window.scrollTo({ top: 0 });
+    });
   };
-  /** Your teams, with their crests where the digest has them. */
-  const teamCrests = useMemo(() => {
-    // The football-data side's name and crest (a Highlightly club only stands in for it).
-    const byId = new Map<string, Team>();
-    for (const t of (teamMatches ?? []).flatMap((tm) => [tm.match.home, tm.match.away])) {
-      if (!byId.has(teamId(t)) || byId.get(teamId(t))!.key) byId.set(teamId(t), t);
-    }
-    return fol.teams.map((id) => ({ id, team: byId.get(id) ?? { name: id, short: id, tla: id.slice(0, 3).toUpperCase(), crest: null } }));
-  }, [teamMatches, teamsKey]);
   const playSlate = (ms: TeamMatch[]) => {
     track('play', { from: 'teams' });
     dispatch({ type: 'playRound', items: ms.map((tm) => toItem(tm.match, pins[tm.match.id], { comp: tm.comp, roundLabel: tm.roundLabel })), start: 0 });
@@ -894,58 +859,10 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
           )}
 
           {index && page === 'teams' && (
-            <section className="browse digest" aria-label="My teams">
-              {viewTabs}
-              <div className="digest-head">
-                <div>
-                  <h1>My teams <span className="beta-tag">Beta</span></h1>
-                  <p className="muted">Favorites digest: your teams from every league and cup, weekend by weekend.</p>
-                </div>
-                {fol.user && fol.teams.length > 0 && <button className="btn-ghost" onClick={() => setPickerOpen(true)}>Edit teams</button>}
-              </div>
-
-              {!fol.ready ? null : !fol.user ? (
-                <div className="digest-empty">
-                  <p>Pick your teams to get their highlights from every competition, grouped weekend by weekend and midweek by midweek.</p>
-                  <button className="btn-primary" onClick={() => openMyTeams(true)}>Pick your teams</button>
-                </div>
-              ) : !fol.teams.length ? (
-                <div className="digest-empty">
-                  <p>You haven&apos;t picked any teams yet.</p>
-                  <button className="btn-primary" onClick={() => setPickerOpen(true)}>Pick your teams</button>
-                </div>
-              ) : (
-                <>
-                  <TeamWheel teams={teamCrests} onReorder={fol.setTeams} />
-                  {!slates && (
-                    <div className="slate-row loading">{Array.from({ length: 4 }, (_, i) => <div key={i} className="card skeleton" />)}</div>
-                  )}
-                  {slates && !slates.length && (
-                    <p className="muted digest-none">No matches for your teams in the last four weeks.</p>
-                  )}
-                  {slates?.map((sl) => {
-                    const ready = sl.matches.filter((tm) => pickHighlight(tm.match, pref, [], region, avoid));
-                    const total = ready.reduce((t, tm) => { const c = cutFor(tm.match); return t + (c ? cutSec(c) : 0); }, 0);
-                    // First and last kick-off (the cards are in your team order, not by date).
-                    const dates = sl.matches.map((tm) => tm.match.utcDate).sort();
-                    const days = fmtRange(dates[0], dates[dates.length - 1]);
-                    return (
-                      <section key={sl.start} className="slate" aria-label={`${slateName(sl)}, ${days}`}>
-                        <SlateRow label={slateName(sl)} head={<>
-                          <h2>{slateName(sl)} <span className="slate-days">{days}</span></h2>
-                          <span className="slate-meta muted">{ready.length}/{sl.matches.length} playable{total > 0 ? ` · ${fmtTotal(total)}` : ''}</span>
-                          <button className="btn-ghost sm slate-play" disabled={!ready.length} onClick={() => playSlate(ready)}>
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>Play all
-                          </button>
-                        </>}>
-                          {sl.matches.map((tm) => renderCard(tm.match, false, { comp: tm.comp, roundLabel: tm.roundLabel }))}
-                        </SlateRow>
-                      </section>
-                    );
-                  })}
-                </>
-              )}
-            </section>
+            <Suspense fallback={<section className="browse digest" aria-label="My teams" aria-busy="true">{viewTabs}</section>}>
+              <MyTeams index={index} fol={fol} tabs={viewTabs} arrival={teamsArrival} onArrived={() => setTeamsArrival(null)}
+                openMyTeams={openMyTeams} pref={pref} region={region} avoid={avoid} cutFor={cutFor} renderCard={renderCard} onPlay={playSlate} />
+            </Suspense>
           )}
         </main>
 
@@ -985,10 +902,9 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
         open={settingsOpen} onClose={() => setSettingsOpen(false)}
         autoplay={autoplay} setAutoplay={setAutoplay}
         detected={detected} detectedFrom={detectedFrom} override={regionOverride} setOverride={(c) => { setRegionOverride(c); setEmbedErrors(0); }}
-        account={accountsAvailable ? { name: fol.user ? fol.user.name || fol.user.email : null, open: () => { setSettingsOpen(false); fol.openAccount(); } } : undefined}
+        account={accountsAvailable ? { name: fol.user ? fol.user.name || fol.user.email : null, open: () => { setSettingsOpen(false); loadAccountSheet(); fol.openAccount(); } } : undefined}
       />
-      {fol.ready && <AccountSheet f={fol} onEditTeams={() => openMyTeams(true)} />}
-      {pickerOpen && <TeamPicker groups={pickerGroups} selected={fol.teams} onClose={closePicker} />}
+      {fol.ready && <Suspense fallback={null}><AccountSheet f={fol} onEditTeams={() => openMyTeams(true)} /></Suspense>}
 
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
