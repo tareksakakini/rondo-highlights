@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { accountsAvailable, isCancelled, loadAccount, type Account, type AccountUser, type Follows } from './account';
+import { loadFresh } from './reload';
 import { usePersistentState } from './storage';
 
 const NONE: Follows = { teams: [], comps: [] };
@@ -79,7 +80,8 @@ export function useFollows() {
 
   const withAccount = (next: () => void) => {
     start().then(() => {
-      if (!accountRef.current) return;
+      // Firebase didn't load (a tab from before a deploy, or the network).
+      if (!accountRef.current) { if (accountsAvailable) loadFresh(); return; }
       if (userRef.current) { next(); return; }
       after.current = next;
       setError(null);

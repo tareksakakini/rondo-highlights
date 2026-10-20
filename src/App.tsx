@@ -22,12 +22,14 @@ import { Settings } from './components/Settings';
 import { isExcludedMatch } from './lib/excluded';
 import { accountsAvailable } from './lib/account';
 import { useFollows } from './lib/follows';
+import { loadFresh } from './lib/reload';
 import type { TeamMatch } from './lib/digest';
 
 // "★ My teams" (the digest and team picker) and the account sheet are chunks of their own,
 // loaded the first time they're wanted, so visitors who never open them don't download them.
-const loadMyTeams = () => import('./components/MyTeams');
-const loadAccountSheet = () => import('./components/AccountSheet');
+// A tab opened before a deploy can't load them any more: it loads the page afresh (src/lib/reload.ts).
+const loadMyTeams = () => import('./components/MyTeams').catch((e) => { loadFresh(TEAMS_PATH); throw e; });
+const loadAccountSheet = () => import('./components/AccountSheet').catch((e) => { loadFresh(); throw e; });
 const MyTeams = lazy(() => loadMyTeams().then((m) => ({ default: m.MyTeams })));
 const AccountSheet = lazy(() => loadAccountSheet().then((m) => ({ default: m.AccountSheet })));
 
