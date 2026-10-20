@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-10-20T21:11:04.883Z",
+ "generatedAt": "2026-10-20T21:20:58.095Z",
  "source": "live",
- "rev": "ebff2c89ce5df7f7be2666b8c5fc60243bced2eb",
+ "rev": "c0e92eae19665aa7c05224bfe6355ba51989d004",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-10-20T21:11:07.353Z",
+ "publishedAt": "2026-10-20T21:21:00.203Z",
  "competitions": [
   {
    "code": "PL",
@@ -1379,7 +1379,7 @@
      "label": "League phase · MD 3",
      "firstDate": "2026-10-20T16:45:00Z",
      "matches": 18,
-     "withHighlights": 5
+     "withHighlights": 7
     },
     {
      "key": "md-4",
