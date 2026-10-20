@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
-import { crestPath, localizeCrests, CREST_PX } from '../scripts/crests.mjs';
+import { crestPath, localizeCrests, outlinedPath, CREST_PX } from '../scripts/crests.mjs';
 
 const PNG = 'https://crests.example/64.png';
 const SVG = 'https://crests.example/760.svg';
@@ -46,7 +46,7 @@ test('downloads, shrinks and rewrites crests; keeps failures remote', async () =
   const dir = await setup();
   const f = fakeFetch();
   const stats = await localizeCrests(dir, { fetchImpl: f.impl, log: () => {} });
-  assert.deepEqual(stats, { files: 1, crests: 3, downloaded: 2, failed: 1 });
+  assert.deepEqual(stats, { files: 1, crests: 3, downloaded: 2, failed: 1, outlined: 0 });
 
   const round = JSON.parse(await fs.readFile(path.join(dir, 'PL', 'md-1.json'), 'utf8'));
   assert.equal(round.matches[0].home.crest, crestPath(PNG));
@@ -70,7 +70,7 @@ test('second run is a no-op except retrying failures', async () => {
   const f = fakeFetch();
   const stats = await localizeCrests(dir, { fetchImpl: f.impl, log: () => {} });
   assert.deepEqual(f.calls, [BROKEN]);
-  assert.deepEqual(stats, { files: 0, crests: 1, downloaded: 0, failed: 1 });
+  assert.deepEqual(stats, { files: 0, crests: 1, downloaded: 0, failed: 1, outlined: 0 });
 });
 
 test('a fresh ingest that restores remote URLs reuses crests on disk', async () => {
@@ -92,4 +92,57 @@ test('crest paths are stable and distinct', () => {
   assert.equal(crestPath(PNG), crestPath(PNG));
   assert.notEqual(crestPath(PNG), crestPath(SVG));
   assert.match(crestPath(PNG), /^crests\/[0-9a-f]{12}\.webp$/);
+});
+
+// Dark crests (scripts/lib/crest-outline.mjs): a black badge gets an outlined copy.
+const DARK = 'https://crests.example/juve.svg';
+const dark = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="#111"/><rect x="18" y="10" width="4" height="20" fill="#fff"/></svg>');
+
+async function setupDark() {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'crests-'));
+  await fs.mkdir(path.join(dir, 'SA'));
+  const round = {
+    competition: 'SA', season: 2026, round: { key: 'md-1', label: 'Matchweek 1' },
+    matches: [{ id: 1, home: { name: 'Juventus FC', crest: DARK }, away: { name: 'A', crest: PNG }, highlights: [] }],
+  };
+  await fs.writeFile(path.join(dir, 'SA', 'md-1.json'), JSON.stringify(round));
+  const impl = async (url) => ({ ok: true, status: 200, arrayBuffer: async () => (url === DARK ? dark : png) });
+  return { dir, impl, file: path.join(dir, 'SA', 'md-1.json') };
+}
+
+test('dark crests point to an outlined copy; the plain file stays; light ones are untouched', async () => {
+  const { dir, impl, file } = await setupDark();
+  const stats = await localizeCrests(dir, { fetchImpl: impl, log: () => {} });
+  assert.equal(stats.outlined, 1);
+  const m = JSON.parse(await fs.readFile(file, 'utf8')).matches[0];
+  assert.equal(m.home.crest, outlinedPath(crestPath(DARK)));
+  assert.match(m.home.crest, /^crests\/[0-9a-f]{12}-o\.webp$/);
+  assert.equal(m.away.crest, crestPath(PNG));
+  for (const p of [crestPath(DARK), outlinedPath(crestPath(DARK))]) {
+    const meta = await sharp(path.join(dir, p)).metadata();
+    assert.equal(meta.format, 'webp');
+    assert.equal(meta.width, CREST_PX);
+  }
+
+  // Again: nothing to download, outline or rewrite.
+  const again = await localizeCrests(dir, { fetchImpl: impl, log: () => {} });
+  assert.deepEqual(again, { files: 0, crests: 0, downloaded: 0, failed: 0, outlined: 0 });
+
+  // A fresh ingest (remote URLs again) lands on the same outlined copy without making it again.
+  const round = JSON.parse(await fs.readFile(file, 'utf8'));
+  round.matches[0].home.crest = DARK;
+  await fs.writeFile(file, JSON.stringify(round));
+  const fresh = await localizeCrests(dir, { fetchImpl: impl, log: () => {} });
+  assert.equal(fresh.outlined, 0);
+  assert.equal(JSON.parse(await fs.readFile(file, 'utf8')).matches[0].home.crest, outlinedPath(crestPath(DARK)));
+});
+
+test('a crest the rule no longer finds dark goes back to its plain file', async () => {
+  const { dir, impl, file } = await setupDark();
+  await localizeCrests(dir, { fetchImpl: impl, log: () => {} });
+  const round = JSON.parse(await fs.readFile(file, 'utf8'));
+  round.matches[0].away.crest = outlinedPath(crestPath(PNG)); // as if a looser rule had outlined it
+  await fs.writeFile(file, JSON.stringify(round));
+  await localizeCrests(dir, { fetchImpl: impl, log: () => {} });
+  assert.equal(JSON.parse(await fs.readFile(file, 'utf8')).matches[0].away.crest, crestPath(PNG));
 });

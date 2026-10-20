@@ -10,6 +10,11 @@
 // Idempotent: crests already on disk are never downloaded again, and a crest
 // that fails to download keeps its original URL (the site handles both).
 //
+// Dark crests (Juventus's black "J") melt into the site's dark background, so those get
+// an outlined copy, crests/<hash>-o.webp, and the round files point to it instead
+// (scripts/lib/crest-outline.mjs). The plain file stays. Which crests need it is checked
+// again on every run, so a change to the rule moves crests either way.
+//
 //   node scripts/crests.mjs [dataDir]      (default: public/data)
 
 import crypto from 'node:crypto';
@@ -17,6 +22,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { crestDarkness, needsOutline, outlineCrest } from './lib/crest-outline.mjs';
 
 export const CREST_PX = 80;
 const SKIP_DIRS = new Set(['cache', 'crests', '.git']);
@@ -25,6 +31,12 @@ const SKIP_DIRS = new Set(['cache', 'crests', '.git']);
 export function crestPath(url) {
   return `crests/${crypto.createHash('sha1').update(url).digest('hex').slice(0, 12)}.webp`;
 }
+
+/** The outlined copy of a stored crest. */
+export const outlinedPath = (rel) => rel.replace(/(?:-o)?\.webp$/, '-o.webp');
+/** The plain crest an outlined copy was made from (itself when it is plain). */
+const plainPath = (rel) => rel.replace(/-o\.webp$/, '.webp');
+const isStored = (u) => typeof u === 'string' && /^crests\/[0-9a-f]{12}(?:-o)?\.webp$/.test(u);
 
 const isRemote = (u) => typeof u === 'string' && /^https?:\/\//.test(u);
 
@@ -64,8 +76,9 @@ async function download(url, fetchImpl) {
 }
 
 /**
- * Localize every remote crest referenced by the round files under dataDir.
- * Returns { files, crests, downloaded, failed } counts.
+ * Localize every remote crest referenced by the round files under dataDir, and point
+ * dark ones at their outlined copy (made when missing).
+ * Returns { files, crests, downloaded, failed, outlined } counts.
  */
 export async function localizeCrests(dataDir, { fetchImpl = fetch, log = console.log } = {}) {
   const files = await roundFiles(dataDir);
@@ -101,18 +114,38 @@ export async function localizeCrests(dataDir, { fetchImpl = fetch, log = console
   };
   await Promise.all(Array.from({ length: 6 }, worker));
 
+  for (const { json } of parsed) {
+    for (const m of json.matches ?? []) {
+      for (const t of [m.home, m.away]) if (t && ready.has(t.crest)) t.crest = crestPath(t.crest);
+    }
+  }
+
+  // Dark crests: the outlined copy (made once), for every stored crest the rounds use.
+  const stored = new Set(parsed.flatMap(({ json }) => (json.matches ?? []).flatMap((m) => [m.home?.crest, m.away?.crest])).filter(isStored).map(plainPath));
+  const final = new Map();
+  let outlined = 0;
+  for (const rel of stored) {
+    let buf;
+    try { buf = await fs.readFile(path.join(dataDir, rel)); } catch { continue; }
+    if (!needsOutline(await crestDarkness(buf))) { final.set(rel, rel); continue; }
+    const dest = path.join(dataDir, outlinedPath(rel));
+    if (!(await exists(dest))) { await fs.writeFile(dest, await outlineCrest(buf)); outlined++; }
+    final.set(rel, outlinedPath(rel));
+  }
+
   let rewritten = 0;
   for (const { file, text, json } of parsed) {
     for (const m of json.matches ?? []) {
-      for (const t of [m.home, m.away]) if (t && ready.has(t.crest)) t.crest = crestPath(t.crest);
+      for (const t of [m.home, m.away]) if (isStored(t?.crest) && final.has(plainPath(t.crest))) t.crest = final.get(plainPath(t.crest));
     }
     const next = JSON.stringify(json);
     if (next !== text) { await fs.writeFile(file, next); rewritten++; }
   }
 
   for (const f of failed) log(`crest kept remote: ${f}`);
-  log(`crests: ${urls.size} remote, ${downloaded} downloaded, ${failed.length} failed, ${rewritten} round files rewritten`);
-  return { files: rewritten, crests: urls.size, downloaded, failed: failed.length };
+  const dark = [...final.values()].filter((p) => p.endsWith('-o.webp')).length;
+  log(`crests: ${urls.size} remote, ${downloaded} downloaded, ${failed.length} failed, ${dark} dark (${outlined} newly outlined), ${rewritten} round files rewritten`);
+  return { files: rewritten, crests: urls.size, downloaded, failed: failed.length, outlined };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

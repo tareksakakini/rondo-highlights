@@ -10,7 +10,8 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { isExcludedMatch } from './excluded.mjs';
 
-export const CREST = /^crests\/[0-9a-f]{12}\.webp$/;
+/** A self-hosted crest (scripts/crests.mjs): `-o` is the outlined copy of a dark one. */
+export const CREST = /^crests\/[0-9a-f]{12}(?:-o)?\.webp$/;
 const teamName = (t) => t?.short || t?.name || 'TBD';
 const team = (t) => ({
   name: t?.name || teamName(t), short: teamName(t), tla: t?.tla || teamName(t).slice(0, 3).toUpperCase(),
