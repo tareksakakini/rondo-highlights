@@ -126,3 +126,12 @@ export function roundHead(c: CompLike & { rounds: RoundLike[] }, r: RoundLike, f
 /** The page's main heading (visible on prerendered pages, screen-reader-only in the app). */
 export const roundHeading = (c: CompLike, r: RoundLike) => `${c.name} ${roundName(r.label)} highlights`;
 export const compHeading = (c: CompLike) => `${c.name} highlights`;
+
+/** "★ My teams", the favorites digest (beta, src/lib/digest.ts): only in the app, never prerendered. */
+export const TEAMS_PATH = '/my-teams/';
+export const isTeamsPath = (pathname: string) => pathname === TEAMS_PATH || pathname === '/my-teams';
+export const teamsHead = (): Head => ({
+  title: `My teams | ${SITE_NAME}`,
+  description: "Your teams' highlights from every league and cup, weekend by weekend.",
+  path: TEAMS_PATH,
+});

@@ -7,13 +7,20 @@
   command = "npm run build"
   publish = "dist"
   # Skip the build (each production deploy costs credits) when a push only touches
-  # what the site never uses: workflows, docs, tests, and the refresh pipeline's own
-  # scripts. ignore exits 0 to skip; on a first build there's no cached commit, so
-  # git diff fails and the build runs.
-  ignore = 'git diff --quiet "$CACHED_COMMIT_REF" "$COMMIT_REF" -- . :!.github :!README.md :!docs :!tests :!scripts/refresh-clock.mjs :!scripts/lib/refresh-plan.mjs :!scripts/warm-cdn.mjs :!scripts/stamp-rev.mjs :!scripts/check-pages.mjs'
+  # what the site never uses: workflows, docs, tests, the refresh pipeline's own
+  # scripts, and the Firebase rules (deployed with the Firebase CLI). ignore exits 0
+  # to skip; on a first build there's no cached commit, so git diff fails and the build runs.
+  ignore = 'git diff --quiet "$CACHED_COMMIT_REF" "$COMMIT_REF" -- . :!.github :!README.md :!docs :!tests :!scripts/refresh-clock.mjs :!scripts/lib/refresh-plan.mjs :!scripts/warm-cdn.mjs :!scripts/stamp-rev.mjs :!scripts/check-pages.mjs :!firestore.rules :!firebase.json :!.firebaserc'
 
 [build.environment]
   NODE_VERSION = "22"
+
+# "My teams" (beta) is drawn by the app, so it's served the home page with a 200
+# (not the 404 page). It only applies when no file exists at the path.
+[[redirects]]
+  from = "/my-teams/"
+  to = "/index.html"
+  status = 200
 
 # One canonical host: https://rondohighlights.com. Everything else 301s there
 # (path kept), so search engines index one copy of the site and share links

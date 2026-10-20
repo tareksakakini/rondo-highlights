@@ -10,6 +10,8 @@ interface Props {
   detectedFrom: 'network' | 'timezone' | null;
   override: string;
   setOverride: (code: string) => void;
+  /** "★ My teams" (beta): who is signed in (null: nobody), and opening the account sheet. */
+  account?: { name: string | null; open: () => void };
 }
 
 /** Settings sheet: slides up from the bottom on phones, a floating panel on desktop. */
@@ -50,6 +52,16 @@ export function Settings(p: Props) {
             <span className="track"><span className="thumb-dot" /></span>
           </span>
         </label>
+
+        {p.account && (
+          <button className="setting setting-btn" onClick={p.account.open}>
+            <div className="setting-text">
+              <span className="setting-name">Account <span className="beta-tag">Beta</span></span>
+              <span className="setting-help">{p.account.name ? `Signed in as ${p.account.name}.` : 'Make an account to pick your teams for "My teams".'}</span>
+            </div>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" /></svg>
+          </button>
+        )}
 
         <label className="setting column">
           <div className="setting-text">

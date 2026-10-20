@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Accounts' follows (beta, src/lib/account-firebase.ts): one document per account,
+// follows/<uid> = { teams: [names], comps: [codes], updated }. Each account can only
+// read and write its own; nothing else in the database is reachable from the site.
+// Deploy with: firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /follows/{uid} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['teams', 'comps', 'updated'])
+        && request.resource.data.teams is list && request.resource.data.teams.size() <= 100
+        && request.resource.data.comps is list && request.resource.data.comps.size() <= 40
+        && request.resource.data.updated == request.time;
+    }
+  }
+}

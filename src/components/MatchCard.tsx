@@ -25,13 +25,15 @@ interface Props {
   views?: Record<string, number> | null;
   /** How far this browser got with this match, if it watched it. */
   watched?: Watched;
+  /** The match's competition, shown on cards that mix competitions (the favorites digest). */
+  comp?: { name: string; color: string };
 }
 
 const KINDS: Kind[] = ['short', 'extended'];
 /** football-data.org statuses with a final result (AWARDED: a result given by the league). */
 const FINAL = /^(FINISHED|AWARDED)$/;
 
-export function MatchCard({ match, first = false, pref, condensed, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue, views = null, watched }: Props) {
+export function MatchCard({ match, first = false, pref, condensed, region, avoid = [], spoilerFree, playing, queued, pinned, onPin, onPlay, onQueue, views = null, watched, comp }: Props) {
   const picked = pickCut(match, pinned ?? pref, condensed, [], region, avoid);
   const hl = picked?.h ?? null;
   // Videos that won't embed for this viewer count as missing, chips and notes alike.
@@ -78,6 +80,7 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
       </button>
 
       <div className="card-body">
+        {comp && <div className="card-comp"><i className="comp-dot" style={{ background: comp.color }} />{comp.name}</div>}
         {/* One team per line, score on the right (never in spoiler-free mode); the loser is greyed out.
             Names get the card's full width and wrap rather than being cut off. */}
         <div className="teams">
