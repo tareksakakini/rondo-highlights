@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-10-20T21:40:16.330Z",
+ "generatedAt": "2026-10-21T17:16:32.873Z",
  "source": "live",
- "rev": "ca9d90cb5de7897c5f4bf8d260771d47ab11b666",
+ "rev": "e985cafb9dc828277d90618bcfea06ea5d0231dc",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-10-21T08:39:49.352Z",
+ "publishedAt": "2026-10-21T17:16:58.340Z",
  "competitions": [
   {
    "code": "PL",
@@ -1195,42 +1195,42 @@
     {
      "key": "md-13",
      "label": "Matchweek 13",
-     "firstDate": "2026-12-05T00:00:00Z",
+     "firstDate": "2026-12-04T19:45:00Z",
      "matches": 9,
      "withHighlights": 0
     },
     {
      "key": "md-14",
      "label": "Matchweek 14",
-     "firstDate": "2026-12-12T00:00:00Z",
+     "firstDate": "2026-12-11T19:45:00Z",
      "matches": 9,
      "withHighlights": 0
     },
     {
      "key": "md-15",
      "label": "Matchweek 15",
-     "firstDate": "2027-01-02T00:00:00Z",
+     "firstDate": "2027-01-02T16:00:00Z",
      "matches": 9,
      "withHighlights": 0
     },
     {
      "key": "md-16",
      "label": "Matchweek 16",
-     "firstDate": "2027-01-16T00:00:00Z",
+     "firstDate": "2027-01-15T19:45:00Z",
      "matches": 9,
      "withHighlights": 0
     },
     {
      "key": "md-17",
      "label": "Matchweek 17",
-     "firstDate": "2027-01-23T00:00:00Z",
+     "firstDate": "2027-01-22T19:45:00Z",
      "matches": 9,
      "withHighlights": 0
     },
     {
      "key": "md-18",
      "label": "Matchweek 18",
-     "firstDate": "2027-01-30T00:00:00Z",
+     "firstDate": "2027-01-29T19:45:00Z",
      "matches": 9,
      "withHighlights": 0
     },
