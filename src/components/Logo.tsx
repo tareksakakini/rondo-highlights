@@ -23,3 +23,18 @@ export function Logo() {
     </a>
   );
 }
+
+/** The startup wheel (index.html) as a component: the pass spins round the play button. */
+export function LoadingMark({ label = 'Loading' }: { label?: string }) {
+  return (
+    <div className="loading-mark" role="status" aria-label={label}>
+      <svg className="loading-pass" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <path d={ARC} fill="none" stroke="var(--text)" strokeWidth="3.6" strokeLinecap="round" />
+        <circle cx="32.45" cy="8.11" r="4.6" fill="var(--accent)" />
+      </svg>
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <path d={PLAY} fill="var(--accent)" stroke="var(--accent)" strokeWidth="3" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+}

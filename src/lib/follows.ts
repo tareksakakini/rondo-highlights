@@ -79,6 +79,9 @@ export function useFollows() {
   }, [account, user, follows.comps, setCached]);
 
   const withAccount = (next: () => void) => {
+    // Signed in on an earlier visit: no need to wait for Firebase to go on (if that
+    // sign-in has since ended, the page offers to pick teams instead).
+    if (signedInBefore && !userRef.current) { start(); next(); return; }
     start().then(() => {
       // Firebase didn't load (a tab from before a deploy, or the network).
       if (!accountRef.current) { if (accountsAvailable) loadFresh(); return; }
@@ -107,7 +110,9 @@ export function useFollows() {
   return {
     /** False until accounts have loaded and the sign-in state is known (always, when the build has no accounts). */
     ready: !!account && known,
-    start, user, teams: follows.teams, setTeams, withAccount, signIn, signOut, busy, error,
+    start, user, teams: follows.teams,
+    /** The teams this browser was last signed in with, for loading their matches while the account loads. */
+    savedTeams: user ? follows.teams : cached.uid ? cached.teams : NONE.teams, setTeams, withAccount, signIn, signOut, busy, error,
     sheet,
     openAccount: () => { start().then(() => { if (accountRef.current) { setError(null); setSheet({ forTeams: false }); } }); },
     closeAccount: () => { after.current = null; setSheet(null); },

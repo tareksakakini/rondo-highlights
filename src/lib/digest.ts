@@ -70,12 +70,15 @@ const roundIndex = (c: Competition) => c.rounds.findIndex((r) => r.key === c.cur
 /** A competition's rounds that hold matches (rounds without fixtures have no file). */
 const withFiles = (c: Competition) => c.rounds.filter((r) => r.matches > 0);
 
+/** A competition's current round and the one before (those that hold matches). */
+const recentKeys = (c: Competition) => {
+  const i = roundIndex(c);
+  return i < 0 ? [] : [c.rounds[i], c.rounds[i - 1]].filter((r) => r?.matches).map((r) => r.key);
+};
+
 /** Each competition's current round (and the one before), for the team picker and to find where your teams play. */
 export async function loadRecentRounds(index: DataIndex): Promise<{ comp: Competition; file: RoundFile }[]> {
-  const wanted = index.competitions.flatMap((c) => {
-    const i = roundIndex(c);
-    return i < 0 ? [] : [c.rounds[i], c.rounds[i - 1]].filter((r) => r?.matches).map((r) => ({ c, key: r.key }));
-  });
+  const wanted = index.competitions.flatMap((c) => recentKeys(c).map((key) => ({ c, key })));
   const got = await Promise.allSettled(wanted.map(({ c, key }) => fetchRound(c.code, key).then((file) => ({ comp: c, file }))));
   return got.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
 }
@@ -86,26 +89,29 @@ const hasTeam = (m: Match, teams: Set<string>) => teams.has(teamId(m.home)) || t
 
 /**
  * Your teams' matches from DIGEST_DAYS back to AHEAD_DAYS ahead. Only competitions
- * whose recent rounds include one of your teams are read further (rounds files are
- * cached for good, so a repeat visit costs nothing).
+ * whose recent rounds include one of your teams are read further, each as soon as its
+ * own recent rounds are in (not once every competition's are). Rounds files are cached
+ * for good, so a repeat visit costs nothing.
  */
 export async function loadTeamMatches(index: DataIndex, teams: string[], now = Date.now()): Promise<TeamMatch[]> {
   const set = new Set(teams);
-  const recent = await loadRecentRounds(index);
-  const comps = [...new Set(recent.filter(({ file }) => file.matches.some((m) => hasTeam(m, set))).map(({ comp }) => comp))];
   const from = now - DIGEST_DAYS * DAY;
   const to = now + AHEAD_DAYS * DAY;
-  const wanted = comps.flatMap((c) => {
+  const settled = <T,>(ps: Promise<T>[]) => Promise.allSettled(ps).then((got) => got.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : [])));
+  const perComp = await Promise.all(index.competitions.map(async (c) => {
+    const recent = await settled(recentKeys(c).map((key) => fetchRound(c.code, key)));
+    if (!recent.some((file) => file.matches.some((m) => hasTeam(m, set)))) return [];
     const rounds = withFiles(c);
     // A round can start before the window and still have matches in it: take the one before too.
     const first = rounds.findIndex((r) => Date.parse(r.firstDate) >= from);
     if (first < 0) return [];
-    return rounds.slice(Math.max(0, first - 1)).filter((r) => Date.parse(r.firstDate) < to).map((r) => ({ c, key: r.key }));
-  });
-  const got = await Promise.allSettled(wanted.map(({ c, key }) => fetchRound(c.code, key).then((file) => ({ c, file }))));
-  return got.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : [])).flatMap(({ c, file }) => file.matches
-    .filter((m) => hasTeam(m, set) && Date.parse(m.utcDate) >= from && Date.parse(m.utcDate) < to)
-    .map((m) => ({ match: m, comp: c, roundLabel: file.round.label })));
+    const keys = rounds.slice(Math.max(0, first - 1)).filter((r) => Date.parse(r.firstDate) < to).map((r) => r.key);
+    const files = await settled(keys.map((key) => fetchRound(c.code, key)));
+    return files.flatMap((file) => file.matches
+      .filter((m) => hasTeam(m, set) && Date.parse(m.utcDate) >= from && Date.parse(m.utcDate) < to)
+      .map((m) => ({ match: m, comp: c, roundLabel: file.round.label })));
+  }));
+  return perComp.flat();
 }
 
 export interface PickerGroup {

@@ -4,11 +4,15 @@ import type { FollowsApi } from '../lib/follows';
 import { awaitingIn, cutSec, fmtRange, fmtTotal, pickHighlight, usable, type Cut } from '../lib/format';
 import { groupSlates, loadRecentRounds, loadTeamMatches, teamDirectory, teamId, type PickerGroup, type Slate, type TeamMatch } from '../lib/digest';
 import { SlateRow } from './SlateRow';
+import { TeamsLoading } from './TeamsLoading';
 import { TeamPicker } from './TeamPicker';
 import { TeamWheel } from './TeamWheel';
 
 /** A slate's heading: "This weekend", "Midweek"… */
 const slateName = (s: Slate) => (s.current ? `This ${s.kind}` : s.kind === 'weekend' ? 'Weekend' : 'Midweek');
+
+/** The last teams' matches loaded, so coming back to the page shows them at once. */
+let last: { key: string; tm: TeamMatch[] } | null = null;
 
 /**
  * "★ My teams": the favorites digest (src/lib/digest.ts), your teams' matches in weekend
@@ -30,19 +34,23 @@ export function MyTeams({ index, fol, tabs, arrival, onArrived, openMyTeams, pre
   renderCard: (m: Match, first: boolean, ctx: { comp: TeamMatch['comp']; roundLabel: string }) => React.ReactNode;
   onPlay: (ms: TeamMatch[]) => void;
 }) {
-  const [teamMatches, setTeamMatches] = useState<TeamMatch[] | null>(null);
-  const teamsKey = fol.teams.join('|');
+  // The teams this browser was last signed in with load straight away, alongside the account.
+  const teams = fol.savedTeams;
+  const teamsKey = teams.join('|');
   // Which teams, whatever their order: reordering them needs no new data.
-  const teamSetKey = [...fol.teams].sort().join('|');
+  const teamSetKey = [...teams].sort().join('|');
+  const [teamMatches, setTeamMatches] = useState<TeamMatch[] | null>(() => (last?.key === teamSetKey ? last.tm : null));
   useEffect(() => {
-    if (!fol.user || !fol.teams.length) return;
+    if (!teams.length) return;
+    if (last?.key === teamSetKey) { setTeamMatches(last.tm); return; }
     let alive = true;
     setTeamMatches(null);
-    loadTeamMatches(index, fol.teams).then((tm) => { if (alive) setTeamMatches(tm); }, () => { if (alive) setTeamMatches([]); });
+    const done = (tm: TeamMatch[]) => { last = { key: teamSetKey, tm }; if (alive) setTeamMatches(tm); };
+    loadTeamMatches(index, teams).then(done, () => { if (alive) setTeamMatches([]); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, fol.user?.uid, teamSetKey]);
-  const slates = useMemo(() => (teamMatches ? groupSlates(teamMatches, fol.teams) : null), [teamMatches, teamsKey]);
+  }, [index, teamSetKey]);
+  const slates = useMemo(() => (teamMatches ? groupSlates(teamMatches, teams) : null), [teamMatches, teamsKey]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerGroups, setPickerGroups] = useState<PickerGroup[] | null>(null);
   useEffect(() => {
@@ -69,13 +77,18 @@ export function MyTeams({ index, fol, tabs, arrival, onArrived, openMyTeams, pre
     for (const t of (teamMatches ?? []).flatMap((tm) => [tm.match.home, tm.match.away])) {
       if (!byId.has(teamId(t)) || byId.get(teamId(t))!.key) byId.set(teamId(t), t);
     }
-    return fol.teams.map((id) => ({ id, team: byId.get(id) ?? { name: id, short: id, tla: id.slice(0, 3).toUpperCase(), crest: null } }));
+    return teams.map((id) => ({ id, team: byId.get(id) ?? { name: id, short: id, tla: id.slice(0, 3).toUpperCase(), crest: null } }));
   }, [teamMatches, teamsKey]);
+
+  // One wait, then the whole page: the account, and your teams' matches when you have teams.
+  const picker = pickerOpen && <TeamPicker groups={pickerGroups} selected={fol.teams} onClose={closePicker} />;
+  if (!fol.ready || (fol.user && fol.teams.length > 0 && !slates)) return <><TeamsLoading tabs={tabs} />{picker}</>;
 
   return (
     <>
       <section className="browse digest" aria-label="My teams">
         {tabs}
+        <div className="digest-body">
         <div className="digest-head">
           <div>
             <h1>My teams <span className="beta-tag">Beta</span></h1>
@@ -84,7 +97,7 @@ export function MyTeams({ index, fol, tabs, arrival, onArrived, openMyTeams, pre
           {fol.user && fol.teams.length > 0 && <button className="btn-ghost" onClick={() => setPickerOpen(true)}>Edit teams</button>}
         </div>
 
-        {!fol.ready ? null : !fol.user ? (
+        {!fol.user ? (
           <div className="digest-empty">
             <p>Pick your teams to get their highlights from every competition, grouped weekend by weekend and midweek by midweek.</p>
             <button className="btn-primary" onClick={() => openMyTeams(true)}>Pick your teams</button>
@@ -97,9 +110,6 @@ export function MyTeams({ index, fol, tabs, arrival, onArrived, openMyTeams, pre
         ) : (
           <>
             <TeamWheel teams={teamCrests} onReorder={fol.setTeams} />
-            {!slates && (
-              <div className="slate-row loading">{Array.from({ length: 4 }, (_, i) => <div key={i} className="card skeleton" />)}</div>
-            )}
             {slates && !slates.length && (
               <p className="muted digest-none">No matches for your teams in the last four weeks.</p>
             )}
@@ -130,8 +140,9 @@ export function MyTeams({ index, fol, tabs, arrival, onArrived, openMyTeams, pre
             })}
           </>
         )}
+        </div>
       </section>
-      {pickerOpen && <TeamPicker groups={pickerGroups} selected={fol.teams} onClose={closePicker} />}
+      {picker}
     </>
   );
 }

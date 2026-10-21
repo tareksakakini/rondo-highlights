@@ -675,6 +675,14 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
 .view-tabs a[aria-current="page"] svg { color: var(--accent); }
 .view-tabs .beta-tag { margin-left: 2px; font-size: 9px; padding: 0 5px; }
 
+/* While the digest loads: the startup wheel (Logo.tsx, LoadingMark), shown after a beat so a quick load doesn't flash it. */
+.digest-loading { display: grid; place-items: center; min-height: 50vh; }
+.loading-mark { position: relative; width: 48px; height: 48px; animation: fade .2s .15s both; }
+.loading-mark svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.loading-pass { animation: boot-spin .9s linear infinite; will-change: transform; }
+@keyframes boot-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .loading-pass { animation-duration: 3s; } }
+.digest-body { animation: fade .2s ease-out; }
 .digest-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin: 4px 0 12px; }
 .digest-head h1 { margin: 0; font-size: clamp(24px, 2.6vw, 34px); font-weight: 800; font-stretch: 112%; letter-spacing: -0.02em; line-height: 1.1; }
 .digest-head p { margin: 4px 0 0; font-size: 13.5px; }

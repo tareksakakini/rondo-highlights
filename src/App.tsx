@@ -13,6 +13,7 @@ import { track, trackView, trackWatch } from './lib/track';
 import { addProgress, saveWatched, shareOf, type Progress, type WatchedMap } from './lib/watched';
 import type { WatchTag } from './components/Player';
 import { Logo } from './components/Logo';
+import { TeamsLoading } from './components/TeamsLoading';
 import { CompSwitcher } from './components/CompSwitcher';
 import { RoundPicker } from './components/RoundPicker';
 import { MatchCard } from './components/MatchCard';
@@ -759,7 +760,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
             </div>
           )}
 
-          {!index && !loadError && (
+          {!index && !loadError && page === 'teams' && <TeamsLoading tabs={null} />}
+          {!index && !loadError && page !== 'teams' && (
             <section className="browse" aria-label="Loading highlights" aria-busy="true">
               {/* The same shapes and sizes as the loaded page, so nothing jumps when it arrives. */}
               {!current && <p className="tagline">The whole match week, <span>back to back</span></p>}
@@ -861,7 +863,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
           )}
 
           {index && page === 'teams' && (
-            <Suspense fallback={<section className="browse digest" aria-label="My teams" aria-busy="true">{viewTabs}</section>}>
+            <Suspense fallback={<TeamsLoading tabs={viewTabs} />}>
               <MyTeams index={index} fol={fol} tabs={viewTabs} arrival={teamsArrival} onArrived={() => setTeamsArrival(null)}
                 openMyTeams={openMyTeams} pref={pref} region={region} avoid={avoid} cutFor={cutFor} renderCard={renderCard} onPlay={playSlate} />
             </Suspense>
