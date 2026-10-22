@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-10-21T21:46:31.667Z",
+ "generatedAt": "2026-10-22T17:14:29.584Z",
  "source": "live",
- "rev": "39121de86d078d5f18ebb1530a6af3e1053ee482",
+ "rev": "2241191e1220a2d05f4f5602dba622dfb10211ae",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-10-22T15:02:15.244Z",
+ "publishedAt": "2026-10-22T17:14:31.912Z",
  "competitions": [
   {
    "code": "PL",
@@ -383,7 +383,7 @@
     {
      "key": "md-13",
      "label": "Matchweek 13",
-     "firstDate": "2026-11-22T00:00:00Z",
+     "firstDate": "2026-11-20T20:00:00Z",
      "matches": 10,
      "withHighlights": 0
     },
