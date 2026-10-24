@@ -67,7 +67,12 @@
   .back { margin-top: 14px; }
   .back .kpis { margin: 4px 0 18px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
   .back .kpi { background: var(--surface-2); }
-  .cohorts { overflow-x: auto; margin-top: 18px; }
+  .cohorts, .camps { overflow-x: auto; margin-top: 18px; }
+  .camps { margin-top: 14px; }
+  .camps table { min-width: 560px; }
+  .camps th { font-size: 12px; font-weight: 600; color: var(--muted); text-align: right; padding: 0 0 6px 8px; white-space: nowrap; }
+  .camps th:first-child, .camps td:first-child { text-align: left; padding-left: 0; word-break: break-all; }
+  .camps td { text-align: right; padding: 5px 0 5px 8px; font-size: 14px; }
   .cohorts table { min-width: 560px; }
   .cohorts th { font-size: 12px; font-weight: 600; color: var(--muted); text-align: right; padding: 0 0 6px 4px; white-space: nowrap; }
   .cohorts th:first-child { text-align: left; }
@@ -227,6 +232,22 @@
       </div>`;
   }
 
+  // Visitors each ad campaign brought (links tagged with utm_source), and whether they came back.
+  function campaigns(s) {
+    const rows = s.campaigns ?? [];
+    const body = rows.length ? `
+      <table>
+        <tr><th>Campaign</th><th>Landings</th><th>Visitors</th><th>New</th><th>Returning</th><th>Watched</th><th>Highlights</th></tr>
+        ${rows.map((c) => `<tr><td>${esc(c.tag)}</td><td>${num(c.landings)}</td><td>${num(c.visitors)}</td><td>${num(c.fresh)}</td><td>${num(c.back)}</td><td title="${num(c.watchers)} of ${num(c.visitors)}">${pct(c.watchers, c.visitors)}</td><td>${num(c.videos)}</td></tr>`).join('')}
+      </table>` : '<div class="empty">No tagged visits yet. Ad links tagged ?utm_source=youtube&amp;utm_campaign=…&amp;utm_content=… show up here.</div>';
+    return `
+      <div class="card camps">
+        <h2>Campaigns</h2>
+        ${body}
+        <p class="muted small">Named source/campaign/content from the link's utm tags; "google-ads" is an ad click without them. A browser keeps the last campaign it came by, so later visits count for it too. Returning counts each day a returning browser visited, so divide your spend by it for the cost per return visit.</p>
+      </div>`;
+  }
+
   // How long each highlight was watched: one bar per minute, the part played to the end on top.
   let watchCut = store.get('rondo:stats-watchcut') || 'all';
   const CUT_KEYS = ['short', 'extended', 'condensed'];
@@ -333,6 +354,8 @@
       ${watchCard(s)}
 
       ${comingBack(s)}
+
+      ${campaigns(s)}
 
       <div class="grid two">
         <div class="card"><h2>Where visitors came from</h2>${table(s.refs, (k) => k, 'No other sites yet')}<p class="muted small">Landings with no referring site (typed, bookmarks, apps) aren't listed.</p></div>

@@ -185,3 +185,31 @@ test('no watches yet gives empty bins', () => {
   const { watch: w } = summarize([['2026-10-17', null]]);
   assert.ok(w.bins.every((b) => b.short[0] + b.extended[0] + b.condensed[0] === 0));
 });
+
+test('landing views carry their campaign', () => {
+  assert.equal(parseHit({ t: 'view', p: '/', l: 1, c: 'youtube/test-1/hook-a' }).camp, 'youtube/test-1/hook-a');
+  assert.equal(parseHit({ t: 'view', p: '/', l: 1, c: 'google-ads' }).camp, 'google-ads');
+  assert.equal(parseHit({ t: 'view', p: '/', c: 'youtube' }).camp, undefined);
+  for (const c of ['YouTube', 'a/b/c/d', 'x'.repeat(31), '<b>', '', 3]) assert.equal(parseHit({ t: 'view', p: '/', l: 1, c }).camp, undefined, String(c));
+});
+
+test('summarize follows each campaign\'s visitors, new and returning', () => {
+  const d1 = emptyDay();
+  addHit(d1, parseHit({ t: 'view', p: '/', l: 1, c: 'youtube/test-1/hook-a' }), who('a', { age: 0 }));
+  addHit(d1, parseHit({ t: 'event', n: 'video', p: '/', d: { cut: 'short' } }), who('a'));
+  addHit(d1, parseHit({ t: 'event', n: 'video', p: '/', d: { cut: 'short' } }), who('a'));
+  addHit(d1, parseHit({ t: 'view', p: '/', l: 1, c: 'youtube/test-1/hook-a' }), who('a'));
+  addHit(d1, parseHit({ t: 'view', p: '/', l: 1, c: 'youtube/test-1/hook-b' }), who('b', { age: 0 }));
+  addHit(d1, parseHit({ t: 'view', p: '/', l: 1 }), who('c', { age: 0 }));
+  assert.deepEqual(d1.camps, { 'youtube/test-1/hook-a': 2, 'youtube/test-1/hook-b': 1 });
+  assert.deepEqual(d1.vc, { a: 'youtube/test-1/hook-a', b: 'youtube/test-1/hook-b' });
+  // A day saved before campaigns were counted.
+  const d2 = { ...emptyDay(), camps: undefined, vc: undefined };
+  addHit(d2, parseHit({ t: 'view', p: '/', l: 1, c: 'youtube/test-1/hook-a' }), who('a2', { age: 1 }));
+
+  const s = summarize([['2026-10-07', d1], ['2026-10-08', d2]]);
+  assert.deepEqual(s.campaigns, [
+    { tag: 'youtube/test-1/hook-a', landings: 3, visitors: 2, fresh: 1, back: 1, watchers: 1, videos: 2 },
+    { tag: 'youtube/test-1/hook-b', landings: 1, visitors: 1, fresh: 1, back: 0, watchers: 0, videos: 0 },
+  ]);
+});

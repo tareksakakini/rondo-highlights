@@ -12,6 +12,8 @@
 //                             next. `age`: days since the browser's first visit (ageDays), from
 //                             its landing view; missing if it sent none
 //   pages, entries, refs      page views by path, landings by path, landings by referrer host
+//   camps                     landings by campaign ("source/campaign/content", from utm tags)
+//   vc     { id: campaign }   the campaign a day's visitor came by (their first tagged landing)
 //   countries, devices        visitors by country code and by mobile/tablet/desktop
 //   events { name: { n, by: { prop: { value: n } } } }
 //                             `watch` events (one per highlight played) carry
@@ -75,13 +77,15 @@ export function ageDays(hours, now = new Date(), tz) {
 
 const PATH = /^\/[\w\-./]{0,120}$/;
 const HOST = /^[a-z0-9.-]{1,100}$/;
+const CAMPAIGN = /^[a-z0-9_.-]{1,30}(\/[a-z0-9_.-]{0,30}){0,2}$/;
 const PROP_KEY = /^[a-z]{1,12}$/;
 const PROP_VAL = /^[\w .:-]{1,40}$/;
 
 /**
  * A hit as the site sent it, checked and trimmed, or null if it isn't one.
- *   { t: 'view', p: '/premier-league/', l: 1, r: 'google.com', a: 30 }   (l, r, a: landing only;
- *                                       a: hours since the browser's first visit, -1 if unknown)
+ *   { t: 'view', p: '/premier-league/', l: 1, r: 'google.com', a: 30, c: 'youtube/test-1' }
+ *                                       (l, r, a, c: landing only; a: hours since the browser's
+ *                                       first visit, -1 if unknown; c: its campaign)
  *   { t: 'event', n: 'play', p: '/', d: { from: 'all', comp: 'PL' } }
  */
 export function parseHit(body) {
@@ -94,6 +98,7 @@ export function parseHit(body) {
       if (HOST.test(host)) hit.ref = host;
     }
     if (hit.landing && Number.isInteger(body.a) && body.a >= -1 && body.a <= 1e6) hit.hours = body.a;
+    if (hit.landing && typeof body.c === 'string' && CAMPAIGN.test(body.c)) hit.camp = body.c;
     return hit;
   }
   if (body.t === 'event' && EVENTS.includes(body.n)) {
@@ -108,7 +113,7 @@ export function parseHit(body) {
   return null;
 }
 
-export const emptyDay = () => ({ views: 0, v: {}, pages: {}, entries: {}, refs: {}, countries: {}, devices: {}, events: {} });
+export const emptyDay = () => ({ views: 0, v: {}, pages: {}, entries: {}, refs: {}, camps: {}, vc: {}, countries: {}, devices: {}, events: {} });
 
 function bump(map, key, by = 1) {
   if (!(key in map) && Object.keys(map).length >= MAX_KEYS) key = OTHER;
@@ -136,6 +141,11 @@ export function addHit(day, hit, who) {
     if (hit.landing) {
       bump(day.entries, hit.path);
       if (hit.ref) bump(day.refs, hit.ref);
+      if (hit.camp) {
+        // Days saved before campaigns were counted have neither map.
+        bump((day.camps ??= {}), hit.camp);
+        (day.vc ??= {})[who.id] ??= hit.camp;
+      }
     }
     return day;
   }
@@ -205,7 +215,8 @@ export function watchBins(mins = {}) {
 export function summarize(records) {
   const daily = [];
   const ages = [];
-  const sums = { pages: {}, entries: {}, refs: {}, countries: {}, devices: {} };
+  const sums = { pages: {}, entries: {}, refs: {}, camps: {}, countries: {}, devices: {} };
+  const camps = {};
   const events = {};
   const totals = { views: 0, visitors: 0, watchers: 0, plays: 0, videos: 0, oneView: 0, fresh: 0, back: 0 };
   for (const [day, rec] of records) {
@@ -232,6 +243,16 @@ export function summarize(records) {
     totals.plays += r.events.play?.n ?? 0;
     totals.oneView += people.filter((p) => p[0] <= 1 && p[1] === 0 && p[2] === 0).length;
     for (const k of Object.keys(sums)) merge(sums[k], r[k]);
+    for (const [id, tag] of Object.entries(r.vc ?? {})) {
+      const p = r.v[id];
+      if (!p) continue;
+      const c = (camps[tag] ??= { visitors: 0, fresh: 0, back: 0, watchers: 0, videos: 0 });
+      c.visitors++;
+      if (p[3] === 0) c.fresh++;
+      else if (p[3] !== undefined && p[3] !== null) c.back++;
+      if (p[2] > 0) c.watchers++;
+      c.videos += p[2];
+    }
     for (const [name, ev] of Object.entries(r.events)) {
       const into = (events[name] ??= { n: 0, by: {} });
       into.n += ev.n;
@@ -246,6 +267,9 @@ export function summarize(records) {
     pages: top(sums.pages, 30),
     entries: top(sums.entries),
     refs: top(sums.refs),
+    // Visitors a campaign brought, added up day by day like the totals: `back` counts each
+    // day a returning browser visited, so it can be more than `fresh`.
+    campaigns: top(sums.camps).map(([tag, landings]) => ({ tag, landings, ...(camps[tag] ?? { visitors: 0, fresh: 0, back: 0, watchers: 0, videos: 0 }) })),
     countries: top(sums.countries, 30),
     devices: top(sums.devices),
     retention: retention(records.map(([day]) => day), ages),
