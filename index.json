@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-10-24T18:21:45.738Z",
+ "generatedAt": "2026-10-24T18:42:11.126Z",
  "source": "live",
- "rev": "9f66ea380ad95dfc281ba6ae65e6c102c49f5a9c",
+ "rev": "a6c56fcfb957aa50357b1831dc0a136f96c10256",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-10-24T18:31:57.261Z",
+ "publishedAt": "2026-10-24T18:42:17.891Z",
  "competitions": [
   {
    "code": "PL",
@@ -903,7 +903,7 @@
      "label": "Matchday 7",
      "firstDate": "2026-10-23T18:30:00Z",
      "matches": 9,
-     "withHighlights": 1
+     "withHighlights": 2
     },
     {
      "key": "md-8",
