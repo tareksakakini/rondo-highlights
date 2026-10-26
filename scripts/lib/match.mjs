@@ -214,7 +214,7 @@ export function detectComps(title) {
 }
 
 // Highlight words on federation channels in other languages (matched without accents).
-const HIGHLIGHT_LOCAL_RE = /\b(sazetak|osszefoglalo|sestrih|hojdpunkter|hoydepunkter|hojdepunkter|hoejdepunkter|skrot|resumo|ozet|rezumat|povzetek|zostrih|samantekt|stigmiotypa|vrhunci)\b/i;
+const HIGHLIGHT_LOCAL_RE = /\b(sazetak|osszefoglalo|sestrih|hojdpunkter|hoydepunkter|hojdepunkter|hoejdepunkter|skrot|resumo|ozeti?|rezumat|povzetek|zostrih|samantekt|stigmiotypa|vrhunci)\b/i;
 const deaccent = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ø/gi, 'o').replace(/ı/g, 'i');
 
 // A scoreline between two names ("Everton 1-0 Ipswich", "OM - PSG (1-2)") marks a match
@@ -264,6 +264,17 @@ export function scoreBetween(normTitle, homeAlias, awayAlias) {
   return r ? [Number(r[2]), Number(r[1])] : null;
 }
 
+// A title segment that is only a person's name: club channels title a press conference or an
+// interview with the speaker ("Isak's Form, Ronald Araujo, Anfield Win | Liverpool 2-0
+// Brighton | Andoni Iraola"). Their highlights never carry one.
+const PERSON_RE = /^\p{Lu}[\p{Ll}'’.-]+(?: (?:van|von|de|da|di|der|den|dos|del|la|le|el|al))?(?: \p{Lu}[\p{Ll}'’.-]+){1,2}$/u;
+const namesSpeaker = (title, homeAlias, awayAlias) =>
+  title.split('|').map((s) => s.trim()).some((s) => {
+    if (!PERSON_RE.test(s) || detectComps(s).size) return false;
+    const n = normalize(s);
+    return !n.includes(` ${homeAlias} `) && !n.includes(` ${awayAlias} `);
+  });
+
 /**
  * Is this a highlights video of the match whose names matched as `homeAlias` and `awayAlias`?
  * A title that says "highlights" (or shows "A - B (x-y)") is. One with only an inline
@@ -275,6 +286,7 @@ export function scoreBetween(normTitle, homeAlias, awayAlias) {
  */
 export function highlightTitleFor(title, normTitle, homeAlias, awayAlias) {
   if (!scorelineOnly(title)) return true;
+  if (namesSpeaker(title, homeAlias, awayAlias)) return false;
   if (!normTitle.includes(` ${homeAlias} `) || !normTitle.includes(` ${awayAlias} `)) return true;
   return scoreBetween(normTitle, homeAlias, awayAlias) !== null;
 }

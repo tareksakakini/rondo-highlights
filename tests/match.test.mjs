@@ -274,6 +274,27 @@ test('interviews, behind-the-scenes and live streams are not highlights', () => 
   assert.ok(!stillBelongs({ ...long, kind: 'extended' }, arsLee));
 });
 
+test('a press conference titled with the speaker is not a highlight, however its scoreline sits', () => {
+  const LIV = { id: 64, name: 'Liverpool FC', shortName: 'Liverpool', tla: 'LIV' };
+  const BHA = { id: 397, name: 'Brighton & Hove Albion FC', shortName: 'Brighton Hove', tla: 'BHA' };
+  const f = { ...arsLee, homeTeam: LIV, awayTeam: BHA, score: { fullTime: { home: 2, away: 0 } } };
+  const presser = plVid('presser', 'Isak\'s Form, Ronald Araujo, Anfield Win | Liverpool 2-0 Brighton | Andoni Iraola');
+  const got = matchVideosToFixtures([f], [
+    presser,
+    plVid('club', 'Highlights: Liverpool 2-0 Brighton'),
+    plVid('score-only', 'Reds hold firm at Anfield | Liverpool 2-0 Brighton | Premier League'),
+  ]);
+  assert.deepEqual(got.get(2).map((h) => h.videoId).sort(), ['club', 'score-only']);
+  // Stored before the fix: dropped on the next run.
+  assert.ok(!stillBelongs({ ...presser, kind: 'short' }, f));
+  // A segment that is a team's name, or a competition's, isn't a speaker.
+  const villa = { ...arsLee, homeTeam: { id: 58, name: 'Aston Villa FC', shortName: 'Aston Villa', tla: 'AVL' } };
+  assert.equal(matchVideosToFixtures([villa], [plVid('v', 'Late drama | Aston Villa 2-1 Leeds | Aston Villa')]).get(2).length, 1);
+  assert.equal(matchVideosToFixtures([arsLee], [plVid('e', 'Gunners come from behind | Arsenal 2-1 Leeds | Premier League')]).get(2).length, 1);
+  // Two capitalised words that aren't a name: Turkish for "match summary".
+  assert.equal(matchVideosToFixtures([arsLee], [plVid('tr', 'Maç Özeti | Arsenal 2-1 Leeds')]).get(2).length, 1);
+});
+
 test('a possessive still names the team, so its running score is judged too', () => {
   assert.equal(normalize("Liverpool's defense").trim(), 'liverpool defense');
   const LIV = { id: 64, name: 'Liverpool FC', shortName: 'Liverpool', tla: 'LIV' };
