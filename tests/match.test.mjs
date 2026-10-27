@@ -47,6 +47,13 @@ test('title filter drops federation extras: pressers, other angles, vlogs, react
   assert.ok(looksLikeMatchHighlight('ČEŠKA - HRVATSKA | SAŽECI | HIGHLIGHTS (26.9.2026.)'));
 });
 
+test('title filter drops La Liga clubs\' post-match interviews', () => {
+  assert.ok(!looksLikeMatchHighlight('POSPARTIDO | Óskarsson - Gorrotxa: "Estamoes en muy buen momento" | Real Sociedad 2 - 1 Levante UD'));
+  assert.ok(!looksLikeMatchHighlight('Comparecencia de José María Giménez tras el Atlético de Madrid 1 - 0 RC Deportivo'));
+  assert.ok(looksLikeMatchHighlight('HIGHLIGHTS | LaLiga 26-27 | J10 | Real Sociedad 2 - 1 Levante UD'));
+  assert.ok(looksLikeMatchHighlight('Resumen del Atlético de Madrid 1 - 0 RC Deportivo'));
+});
+
 test('national teams are recognised in federation languages', () => {
   const nl = teamAliases({ name: 'Netherlands', national: true, ...NATIONS.find((n) => n.tla === 'NED') });
   assert.ok(mentions(normalize('MEXX MEERDINK\'S FIRST GOALS! | Highlights Serbia - Nederland'), nl));

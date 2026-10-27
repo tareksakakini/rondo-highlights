@@ -28,6 +28,17 @@ export const PL_CLUBS = [
   '@SunderlandAFC', '@TottenhamHotspur',
 ].map((h) => ch(h, { tier: 'club' }));
 
+/**
+ * La Liga clubs (2026/27) not already in EURO_CLUBS (resolved 2026-10-27). LALIGA's own
+ * channel refuses embeds in the US, so these are the only cut US visitors get for games
+ * ESPN FC skips.
+ */
+export const LALIGA_CLUBS = [
+  '@deportivoalaves1921', '@AthleticClubTV', '@CAOsasunaTV', '@RCCelta', '@elchec.f.', '@RCDEspanyol',
+  '@GetafeCFMedia', '@LevanteUD', '@MalagaCF', '@RRacingClub', '@RayoVallecanoTV', '@RCDeportivo',
+  '@RealSociedadTV', '@SevillaFC', '@ValenciaCF',
+].map((h) => ch(h, { tier: 'club' }));
+
 /** Big European clubs: their channels carry UCL/UEL highlights worldwide. */
 export const EURO_CLUBS = [
   '@realmadrid', '@fcbarcelona', '@atleticodemadrid', '@RealBetis', '@VillarrealCF',
@@ -72,7 +83,7 @@ export const COMPETITIONS = [
   {
     code: 'PD', name: 'La Liga', short: 'La Liga', country: 'Spain', color: '#F97316',
     group: 'league', roundLabel: 'Matchweek', source: 'fixtures',
-    channels: [ch('@ESPNFC', { mustMatch: 'laliga|la liga' }), ch('@LaLiga'), ...EURO_CLUBS],
+    channels: [ch('@ESPNFC', { mustMatch: 'laliga|la liga' }), ch('@LaLiga'), ...EURO_CLUBS, ...LALIGA_CLUBS],
   },
   {
     code: 'SA', name: 'Serie A', short: 'Serie A', country: 'Italy', color: '#0EA5E9',
@@ -144,4 +155,5 @@ export const MAX_PAGES_PER_CHANNEL = 12;
  */
 export const EMBED_BLOCKED = {
   UCpcTrCXblq78GZrTUTLWeBw: ['US'], // FIFA: World Cup 2026 highlights (checked 2026-09-28)
+  'UCTv-XvfzLX3i4IGWAm4sbmA': ['US'], // LALIGA EA SPORTS: every match summary (checked 2026-10-27)
 };
