@@ -170,6 +170,21 @@ main.pre {
 @media (min-width: 701px) and (max-width: 1099px) {
   .app.docked .foot { padding-bottom: 300px; }
 }
+/* A phone on its side: the player fits the screen's height (the top bar scrolls away with
+   the page), and the mini player is a small corner box rather than a band across the top. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .app.watching .topbar { position: static; }
+  .player-slot { width: min(100%, calc((100dvh - 16px) * 16 / 9)); margin-inline: auto; }
+  .player-shell.mini {
+    inset: auto max(12px, env(safe-area-inset-right)) 12px auto; width: min(300px, 40vw);
+    border-radius: 12px; border-width: 1px; padding-top: 0;
+  }
+  .mini-bar { height: auto; padding: 4px 6px 4px 12px; font-size: 13px; }
+  .app.docked { padding-top: 0; }
+  .app.docked .topbar { position: sticky; }
+  .app.docked .card { scroll-margin-top: 72px; }
+  .app.docked .foot { padding-bottom: 220px; }
+}
 
 .now { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; padding: 14px 2px 4px; flex-wrap: wrap; }
 .now-main { min-width: 0; flex: 1 1 320px; }

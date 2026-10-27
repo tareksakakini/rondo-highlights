@@ -43,6 +43,8 @@ function readQueue(): PlayItem[] {
 
 /** Below this width the queue has no column of its own: playing opens a watch view instead. */
 const NARROW = '(max-width: 1099px)';
+/** A phone on its side: the full player fits the screen's height (see styles.css). */
+const SIDEWAYS = '(orientation: landscape) and (max-height: 500px)';
 /** How long a video that refused to embed stays missing, and the failures that count against its channel. */
 const EMBED_FAIL_DAYS = 30;
 /** Failed videos from one channel (in one country) before all of its videos count as missing. */
@@ -492,17 +494,32 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   // Narrow screens: watching = player + queue; otherwise the matches, with any video docked.
   const watching = narrow && !!current && stageEntry;
   const docked = narrow && !!current && !stageEntry;
+  const sideways = useMedia(SIDEWAYS);
   const wasWatching = useRef(watching);
+  const wasSideways = useRef(sideways);
   useLayoutEffect(() => {
-    if (wasWatching.current === watching) return;
+    const turned = wasSideways.current !== sideways;
+    wasSideways.current = sideways;
+    if (wasWatching.current === watching && !(watching && turned)) return;
     wasWatching.current = watching;
-    if (watching) { window.scrollTo({ top: 0 }); return; }
+    if (watching) {
+      // A phone on its side: the player fills the screen, so show just that (the top bar is above).
+      const show = () => {
+        const slot = stageRef.current?.querySelector('.player-slot');
+        if (slot && sideways) slot.scrollIntoView({ block: 'center' });
+        else window.scrollTo({ top: 0 });
+      };
+      // Turning the phone: once the page has settled at its new size.
+      if (turned) requestAnimationFrame(show);
+      else show();
+      return;
+    }
     // Back to the matches (Back, "Matches", or the queue ran out): where the match was picked.
     const { y, match } = returnTo.current;
     const card = match != null ? document.querySelector(`.card[data-match="${CSS.escape(String(match))}"]`) : null;
     if (card) card.scrollIntoView({ block: 'center' });
     else window.scrollTo({ top: y });
-  }, [watching]);
+  }, [watching, sideways]);
 
   useEffect(() => {
     if (current && !video) {
