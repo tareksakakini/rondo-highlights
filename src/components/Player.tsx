@@ -37,6 +37,13 @@ interface Props {
    * when it pauses, and when it stops being watched (as onWatched; also the last report).
    */
   onProgress?: (p: Progress, tag: WatchTag) => void;
+  /**
+   * Our own full screen: the player covers the page (and takes the screen's full screen where
+   * the browser lets a page have it). YouTube's own button is hidden: on an iPhone it opens the
+   * system video player, which closes at the end of every video and stops the queue there.
+   */
+  full?: boolean;
+  onFull?: (on: boolean) => void;
 }
 
 interface Watch {
@@ -69,13 +76,16 @@ interface Run {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** How long a newly loaded video has to start before we say it's waiting for a tap. */
+const STALL_MS = 2500;
+
 /**
- * Leave fullscreen if the embed holds it. With nothing left to play the player gets
- * hidden, and a hidden fullscreen iframe still covers the page and swallows every click.
+ * Leave the screen's full screen if the player holds it. With nothing left to play the player
+ * gets hidden, and a hidden full-screen element still covers the page and swallows every click.
  */
-const leaveFullscreen = (host: HTMLElement | null) => {
+const leaveFullscreen = (el: HTMLElement | null) => {
   const fs = document.fullscreenElement;
-  if (fs && host?.contains(fs)) document.exitFullscreen().catch(() => {});
+  if (fs && el && (el === fs || el.contains(fs))) document.exitFullscreen().catch(() => {});
 };
 
 /**
@@ -88,20 +98,27 @@ const leaveFullscreen = (host: HTMLElement | null) => {
  * each one ends it fades the sound out, seeks to the next and fades back in. If the
  * viewer scrubs to somewhere between moments, it stops steering for that video.
  */
-export function Player({ videoId, seq, label, moments = null, onMoment, onEnded, onError, onClose, docked = false, onExpand, tag = null, onWatched, onProgress }: Props) {
+export function Player({ videoId, seq, label, moments = null, onMoment, onEnded, onError, onClose, docked = false, onExpand, tag = null, onWatched, onProgress, full = false, onFull }: Props) {
   const slotRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const player = useRef<YTPlayer | null>(null);
   const ready = useRef(false);
   const pending = useRef<{ id: string | null; moments: Moment[] | null; tag: WatchTag | null }>({ id: videoId, moments, tag });
-  const cb = useRef({ onEnded, onError, onMoment, onWatched, onProgress });
-  cb.current = { onEnded, onError, onMoment, onWatched, onProgress };
+  const cb = useRef({ onEnded, onError, onMoment, onWatched, onProgress, onFull });
+  cb.current = { onEnded, onError, onMoment, onWatched, onProgress, onFull };
   const watch = useRef<Watch>({ ms: 0, since: null, tag: null, done: true }); // nothing loaded
   const gen = useRef(0);
   const run = useRef<Run>({ moments: null, idx: 0, free: false, busy: false, lastT: 0, settleUntil: 0, base: null });
   const [scrolledAway, setScrolledAway] = useState(false);
-  const mini = docked || scrolledAway;
+  const mini = !full && (docked || scrolledAway);
   const [apiError, setApiError] = useState<string | null>(null);
+  /** The video loaded but hasn't started (the browser wants a tap on play). */
+  const [stalled, setStalled] = useState(false);
+  /** Full screen on a phone on its side with Safari's bars still showing (a swipe up hides them). */
+  const [bars, setBars] = useState(false);
+  /** The video loaded has played at all. */
+  const started = useRef(false);
 
   /** Where the video loaded is (onProgress), while it's still the one loaded. */
   const report = (ended: boolean) => {
@@ -138,18 +155,31 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
     gen.current++;
     const r = run.current;
     if (r.base != null) { p.setVolume(r.base); r.base = null; }
-    if (!id) { watch.current = { ...NONE }; p.pauseVideo(); leaveFullscreen(hostRef.current); return; }
+    setStalled(false);
+    started.current = false;
+    if (!id) {
+      watch.current = { ...NONE };
+      p.pauseVideo();
+      leaveFullscreen(shellRef.current);
+      cb.current.onFull?.(false);
+      return;
+    }
     watch.current = { ms: 0, since: null, tag: pending.current.tag, done: false };
     const steer = m?.length ? m : null;
     run.current = { moments: steer, idx: 0, free: false, busy: false, lastT: steer ? steer[0][0] : 0, settleUntil: performance.now() + 4000, base: null };
     p.loadVideoById(steer ? { videoId: id, startSeconds: steer[0][0] } : id);
     cb.current.onMoment?.(steer ? 0 : null);
+    const g = gen.current;
+    setTimeout(() => {
+      // Still waiting to start (unstarted, cued, or stuck buffering when the browser won't play it).
+      if (g === gen.current && !started.current) setStalled(true);
+    }, STALL_MS);
   };
 
   // Create the player once.
   useEffect(() => {
     let cancelled = false;
-    const host = hostRef.current;
+    const shell = shellRef.current;
     loadYouTubeApi()
       .then((YT) => {
         if (cancelled || !hostRef.current) return;
@@ -159,7 +189,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
         player.current = new YT.Player(target, {
           width: '100%',
           height: '100%',
-          playerVars: { autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1, origin: window.location.origin },
+          playerVars: { autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1, fs: 0, origin: window.location.origin },
           events: {
             onReady: () => {
               ready.current = true;
@@ -172,6 +202,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
                 else if (w.since != null) { w.ms += performance.now() - w.since; w.since = null; }
                 if (e.data === YT.PlayerState.PAUSED) report(false);
               }
+              if (e.data === YT.PlayerState.PLAYING) { started.current = true; setStalled(false); }
               if (e.data === YT.PlayerState.ENDED) {
                 flush(true);
                 cb.current.onEnded();
@@ -186,7 +217,7 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
       cancelled = true;
       flush(false);
       watch.current = { ...NONE };
-      leaveFullscreen(host);
+      leaveFullscreen(shell);
       player.current?.destroy();
       player.current = null;
       hostRef.current?.replaceChildren();
@@ -310,11 +341,49 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
     return () => io.disconnect();
   }, []);
 
+  // Full screen: the screen's own where the browser allows it (Android, iPad, computers); on an
+  // iPhone, which keeps that for its video player, the player just covers the page. Either way
+  // the embed stays where it is, so the next video plays on in full screen.
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!full || !shell) return;
+    if (shell.requestFullscreen && document.fullscreenEnabled && document.fullscreenElement !== shell) {
+      shell.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+    }
+    // A page can't hide Safari's bars on an iPhone; scrolling down does. So the page stays
+    // scrollable under the player, with room below to scroll into, and goes back where it was.
+    const y = window.scrollY;
+    const root = document.documentElement;
+    root.classList.add('player-full');
+    const fit = () => setBars(
+      coarse() && !document.fullscreenElement && innerWidth > innerHeight
+        && innerHeight < Math.min(screen.width, screen.height) - 40,
+    );
+    fit();
+    window.addEventListener('resize', fit);
+    window.visualViewport?.addEventListener('resize', fit);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') cb.current.onFull?.(false); };
+    // Leaving the screen's full screen (Android's Back, Esc) leaves ours too.
+    const onChange = () => { if (!document.fullscreenElement) cb.current.onFull?.(false); };
+    window.addEventListener('keydown', onKey);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => {
+      root.classList.remove('player-full');
+      window.scrollTo({ top: y });
+      setBars(false);
+      window.removeEventListener('resize', fit);
+      window.visualViewport?.removeEventListener('resize', fit);
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('fullscreenchange', onChange);
+      leaveFullscreen(shell);
+    };
+  }, [full]);
+
   const expand = onExpand ?? (() => slotRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 
   return (
     <div className="player-slot" ref={slotRef}>
-      <div className={`player-shell${mini ? ' mini' : ''}`}>
+      <div className={`player-shell${mini ? ' mini' : ''}${full ? ' full' : ''}`} ref={shellRef}>
         {mini && (
           <div className="mini-bar">
             <button className="mini-title linkish" onClick={expand} tabIndex={-1}>{label}</button>
@@ -325,7 +394,14 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
         <div className="player-frame">
           <div className="player-host" ref={hostRef} />
           {apiError && <div className="player-error">{apiError}. Check your connection or ad-blocker.</div>}
+          {stalled && <div className="player-stalled">Tap ▶ to play {label}</div>}
         </div>
+        {full && bars && <div className="player-bars-hint">Swipe up to hide Safari&apos;s bars</div>}
+        {full && (
+          <button className="player-unfull" onClick={() => onFull?.(false)} aria-label="Exit full screen" title="Exit full screen (Esc)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16h3v3h2v-5H5zm3-8H5v2h5V5H8zm6 11h2v-3h3v-2h-5zm2-11V5h-2v5h5V8z" /></svg>
+          </button>
+        )}
       </div>
     </div>
   );

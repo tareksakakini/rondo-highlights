@@ -112,6 +112,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   const cmap = autoCondense ? condensed : null;
   const [moment, setMoment] = useState<number | null>(null);
   const [revealTitle, setRevealTitle] = useState(false);
+  /** The player fills the screen (its own full screen; see Player). */
+  const [full, setFull] = useState(false);
   const [pins, setPins] = useState<Record<string, Kind>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Country: your choice in Settings > what our CDN sees (same signal YouTube uses) > time zone.
@@ -724,6 +726,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                 tag={watchTag}
                 onWatched={trackWatch}
                 onProgress={onProgress}
+                full={full && !!current}
+                onFull={setFull}
               />
               {current && <div className="now">
                 <div className="now-main">
@@ -753,6 +757,9 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                   </button>
                   <button className="btn-icon" onClick={() => dispatch({ type: 'next' })} aria-label="Next (Shift+N)" title="Next (Shift+N)">
                     <svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6zM16 6v12h2V6z" /></svg>
+                  </button>
+                  <button className="btn-icon" onClick={() => setFull(true)} aria-label="Full screen" title="Full screen">
+                    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z" /></svg>
                   </button>
                   <label className="switch" title="Play the next match automatically">
                     <input type="checkbox" checked={autoplay} onChange={(e) => setAutoplay(e.target.checked)} />
