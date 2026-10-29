@@ -180,6 +180,7 @@ test('first teams only: youth, women and reserve sides are dropped', () => {
     'Highlights | Borussia Dortmund II 1-1 Aachen | 3. Liga',
     'RESUMEN | Real Madrid Castilla 2-0 Ceuta',
     'Jong Ajax - Jong PSV (1-2) | Samenvatting',
+    'HIGHLIGHTS | FC Porto O19 - PSV O19',
     'Arsenal 2-2 Chelsea | Premier League 2 Highlights',
     'Man City 3-0 Everton | Women\'s Super League highlights',
   ]) assert.ok(!isFirstTeam(t) && !looksLikeMatchHighlight(t, { fixtures: true }), t);
@@ -188,6 +189,14 @@ test('first teams only: youth, women and reserve sides are dropped', () => {
     'Guirassy Strikes Twice Late On! | Dortmund 3-2 Villarreal | UEFA Champions League Highlights',
     'De Jong stunner! | Barcelona 2-0 Sevilla | LaLiga Highlights',
   ]) assert.ok(isFirstTeam(t) && looksLikeMatchHighlight(t, { fixtures: true }), t);
+});
+
+test('a camera on one person is not a highlights cut', () => {
+  for (const t of ['🎥 UNAI CAM | Aston Villa 3-1 Viking', 'Arteta Cam: Arsenal 2-0 Everton', 'BENCH CAM - Chelsea 0-2 Spurs']) {
+    assert.ok(!looksLikeMatchHighlight(t, { fixtures: true }), t);
+  }
+  // A player called Cam is still fine.
+  assert.ok(looksLikeMatchHighlight('Cam Archer scores twice | Aston Villa 3-1 Viking | Highlights', { fixtures: true }));
 });
 
 const BVB = { id: 4, name: 'Borussia Dortmund', shortName: 'Dortmund', tla: 'BVB' };

@@ -64,6 +64,7 @@ globalThis.fetch = async (input, init) => {
         contentDetails: { duration: iso(v.durationSec), ...(v.allow || v.block ? { regionRestriction: { ...(v.allow ? { allowed: v.allow } : {}), ...(v.block ? { blocked: v.block } : {}) } } : {}) },
         status: { embeddable: v.embeddable !== false, privacyStatus: 'public' },
         snippet: { liveBroadcastContent: 'none' },
+        player: v.vertical ? { embedWidth: 203, embedHeight: 360 } : { embedWidth: 640, embedHeight: 360 },
       }));
       return json({ items });
     }

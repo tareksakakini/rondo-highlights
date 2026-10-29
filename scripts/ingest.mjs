@@ -271,13 +271,16 @@ const detailsCache = new Map();
 async function videoDetails(ids, key) {
   const need = ids.filter((id) => !detailsCache.has(id));
   for (let i = 0; i < need.length; i += 50) {
-    const data = await yt('videos', { part: 'contentDetails,status,snippet', id: need.slice(i, i + 50).join(',') }, key);
+    // `player` with maxHeight sizes the embed to the video's shape, which shows a vertical
+    // Short that has an ordinary title (Liverpool posts one beside each landscape cut).
+    const data = await yt('videos', { part: 'contentDetails,status,snippet,player', maxHeight: 360, id: need.slice(i, i + 50).join(',') }, key);
     for (const v of data.items ?? []) {
       const rr = v.contentDetails.regionRestriction ?? {};
       detailsCache.set(v.id, {
         durationSec: isoDurationToSec(v.contentDetails.duration),
         embeddable: v.status.embeddable !== false && v.status.privacyStatus === 'public',
         live: v.snippet.liveBroadcastContent !== 'none',
+        vertical: v.player?.embedWidth != null && Number(v.player.embedWidth) < Number(v.player.embedHeight),
         allow: rr.allowed?.length ? [...rr.allowed].sort() : undefined,
         block: rr.blocked?.length ? [...rr.blocked].sort() : undefined,
       });
@@ -323,7 +326,7 @@ async function collectCandidates(comp, sinceMs, YT, maxPages) {
   const byId = new Map(ids.map((id, k) => [id, details[k]]));
   const videos = candidates
     .map((c) => withEmbedBlocks({ ...c, ...(byId.get(c.videoId) ?? { durationSec: 0, embeddable: false }) }, c.channelId))
-    .filter((v) => !v.live);
+    .filter((v) => !v.live && !v.vertical);
   const blocked = videos.filter((v) => !v.embeddable).length;
   if (blocked) log(`  ${blocked} candidate(s) skipped: embedding disabled by the channel`);
   const limited = videos.filter((v) => v.embeddable && (v.allow || v.block)).length;
@@ -333,7 +336,8 @@ async function collectCandidates(comp, sinceMs, YT, maxPages) {
 
 /**
  * Re-check stored highlights: refresh their country restrictions and drop videos
- * that were deleted, made private or had embedding switched off since we found them.
+ * that were deleted, made private or had embedding switched off since we found them,
+ * and vertical Shorts kept before those were detected.
  * ~1 quota unit per 50 videos. Quick runs only re-check those published in the last
  * QUICK_RECHECK_DAYS (the daily full run re-checks the rest).
  */
@@ -351,7 +355,7 @@ async function refreshStored(comp, built, YT) {
       m.highlights = m.highlights.filter((h) => {
         if (!byId.has(h.videoId)) return true; // not re-checked this run
         const d = byId.get(h.videoId);
-        if (!d || !d.embeddable) { dropped++; return false; }
+        if (!d || !d.embeddable || d.vertical) { dropped++; return false; }
         delete h.allow; delete h.block;
         const r = withEmbedBlocks({ allow: d.allow, block: d.block }, h.channelId);
         if (r.allow) h.allow = r.allow;

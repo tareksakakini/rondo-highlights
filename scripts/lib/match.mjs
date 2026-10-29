@@ -178,16 +178,16 @@ export function fuzzyMentions(normTitle, aliases) {
 
 const HIGHLIGHT_RE = /highlight|resumen|extended|sintesi|melhores momentos|samenvatting|zusammenfassung|key moments/i;
 // Anything but the men's first team: women's sides, youth and academy sides (UEFA Youth
-// League, U19, Primavera, Juvenil...), reserve and B teams (Dortmund II, Castilla, Jong Ajax).
+// League, U19 or Dutch O19, Primavera, Juvenil...), reserve and B teams (Dortmund II, Castilla, Jong Ajax).
 // Also applied to highlights kept from earlier runs, so tightening it cleans up stored data.
 const NOT_FIRST_TEAM_RE =
-  /\b(women|womens|woman|ladies|femenino|femenina|femminile|frauen|damen|feminine|feminines|wsl|nwsl|liga f|u-?1[4-9]\w*|u-?2[0-3]\w*|sub-?1[4-9]|sub-?2[0-3]|weuro|under[- ]?\d\d|[pf]1[4-9]|[pf]2[01]|academy|youth|uyl|juvenil|juveniles|primavera|jugend|a-?junioren|b-?junioren|nextgen|next gen|pl2|premier league 2|reserves?|b team|ii|castilla|filial|jong (?:ajax|psv|az|utrecht|twente))\b/i;
+  /\b(women|womens|woman|ladies|femenino|femenina|femminile|frauen|damen|feminine|feminines|wsl|nwsl|liga f|u-?1[4-9]\w*|u-?2[0-3]\w*|o-?1[4-9]|o-?2[0-3]|sub-?1[4-9]|sub-?2[0-3]|weuro|under[- ]?\d\d|[pf]1[4-9]|[pf]2[01]|academy|youth|uyl|juvenil|juveniles|primavera|jugend|a-?junioren|b-?junioren|nextgen|next gen|pl2|premier league 2|reserves?|b team|ii|castilla|filial|jong (?:ajax|psv|az|utrecht|twente))\b/i;
 
 /** False for women's, youth and reserve-team videos (the site is men's first teams only). */
 export const isFirstTeam = (title) => !NOT_FIRST_TEAM_RE.test(deaccent(title));
 
 const EXCLUDE_RE =
-  /\b(press conference|konferencija za medije|pressekonferenz|conferenza stampa|rueda de prensa|conference de presse|iz drugog ugla|izjave|preview|reactions?|interview|vlogs?|vlogowe|kulisy|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|(?:all|every) angles?|analy[sz]e|analysis|goalscorer|inside(?! the (?:box|area))|uncut|unseen|matchday (?:live|pass)|extra time show|first \d+ minutes|pos-?jogo|pos-?partido|comparecencias?|apres-?match|all highlights|top \d+|review|full match|legends|alt angle|behind the scenes|behind the tigers|in hd|cinematic|inside the match|members only|on the road|match cut|post-?match|pre-?match|watchalong|reacts?|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|esports|efootball|fc 2[5-9]|#shorts)\b/i;
+  /\b(press conference|konferencija za medije|pressekonferenz|conferenza stampa|rueda de prensa|conference de presse|iz drugog ugla|izjave|preview|reactions?|interview|vlogs?|vlogowe|kulisy|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|(?:all|every) angles?|analy[sz]e|analysis|goalscorer|inside(?! the (?:box|area))|uncut|unseen|matchday (?:live|pass)|extra time show|first \d+ minutes|pos-?jogo|pos-?partido|comparecencias?|apres-?match|all highlights|top \d+|review|full match|legends|alt angle|behind the scenes|behind the tigers|in hd|cinematic|inside the match|members only|on the road|match cut|post-?match|pre-?match|watchalong|reacts?|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|[a-z]+ cam(?= *(?:[|:-]|$))|esports|efootball|fc 2[5-9]|#shorts)\b/i;
 
 // Competition keywords in titles. Club and national-team channels post several
 // competitions, so a title that names a different competition is skipped.
