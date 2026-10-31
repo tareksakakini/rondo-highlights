@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-10-31T17:21:55.148Z",
+ "generatedAt": "2026-10-31T17:32:06.914Z",
  "source": "live",
- "rev": "5e5e06fbfe13c200d969572a0a4619f2c4962316",
+ "rev": "e20372eb9afa83a842a1dd2d34b2da64621415e5",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-10-31T17:21:58.241Z",
+ "publishedAt": "2026-10-31T17:32:10.128Z",
  "competitions": [
   {
    "code": "PL",
@@ -77,7 +77,7 @@
      "label": "Matchweek 9",
      "firstDate": "2026-10-31T12:30:00Z",
      "matches": 10,
-     "withHighlights": 2
+     "withHighlights": 4
     },
     {
      "key": "md-10",
