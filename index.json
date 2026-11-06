@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-11-05T22:31:26.748Z",
+ "generatedAt": "2026-11-06T21:31:46.228Z",
  "source": "live",
- "rev": "4d5f0b65ec75ff6c1c940c638aace2922a6e189a",
+ "rev": "9965f59ce9083404770b6c4cc43046917aeea79d",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-11-06T21:11:41.242Z",
+ "publishedAt": "2026-11-06T21:31:48.169Z",
  "competitions": [
   {
    "code": "PL",
@@ -854,7 +854,7 @@
    "color": "#EF4444",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-8",
+   "currentRound": "md-9",
    "rounds": [
     {
      "key": "md-1",
