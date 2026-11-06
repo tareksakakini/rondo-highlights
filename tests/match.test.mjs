@@ -375,3 +375,65 @@ test('Barcelona and Bayern share the TLA FCB but not their nicknames', () => {
   assert.equal(mentions(normalize('Barça 2-0 Sevilla | Highlights'), bar), 'barca');
   assert.equal(mentions(normalize('Bayern Munich 3-0 Frankfurt | Highlights'), bay), 'bayern munich');
 });
+
+// Real Champions League and Europa League MD4 titles (data branch, 2026-11-06).
+const CBS = 'UCET00YnetHT7tOpu12v8jxg';
+const TNT = 'UC4i_9WvfPRTuRWEaWyfKuFw';
+const md4 = (videoId, title, channelId = 'x', durationSec = 180) =>
+  ({ videoId, title, channel: 'c', channelId, durationSec, publishedAt: '2026-11-04T22:30:00Z', embeddable: true, priority: 1 });
+
+test('a broadcaster that labels its highlights: anything unlabelled is a studio show', () => {
+  const f = fixture(1, '2026-11-03T20:00:00Z', club(66, 'Manchester United FC', 'Man United', 'MUN'), club(100, 'AS Roma', 'Roma', 'ROM'), 3, 2);
+  const show = md4('show', 'Cunha & Bruno STUN Roma in the Champions League | Manchester United 3-2 Roma', CBS, 642);
+  const skipped = new Set();
+  const res = matchVideosToFixtures([f], [
+    show,
+    md4('cbs', 'Manchester United vs. Roma: Extended Highlights | UCL League Phase MD 4 | CBS Sports Golazo', CBS, 531),
+    md4('tnt', 'United Pull Off Unbelievable Comeback! 🔥 | Man United 3-2 Roma | UEFA Champions League Highlights', TNT),
+    md4('club', 'Late drama | Manchester United 3-2 Roma'), // a club channel needs no label
+  ], { skipped });
+  assert.deepEqual(ids(res, 1), ['cbs', 'club', 'tnt']);
+  assert.deepEqual([...skipped], ['show']);
+  assert.ok(!stillBelongs({ ...show, kind: 'extended' }, f));
+});
+
+test('"Unique Angle" and other alternative-angle cuts are not highlights', () => {
+  for (const t of ['Unique Angle: Celtic 3-2 Beşiktaş. | Durán Durán double wins it for Celtic in five-goal thriller',
+    'Alternative Angle | Celtic 3-2 Beşiktaş', 'REVERSE ANGLE: Celtic 3-2 Besiktas']) {
+    assert.ok(!looksLikeMatchHighlight(t, { fixtures: true }), t);
+  }
+});
+
+test('"Prague" for Praha, plain "Sporting" for Sporting CP, OL and OM on their own channels', () => {
+  const SLP = club(930, 'SK Slavia Praha', 'Slavia Praha', 'SLP');
+  const SPO = club(498, 'Sporting Clube de Portugal', 'Sporting CP', 'SPO');
+  const res = matchVideosToFixtures([
+    fixture(1, '2026-11-04T20:00:00Z', SLP, ARS, 1, 2),
+    fixture(2, '2026-11-03T17:45:00Z', club(1887, 'FK Shakhtar Donetsk', 'Shaktar', 'SHD'), SPO, 0, 1),
+  ], [
+    md4('tnt', 'Madueke & Gyokeres Net For Gunners 🔴 | Slavia Prague 1-2 Arsenal | UEFA Champions League Highlights', TNT),
+    md4('ars', 'GYOKERES & MADUEKE GOALS EARN THREE POINTS | HIGHLIGHTS | Slavia Prague vs Arsenal (1-2) l UCL'),
+    md4('spo', 'Doumbia Nets The Winner! 🤩 | Shakhtar Donetsk 0-1 Sporting | UEFA Champions League Highlights', TNT),
+  ]);
+  assert.deepEqual(ids(res, 1), ['ars', 'tnt']);
+  assert.deepEqual(ids(res, 2), ['spo']);
+
+  // Europa League clubs come from Highlightly: "Sparta Praha", and "Lyon" keyed to Olympique Lyonnais.
+  const SPA = { id: 'h1', name: 'Sparta Praha', shortName: 'Sparta Praha', tla: 'SPA', extraAliases: ['Sparta Praha', 'praha'] };
+  const LYO = { id: 'h2', name: 'Lyon', shortName: 'Lyon', tla: 'LYO', key: 'Olympique Lyonnais', extraAliases: ['Lyon', 'Olympique Lyonnais'] };
+  const el = matchVideosToFixtures([
+    fixture(3, '2026-11-05T17:45:00Z', SPA, { id: 'h3', name: 'Bournemouth', shortName: 'Bournemouth', tla: 'BOU' }, 1, 3),
+    fixture(4, '2026-11-05T17:45:00Z', { id: 'h4', name: 'Real Sociedad', shortName: 'Real Sociedad', tla: 'RSO' }, LYO, 1, 1),
+  ], [
+    { ...md4('spa', 'Cherries Turn It Around! 🤩 | Sparta Prague 1-3 Bournemouth | UEFA Europa League Highlights', TNT), publishedAt: '2026-11-05T20:29:00Z' },
+    { ...md4('ol', 'Real Sociedad - OL : L’OL arrache le match nul à Saint-Sébastien grâce à son capitaine ! (1-1)'), publishedAt: '2026-11-05T23:00:00Z' },
+  ]);
+  assert.deepEqual(ids(el, 3), ['spa']);
+  assert.deepEqual(ids(el, 4), ['ol']);
+
+  const MAR = club(516, 'Olympique de Marseille', 'Marseille', 'MAR');
+  const l1 = matchVideosToFixtures([fixture(5, '2026-11-01T20:00:00Z', MAR, club(511, 'Toulouse FC', 'Toulouse', 'TOU'), 2, 0)], [
+    { ...md4('om', 'OM 2-0 Toulouse : 3 points de plus ✅'), publishedAt: '2026-11-01T23:00:00Z' },
+  ]);
+  assert.deepEqual(ids(l1, 5), ['om']);
+});

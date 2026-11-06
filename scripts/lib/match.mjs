@@ -89,7 +89,22 @@ const NAME_ALIASES = {
   'stade rennais fc 1901': ['rennes', 'stade rennais'],
   'olympique lyonnais': ['lyon', 'olympique lyonnais'],
   'rc strasbourg alsace': ['strasbourg', 'rc strasbourg'],
+  'olympique de marseille': ['marseille'],
+  // Plain "Sporting" is what TNT writes ("Shakhtar Donetsk 0-1 Sporting"). A title must name
+  // the opponent too, so Braga's or Gijón's games can't be mistaken for Sporting CP's.
+  'sporting clube de portugal': ['sporting cp', 'sporting lisbon', 'sporting'],
+  'sporting cp': ['sporting cp', 'sporting lisbon', 'sporting'],
 };
+// The club's own channel calls it by two letters ("OL - Angers SCO : ... (2-0)", "OM 2-0
+// Toulouse"). Kept apart because derived aliases that short are dropped as noise.
+const TWO_LETTER = { 'olympique lyonnais': 'ol', 'olympique de marseille': 'om' };
+
+// English names of cities in club names: TNT and the clubs write "Slavia Prague" and
+// "Sparta Prague" for football-data's and Highlightly's "Slavia Praha" and "Sparta Praha".
+const EXONYMS = [
+  ['praha', 'prague'], ['plzen', 'pilsen'], ['beograd', 'belgrade'], ['kobenhavn', 'copenhagen'],
+  ['lisboa', 'lisbon'], ['warszawa', 'warsaw'], ['bucuresti', 'bucharest'],
+];
 
 // Lookup: any normalized national-team name/alias -> nation entry.
 const NATION_INDEX = new Map();
@@ -120,11 +135,16 @@ export function teamAliases(team) {
     for (const a of nation.extraAliases ?? []) add(a);
   } else {
     for (const a of MANUAL_ALIASES[team.tla] ?? []) add(a);
-    for (const a of NAME_ALIASES[normalize(team.name ?? '').trim()] ?? []) add(a);
+    // `key` is the same club's football-data name when it came from Highlightly ("Lyon").
+    for (const k of new Set([team.name, team.key])) for (const a of NAME_ALIASES[normalize(k ?? '').trim()] ?? []) add(a);
   }
   for (const a of team.extraAliases ?? []) add(a);
+  for (const a of [...out]) {
+    for (const [local, english] of EXONYMS) if (` ${a} `.includes(` ${local} `)) add(` ${a} `.replace(` ${local} `, ` ${english} `));
+  }
   out.delete('');
-  return [...out].filter((a) => a.length >= 3);
+  const short = nation ? null : TWO_LETTER[normalize(team.key ?? team.name ?? '').trim()];
+  return [...[...out].filter((a) => a.length >= 3), ...(short ? [short] : [])];
 }
 
 /** Does `title` mention the team (whole-word match on any alias)? Returns the longest alias matched. */
@@ -187,7 +207,7 @@ const NOT_FIRST_TEAM_RE =
 export const isFirstTeam = (title) => !NOT_FIRST_TEAM_RE.test(deaccent(title));
 
 const EXCLUDE_RE =
-  /\b(press conference|konferencija za medije|pressekonferenz|conferenza stampa|rueda de prensa|conference de presse|iz drugog ugla|izjave|preview|reactions?|interview|vlogs?|vlogowe|kulisy|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|(?:all|every) angles?|analy[sz]e|analysis|goalscorer|inside(?! the (?:box|area))|uncut|unseen|matchday (?:live|pass)|extra time show|first \d+ minutes|pos-?jogo|pos-?partido|comparecencias?|apres-?match|all highlights|top \d+|review|full match|legends|alt angle|behind the scenes|behind the tigers|in hd|cinematic|inside the match|members only|on the road|match cut|post-?match|pre-?match|watchalong|reacts?|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|[a-z]+ cam(?= *(?:[|:-]|$))|esports|efootball|fc 2[5-9]|#shorts)\b/i;
+  /\b(press conference|konferencija za medije|pressekonferenz|conferenza stampa|rueda de prensa|conference de presse|iz drugog ugla|izjave|preview|reactions?|interview|vlogs?|vlogowe|kulisy|pitchside|tunnel|training|podcast|live stream|streamed|every goal|all goals|(?:all|every) angles?|analy[sz]e|analysis|goalscorer|inside(?! the (?:box|area))|uncut|unseen|matchday (?:live|pass)|extra time show|first \d+ minutes|pos-?jogo|pos-?partido|comparecencias?|apres-?match|all highlights|top \d+|review|full match|legends|(?:alt|alternate|alternative|unique|reverse) angles?|behind the scenes|behind the tigers|in hd|cinematic|inside the match|members only|on the road|match cut|post-?match|pre-?match|watchalong|reacts?|carabao|fa cup|efl cup|copa del rey|coppa italia|dfb|pokal|coupe de france|taca|friendly|friendlies|amistoso|pre-?season|qualifiers?|qualification|qualifying|clasificacion|play-?off final|club world cup|futsal|beach|[a-z]+ cam(?= *(?:[|:-]|$))|esports|efootball|fc 2[5-9]|#shorts)\b/i;
 
 // Competition keywords in titles. Club and national-team channels post several
 // competitions, so a title that names a different competition is skipped.
@@ -338,9 +358,22 @@ export function scoreContradicts(normTitle, homeAlias, awayAlias, fixture) {
   return between !== null && (between[0] !== fh || between[1] !== fa);
 }
 
+// Broadcasters whose highlight cuts always say "Highlights" in the title. Anything else they
+// post that names a match is a studio show or a goal clip, even with the scoreline between
+// the names ("Cunha & Bruno STUN Roma in the Champions League | Manchester United 3-2 Roma"
+// is CBS's panel reacting to the game). Keyed by channel id.
+const LABELLED_CHANNELS = new Set([
+  'UCET00YnetHT7tOpu12v8jxg', // CBS Sports Golazo
+  'UCf8YPuOWXlpTS7RibaJlP4g', // CBS Sports Golazo - Europe
+  'UC4i_9WvfPRTuRWEaWyfKuFw', // TNT Sports Football
+]);
+/** True for a title from a LABELLED_CHANNELS broadcaster that doesn't say "highlights". */
+export const unlabelledBroadcast = (v) => LABELLED_CHANNELS.has(v.channelId) && !HIGHLIGHT_RE.test(deaccent(v.title));
+
 /** Does a stored highlight still pass the title filters and the scoreline check for `f`? */
 export function stillBelongs(h, f) {
   if (!looksLikeMatchHighlight(h.title, { fixtures: true }) || !highlightLength(h.durationSec)) return false;
+  if (unlabelledBroadcast(h)) return false;
   const t = normalize(h.title);
   const home = mentions(t, teamAliases(f.homeTeam));
   const away = mentions(t, teamAliases(f.awayTeam));
@@ -382,7 +415,7 @@ export function matchVideosToFixtures(fixtures, videos, { windowHours = 120, ski
       if (!h) { h = fuzzyMentions(t, aliasesOf(f.homeTeam)); fuzzy = true; }
       if (h && !a) { a = fuzzyMentions(t, aliasesOf(f.awayTeam)); fuzzy = true; }
       if (!h || !a || h === a) continue;
-      if (!highlightTitleFor(v.title, t, h, a)) { skipped?.add(v.videoId); continue; }
+      if (!highlightTitleFor(v.title, t, h, a) || unlabelledBroadcast(v)) { skipped?.add(v.videoId); continue; }
       if (scoreContradicts(t, h, a, f)) continue;
       // Prefer exact name matches over typo-tolerant ones, then the fixture whose names
       // matched most specifically, then the closest kick-off.
