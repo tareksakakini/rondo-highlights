@@ -96,8 +96,9 @@ const NAME_ALIASES = {
   'sporting cp': ['sporting cp', 'sporting lisbon', 'sporting'],
 };
 // The club's own channel calls it by two letters ("OL - Angers SCO : ... (2-0)", "OM 2-0
-// Toulouse"). Kept apart because derived aliases that short are dropped as noise.
-const TWO_LETTER = { 'olympique lyonnais': 'ol', 'olympique de marseille': 'om' };
+// Toulouse"). Kept apart because derived aliases that short are dropped as noise. Keyed by
+// the plain names too: Highlightly's "Lyon" is too far from "Olympique Lyonnais" to borrow it.
+const TWO_LETTER = { 'olympique lyonnais': 'ol', lyon: 'ol', 'olympique de marseille': 'om', marseille: 'om' };
 
 // English names of cities in club names: TNT and the clubs write "Slavia Prague" and
 // "Sparta Prague" for football-data's and Highlightly's "Slavia Praha" and "Sparta Praha".
@@ -143,7 +144,7 @@ export function teamAliases(team) {
     for (const [local, english] of EXONYMS) if (` ${a} `.includes(` ${local} `)) add(` ${a} `.replace(` ${local} `, ` ${english} `));
   }
   out.delete('');
-  const short = nation ? null : TWO_LETTER[normalize(team.key ?? team.name ?? '').trim()];
+  const short = nation ? null : [team.key, team.name].map((n) => TWO_LETTER[normalize(n ?? '').trim()]).find(Boolean);
   return [...[...out].filter((a) => a.length >= 3), ...(short ? [short] : [])];
 }
 

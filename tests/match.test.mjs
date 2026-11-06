@@ -418,9 +418,10 @@ test('"Prague" for Praha, plain "Sporting" for Sporting CP, OL and OM on their o
   assert.deepEqual(ids(res, 1), ['ars', 'tnt']);
   assert.deepEqual(ids(res, 2), ['spo']);
 
-  // Europa League clubs come from Highlightly: "Sparta Praha", and "Lyon" keyed to Olympique Lyonnais.
+  // Europa League clubs as Highlightly's toTeam builds them: "Sparta Praha", and a "Lyon" that
+  // is too far from "Olympique Lyonnais" to borrow football-data's name.
   const SPA = { id: 'h1', name: 'Sparta Praha', shortName: 'Sparta Praha', tla: 'SPA', extraAliases: ['Sparta Praha', 'praha'] };
-  const LYO = { id: 'h2', name: 'Lyon', shortName: 'Lyon', tla: 'LYO', key: 'Olympique Lyonnais', extraAliases: ['Lyon', 'Olympique Lyonnais'] };
+  const LYO = { id: 'h2', name: 'Lyon', shortName: 'Lyon', tla: 'LYO', extraAliases: ['Lyon'] };
   const el = matchVideosToFixtures([
     fixture(3, '2026-11-05T17:45:00Z', SPA, { id: 'h3', name: 'Bournemouth', shortName: 'Bournemouth', tla: 'BOU' }, 1, 3),
     fixture(4, '2026-11-05T17:45:00Z', { id: 'h4', name: 'Real Sociedad', shortName: 'Real Sociedad', tla: 'RSO' }, LYO, 1, 1),
