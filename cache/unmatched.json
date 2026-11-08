@@ -183,6 +183,12 @@
  ],
  "CL": [
   {
+   "videoId": "8poAq61s6sY",
+   "title": "Highlights | Liga Portugal Betclic: Sporting CP 1-0 Moreirense FC",
+   "channel": "Sporting Clube de Portugal",
+   "publishedAt": "2026-11-07T23:32:51Z"
+  },
+  {
    "videoId": "YOhygCykb1M",
    "title": "KHAZRI WITH A WORLDIE! | Sunderland AFC 3-2 Chelsea | Classic Highlights",
    "channel": "Sunderland AFC",
@@ -409,36 +415,6 @@
    "title": "Extended Highlights: Goals from Adli, Cook and Rodríguez seal a place in the quarter-finals",
    "channel": "AFC Bournemouth",
    "publishedAt": "2026-10-29T09:00:01Z"
-  },
-  {
-   "videoId": "6Pn5qnuCVg8",
-   "title": "Highlights: Liverpool 1-1 Chelsea | Reds win on penalties!",
-   "channel": "Liverpool FC",
-   "publishedAt": "2026-10-28T23:50:05Z"
-  },
-  {
-   "videoId": "0cOVIZ_K7Ow",
-   "title": "On The Match with Martin O’Neill | Celtic 2-2 Dundee United (28/10/26)",
-   "channel": "Celtic FC",
-   "publishedAt": "2026-10-28T22:58:55Z"
-  },
-  {
-   "videoId": "C-pltSFTw5E",
-   "title": "Cherries into quarter-finals with convincing performance | AFC Bournemouth 3-0 Aston Villa",
-   "channel": "AFC Bournemouth",
-   "publishedAt": "2026-10-28T22:52:27Z"
-  },
-  {
-   "videoId": "mCdDj14Uq2U",
-   "title": "On The Match with Liam Scales | Celtic 2-2 Dundee United (28/10/26)",
-   "channel": "Celtic FC",
-   "publishedAt": "2026-10-28T22:10:04Z"
-  },
-  {
-   "videoId": "jhe0wsg6WHU",
-   "title": "Freigang legt vor und trifft – Highlights PSV Eindhoven – Eintracht Frankfurt",
-   "channel": "Eintracht Frankfurt",
-   "publishedAt": "2026-10-28T21:09:20Z"
   }
  ],
  "EL": [
@@ -1221,21 +1197,15 @@
    "title": "Extended Highlights: Goals from Adli, Cook and Rodríguez seal a place in the quarter-finals",
    "channel": "AFC Bournemouth",
    "publishedAt": "2026-10-29T09:00:01Z"
-  },
-  {
-   "videoId": "6Pn5qnuCVg8",
-   "title": "Highlights: Liverpool 1-1 Chelsea | Reds win on penalties!",
-   "channel": "Liverpool FC",
-   "publishedAt": "2026-10-28T23:50:05Z"
-  },
-  {
-   "videoId": "C-pltSFTw5E",
-   "title": "Cherries into quarter-finals with convincing performance | AFC Bournemouth 3-0 Aston Villa",
-   "channel": "AFC Bournemouth",
-   "publishedAt": "2026-10-28T22:52:27Z"
   }
  ],
  "SA": [
+  {
+   "videoId": "8poAq61s6sY",
+   "title": "Highlights | Liga Portugal Betclic: Sporting CP 1-0 Moreirense FC",
+   "channel": "Sporting Clube de Portugal",
+   "publishedAt": "2026-11-07T23:32:51Z"
+  },
   {
    "videoId": "aIdr-0NBVuQ",
    "title": "FIVE GOALS IN FLORENCE! 🤯 | Fiorentina 0-5 Juventus | Mini Match Serie A | 17/03/2012",
@@ -1442,6 +1412,30 @@
   }
  ],
  "UNL": [
+  {
+   "videoId": "yUynLqhXgas",
+   "title": "Liga Feminina Placard | Resumo | SL Benfica 5 - 2 Atlético CP | Jornada 7",
+   "channel": "Federação Portuguesa de Futebol",
+   "publishedAt": "2026-11-07T23:36:37Z"
+  },
+  {
+   "videoId": "-XvlAp14v-I",
+   "title": "Liga 3 Placard | Resumo | Caldas SC 0 - 1 UD Oliveirense | Jornada 9, Série B",
+   "channel": "Federação Portuguesa de Futebol",
+   "publishedAt": "2026-11-07T23:33:42Z"
+  },
+  {
+   "videoId": "H7L06bdPugo",
+   "title": "Liga 3 Placard | Resumo | CF Os Belenenses 0 - 0 LGC SAD | Jornada 9, Série B",
+   "channel": "Federação Portuguesa de Futebol",
+   "publishedAt": "2026-11-07T23:29:20Z"
+  },
+  {
+   "videoId": "YblczTkc92M",
+   "title": "Liga 3 Placard | Resumo | UD Santarém 2 -1 CD Mafra | Jornada 9, Série B",
+   "channel": "Federação Portuguesa de Futebol",
+   "publishedAt": "2026-11-07T23:27:53Z"
+  },
   {
    "videoId": "AN01uYzFDDc",
    "title": "SuperLiga Feminină, Etapa 11: AFK Csikszereda - FC Rapid 1923 1-3 (Rezumat, 7 noiembrie 2026)",
