@@ -1,6 +1,24 @@
 {
  "BL1": [
   {
+   "videoId": "U8iUtsh19Vw",
+   "title": "Highlights sc Heerenveen - Feyenoord | Eredivisie 2026-2027",
+   "channel": "Feyenoord",
+   "publishedAt": "2026-11-08T23:50:05Z"
+  },
+  {
+   "videoId": "J3zzFqQe6h0",
+   "title": "HIGHLIGHTS | FIVE goals, a Sven Mijnans HAT-TRICK and THREE points in the North! 🔝⚽️",
+   "channel": "PSV",
+   "publishedAt": "2026-11-08T23:01:36Z"
+  },
+  {
+   "videoId": "846ZwRvqW08",
+   "title": "Highlights FC Twente - Ajax | Vrienden loterij Eredivisie",
+   "channel": "AFC Ajax",
+   "publishedAt": "2026-11-08T23:00:16Z"
+  },
+  {
    "videoId": "IVQs8qqN0k8",
    "title": "On the Match with Grant Scott | Motherwell 3-1 Celtic (8/11/26)",
    "channel": "Celtic FC",
@@ -218,6 +236,24 @@
   }
  ],
  "CL": [
+  {
+   "videoId": "U8iUtsh19Vw",
+   "title": "Highlights sc Heerenveen - Feyenoord | Eredivisie 2026-2027",
+   "channel": "Feyenoord",
+   "publishedAt": "2026-11-08T23:50:05Z"
+  },
+  {
+   "videoId": "J3zzFqQe6h0",
+   "title": "HIGHLIGHTS | FIVE goals, a Sven Mijnans HAT-TRICK and THREE points in the North! 🔝⚽️",
+   "channel": "PSV",
+   "publishedAt": "2026-11-08T23:01:36Z"
+  },
+  {
+   "videoId": "846ZwRvqW08",
+   "title": "Highlights FC Twente - Ajax | Vrienden loterij Eredivisie",
+   "channel": "AFC Ajax",
+   "publishedAt": "2026-11-08T23:00:16Z"
+  },
   {
    "videoId": "NZputnEo6Gs",
    "title": "HIGHLIGHTS | TOWN 1 BOURNEMOUTH 2",
@@ -478,6 +514,24 @@
   }
  ],
  "EL": [
+  {
+   "videoId": "U8iUtsh19Vw",
+   "title": "Highlights sc Heerenveen - Feyenoord | Eredivisie 2026-2027",
+   "channel": "Feyenoord",
+   "publishedAt": "2026-11-08T23:50:05Z"
+  },
+  {
+   "videoId": "J3zzFqQe6h0",
+   "title": "HIGHLIGHTS | FIVE goals, a Sven Mijnans HAT-TRICK and THREE points in the North! 🔝⚽️",
+   "channel": "PSV",
+   "publishedAt": "2026-11-08T23:01:36Z"
+  },
+  {
+   "videoId": "846ZwRvqW08",
+   "title": "Highlights FC Twente - Ajax | Vrienden loterij Eredivisie",
+   "channel": "AFC Ajax",
+   "publishedAt": "2026-11-08T23:00:16Z"
+  },
   {
    "videoId": "NZputnEo6Gs",
    "title": "HIGHLIGHTS | TOWN 1 BOURNEMOUTH 2",
@@ -751,12 +805,6 @@
    "publishedAt": "2026-11-08T23:00:16Z"
   },
   {
-   "videoId": "AqvLsUaY0fY",
-   "title": "Nmecha with a brace from out of the box | Highlights | BVB v Elversberg",
-   "channel": "Borussia Dortmund",
-   "publishedAt": "2026-11-08T23:00:14Z"
-  },
-  {
    "videoId": "IVQs8qqN0k8",
    "title": "On the Match with Grant Scott | Motherwell 3-1 Celtic (8/11/26)",
    "channel": "Celtic FC",
@@ -975,6 +1023,12 @@
  ],
  "PD": [
   {
+   "videoId": "U8iUtsh19Vw",
+   "title": "Highlights sc Heerenveen - Feyenoord | Eredivisie 2026-2027",
+   "channel": "Feyenoord",
+   "publishedAt": "2026-11-08T23:50:05Z"
+  },
+  {
    "videoId": "J3zzFqQe6h0",
    "title": "HIGHLIGHTS | FIVE goals, a Sven Mijnans HAT-TRICK and THREE points in the North! 🔝⚽️",
    "channel": "PSV",
@@ -985,12 +1039,6 @@
    "title": "Highlights FC Twente - Ajax | Vrienden loterij Eredivisie",
    "channel": "AFC Ajax",
    "publishedAt": "2026-11-08T23:00:16Z"
-  },
-  {
-   "videoId": "AqvLsUaY0fY",
-   "title": "Nmecha with a brace from out of the box | Highlights | BVB v Elversberg",
-   "channel": "Borussia Dortmund",
-   "publishedAt": "2026-11-08T23:00:14Z"
   },
   {
    "videoId": "xOGv5yU-bKg",
@@ -1417,6 +1465,12 @@
  ],
  "SA": [
   {
+   "videoId": "U8iUtsh19Vw",
+   "title": "Highlights sc Heerenveen - Feyenoord | Eredivisie 2026-2027",
+   "channel": "Feyenoord",
+   "publishedAt": "2026-11-08T23:50:05Z"
+  },
+  {
    "videoId": "J3zzFqQe6h0",
    "title": "HIGHLIGHTS | FIVE goals, a Sven Mijnans HAT-TRICK and THREE points in the North! 🔝⚽️",
    "channel": "PSV",
@@ -1427,12 +1481,6 @@
    "title": "Highlights FC Twente - Ajax | Vrienden loterij Eredivisie",
    "channel": "AFC Ajax",
    "publishedAt": "2026-11-08T23:00:16Z"
-  },
-  {
-   "videoId": "AqvLsUaY0fY",
-   "title": "Nmecha with a brace from out of the box | Highlights | BVB v Elversberg",
-   "channel": "Borussia Dortmund",
-   "publishedAt": "2026-11-08T23:00:14Z"
   },
   {
    "videoId": "IVQs8qqN0k8",
