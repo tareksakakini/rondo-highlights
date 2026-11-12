@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-11-08T23:02:20.103Z",
+ "generatedAt": "2026-11-12T19:11:40.087Z",
  "source": "live",
- "rev": "baf46a69d4c298aade53eded17ce4f0650d27320",
+ "rev": "22c80f27c31cefd3f30179f69930c73acb6a4bf5",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-11-12T18:41:24.022Z",
+ "publishedAt": "2026-11-12T19:11:41.851Z",
  "competitions": [
   {
    "code": "PL",
@@ -1498,7 +1498,7 @@
    "color": "#14B8A6",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-4",
+   "currentRound": "md-5",
    "rounds": [
     {
      "key": "md-1",
@@ -1533,7 +1533,7 @@
      "label": "League phase · MD 5",
      "firstDate": "2026-11-12T17:00:00Z",
      "matches": 25,
-     "withHighlights": 0
+     "withHighlights": 1
     },
     {
      "key": "md-6",
