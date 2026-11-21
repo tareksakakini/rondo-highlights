@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-11-21T16:21:46.023Z",
+ "generatedAt": "2026-11-21T16:41:52.521Z",
  "source": "live",
- "rev": "4eba75ebb3eaf9fd6130d173a4e2f0e5938b65ad",
+ "rev": "774b63a2a5666262feb0ebc460f3ae80e3912bb9",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-11-21T16:32:49.453Z",
+ "publishedAt": "2026-11-21T16:41:54.710Z",
  "competitions": [
   {
    "code": "PL",
@@ -924,7 +924,7 @@
      "label": "Matchday 10",
      "firstDate": "2026-11-20T19:30:00Z",
      "matches": 9,
-     "withHighlights": 1
+     "withHighlights": 2
     },
     {
      "key": "md-11",
