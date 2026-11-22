@@ -192,7 +192,8 @@ test('first teams only: youth, women and reserve sides are dropped', () => {
 });
 
 test('a camera on one person is not a highlights cut', () => {
-  for (const t of ['🎥 UNAI CAM | Aston Villa 3-1 Viking', 'Arteta Cam: Arsenal 2-0 Everton', 'BENCH CAM - Chelsea 0-2 Spurs']) {
+  for (const t of ['🎥 UNAI CAM | Aston Villa 3-1 Viking', 'Arteta Cam: Arsenal 2-0 Everton', 'BENCH CAM - Chelsea 0-2 Spurs',
+    'Jamie Carragher & Gary Neville Liverpool 4-0 Man Utd Comms Cam 🎥', 'Commentary Cam: Liverpool 4-0 Man Utd']) {
     assert.ok(!looksLikeMatchHighlight(t, { fixtures: true }), t);
   }
   // A player called Cam is still fine.
