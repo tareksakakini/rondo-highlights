@@ -91,7 +91,7 @@ export function MyTeams({ index, fol, tabs, arrival, onArrived, openMyTeams, pre
         <div className="digest-body">
         <div className="digest-head">
           <div>
-            <h1>My teams <span className="beta-tag">Beta</span></h1>
+            <h1>My teams</h1>
             <p className="muted">Favorites digest: your teams from every league and cup, weekend by weekend.</p>
           </div>
           {fol.user && fol.teams.length > 0 && <button className="btn-ghost" onClick={() => setPickerOpen(true)}>Edit teams</button>}

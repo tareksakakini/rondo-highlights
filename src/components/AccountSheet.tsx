@@ -27,7 +27,7 @@ export function AccountSheet({ f, onEditTeams }: { f: FollowsApi; onEditTeams: (
       <div className="sheet account" role="dialog" aria-modal="true" aria-label="Account" ref={ref} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-grip" aria-hidden="true" />
         <div className="sheet-head">
-          <h2>{f.user ? 'Your account' : 'Pick your teams'} <span className="beta-tag">Beta</span></h2>
+          <h2>{f.user ? 'Your account' : 'Pick your teams'}</h2>
           <button className="btn-icon sm" onClick={f.closeAccount} aria-label="Close">
             <svg viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
           </button>

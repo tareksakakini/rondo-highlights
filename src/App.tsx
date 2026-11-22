@@ -657,7 +657,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
       <a href={TEAMS_PATH} aria-current={page === 'teams' ? 'page' : undefined}
         onClick={(e) => onNav(e, () => { if (page !== 'teams') openMyTeams(); })}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.2 2.6 5.5 6 .7-4.4 4.1 1.1 5.9L12 16.5l-5.3 2.9 1.1-5.9-4.4-4.1 6-.7z" /></svg>
-        My teams <span className="beta-tag">Beta</span>
+        My teams
       </a>
     </nav>
   );

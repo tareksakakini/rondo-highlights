@@ -56,7 +56,7 @@ export function Settings(p: Props) {
         {p.account && (
           <button className="setting setting-btn" onClick={p.account.open}>
             <div className="setting-text">
-              <span className="setting-name">Account <span className="beta-tag">Beta</span></span>
+              <span className="setting-name">Account</span>
               <span className="setting-help">{p.account.name ? `Signed in as ${p.account.name}.` : 'Make an account to pick your teams for "My teams".'}</span>
             </div>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" /></svg>

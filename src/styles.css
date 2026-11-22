@@ -234,7 +234,6 @@ html.player-full body { padding-bottom: 100lvh; }
 .kind-tag { padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--surface-2); color: var(--text); }
 .kind-tag.extended { background: color-mix(in srgb, var(--accent) 18%, var(--surface-2)); color: var(--accent); }
 .kind-tag.condensed { background: var(--accent); color: var(--accent-ink); }
-.beta { margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; vertical-align: 2px; background: var(--surface-2); color: var(--muted); }
 .moment-count { font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .transport { display: flex; gap: 8px; align-items: center; }
@@ -714,7 +713,6 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
 /* ---------- "★ My teams" (src/lib/follows.ts, src/lib/digest.ts) ---------- */
-.beta-tag { display: inline-block; vertical-align: middle; margin-left: 4px; padding: 1px 6px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--accent); font-size: 10px; font-weight: 750; font-stretch: 100%; letter-spacing: .06em; text-transform: uppercase; line-height: 1.4; }
 
 /* The two views, as tabs over the page. */
 .view-tabs { display: flex; gap: 4px; margin: 0 0 14px; border-bottom: 1px solid var(--line); }
@@ -723,7 +721,6 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
 .view-tabs a:hover { color: var(--text); }
 .view-tabs a[aria-current="page"] { color: var(--text); border-bottom-color: var(--accent); }
 .view-tabs a[aria-current="page"] svg { color: var(--accent); }
-.view-tabs .beta-tag { margin-left: 2px; font-size: 9px; padding: 0 5px; }
 
 /* While the digest loads: the startup wheel (Logo.tsx, LoadingMark), shown after a beat so a quick load doesn't flash it. */
 .digest-loading { display: grid; place-items: center; min-height: 50vh; }
