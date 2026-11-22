@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-11-22T16:41:49.584Z",
+ "generatedAt": "2026-11-22T16:51:54.625Z",
  "source": "live",
- "rev": "0246a56ee3ac939353d04860a1da749fc57f8311",
+ "rev": "5f62400ebc3a57f189bbd6942feda70117e3f530",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-11-22T16:41:51.831Z",
+ "publishedAt": "2026-11-22T16:51:56.514Z",
  "competitions": [
   {
    "code": "PL",
@@ -658,7 +658,7 @@
      "label": "Matchweek 12",
      "firstDate": "2026-11-21T14:00:00Z",
      "matches": 10,
-     "withHighlights": 5
+     "withHighlights": 6
     },
     {
      "key": "md-13",
@@ -924,7 +924,7 @@
      "label": "Matchday 10",
      "firstDate": "2026-11-20T19:30:00Z",
      "matches": 9,
-     "withHighlights": 3
+     "withHighlights": 4
     },
     {
      "key": "md-11",
