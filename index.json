@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-11-23T00:51:30.302Z",
+ "generatedAt": "2026-11-23T18:52:52.626Z",
  "source": "live",
- "rev": "cbae10def192f0cb940cde61bc1a62509ef24540",
+ "rev": "37c01add5f5ea519d794098a4b7fe2c80ec9ae75",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-11-23T12:54:10.234Z",
+ "publishedAt": "2026-11-23T18:53:39.361Z",
  "competitions": [
   {
    "code": "PL",
@@ -411,7 +411,7 @@
     {
      "key": "md-16",
      "label": "Matchweek 16",
-     "firstDate": "2026-12-13T00:00:00Z",
+     "firstDate": "2026-12-11T20:00:00Z",
      "matches": 10,
      "withHighlights": 0
     },
