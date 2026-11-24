@@ -34,7 +34,7 @@ export const NATIONS = [
   ['Bulgaria', 'BUL', 'bulgarie bulgarien'],
   ['Serbia', 'SRB', 'serbie serbien srbija sirbistan'],
   ['Montenegro', 'MNE', ''],
-  ['Bosnia and Herzegovina', 'BIH', 'bosnia bosnia herzegovina bosnia erzegovina'],
+  ['Bosnia-Herzegovina', 'BIH', 'bosnia and herzegovina bosnia bosnia herzegovina bosnia erzegovina'],
   ['North Macedonia', 'MKD', 'fyr macedonia macedonia del norte macedonia del nord'],
   ['Albania', 'ALB', 'albanie albanien arnavutluk shqiperia'],
   ['Kosovo', 'KVX', ''],
@@ -112,7 +112,7 @@ export const NATIONS = [
 // so we keep the blob's individual words AND known two/three-word phrases.
 const PHRASES = [
   'paises bajos', 'pays bas', 'pays de galles', 'irlanda del norte', 'czech republic', 'bosnia herzegovina',
-  'fyr macedonia', 'macedonia del norte', 'islas feroe', 'estados unidos', 'etats unis', 'south korea',
+  'bosnia and herzegovina', 'fyr macedonia', 'macedonia del norte', 'islas feroe', 'estados unidos', 'etats unis', 'south korea',
   'corea del sur', 'dpr korea', 'north korea', 'arabia saudi', 'arabie saoudite', 'ivory coast',
   'cote d ivoire', 'costa de marfil', 'cape verde', 'congo dr', 'ceska republika',
   // Italian (FIGC titles: "Highlights: Turchia-Italia 1-4")

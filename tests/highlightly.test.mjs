@@ -35,6 +35,8 @@ test('national teams: "National Team" suffix removed, canonical name and code', 
   assert.equal(k.tla, 'KVX');
   assert.equal(k.crest, 'x.png');
   assert.equal(toTeam({ name: 'Czech Republic' }, { national: true }).name, 'Czechia');
+  // Highlightly's name, spelled as football-data spells it in the World Cup: one team across both.
+  assert.equal(toTeam({ name: 'Bosnia and Herzegovina National Team' }, { national: true }).name, 'Bosnia-Herzegovina');
   assert.equal(toTeam({ name: 'TBD' }, { national: true }), null);
 });
 
