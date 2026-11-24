@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-11-24T21:11:39.685Z",
+ "generatedAt": "2026-11-24T22:01:39.622Z",
  "source": "live",
- "rev": "674e1de4b2b1447813b39b3c0ccd324960c64b72",
+ "rev": "3ef552437072f535980843151dfbc6cf5ae2cc9b",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-11-24T21:51:54.462Z",
+ "publishedAt": "2026-11-24T22:01:42.777Z",
  "competitions": [
   {
    "code": "PL",
@@ -1393,7 +1393,7 @@
      "label": "League phase · MD 5",
      "firstDate": "2026-11-24T17:45:00Z",
      "matches": 18,
-     "withHighlights": 3
+     "withHighlights": 2
     },
     {
      "key": "md-6",
