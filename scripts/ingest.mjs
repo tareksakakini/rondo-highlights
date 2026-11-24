@@ -313,7 +313,7 @@ async function collectCandidates(comp, sinceMs, YT, maxPages) {
     readThisRun.add(ch.handle);
     const must = ch.mustMatch ? new RegExp(ch.mustMatch, 'i') : null;
     const keep = uploads.filter((u) => {
-      if (!looksLikeMatchHighlight(u.title, { fixtures: comp.source !== 'videos' }) || (must && !must.test(u.title))) return false;
+      if (!looksLikeMatchHighlight(u.title, { fixtures: comp.source !== 'videos', channelId: info.id }) || (must && !must.test(u.title))) return false;
       const hints = detectComps(u.title);
       return !hints.size || hints.has(comp.code);
     });
@@ -448,7 +448,7 @@ async function main() {
     const highlights = matchVideosToFixtures(fixtures, videos, { windowHours: MATCH_WINDOW_HOURS, skipped });
     const claimed = new Set([...highlights.values()].flat().map((h) => h.videoId).concat([...skipped]));
     const missed = videos
-      .filter((v) => v.embeddable && highlightLength(v.durationSec) && !claimed.has(v.videoId) && looksLikeMatchHighlight(v.title, { fixtures: true }))
+      .filter((v) => v.embeddable && highlightLength(v.durationSec) && !claimed.has(v.videoId) && looksLikeMatchHighlight(v.title, { fixtures: true, channelId: v.channelId }))
       .map(({ videoId, title, channel, publishedAt }) => ({ videoId, title, channel, publishedAt }));
     const missedIds = new Set(missed.map((v) => v.videoId));
     for (const v of prevUnmatched[comp.code] ?? []) {

@@ -250,23 +250,35 @@ const CLASSIC_RE = /\bclassics?\b/i;
 // unless it goes on to say "highlights".
 const QUOTE_OPEN_RE = /^\W*["“”'‘’«]/;
 
+// Channels that title every highlights cut in one fixed format without saying "highlights"
+// or giving the score. A title in that format counts as highlights; nothing else they post
+// gets in that way. Keyed by channel id.
+const TITLED_CHANNELS = new Map([
+  // ZDF's sportstudio fußball: "FC Bayern München – 1. FC Köln | Bundesliga, 10. Spieltag 2026/27 | ZDFsportstudio",
+  // a 7-12 min cut of every Bundesliga match, Germany only. Its 2. Bundesliga, Frauen-Bundesliga
+  // and Nations League cuts are titled the same way with another competition name.
+  ['UClCIWcZNvq15p0Y-E4ToGOw', /^[^|]+\s[–-]\s[^|]+\|\s*Bundesliga, \d{1,2}\. Spieltag\b/i],
+]);
+/** True for a title in its channel's fixed highlights format (see TITLED_CHANNELS). */
+const titledHighlight = (title, channelId) => TITLED_CHANNELS.get(channelId)?.test(title) ?? false;
+
 /**
  * Cheap title-only pre-filter (before we spend quota on video details).
  * `fixtures: true` is for fixture-backed competitions: a video must be published after a
  * real kick-off between the two teams, so "classic" can't smuggle in an old match there
  * ("EXTENDED HIGHLIGHTS | Man City 5-3 Sunderland | A Premier League Classic").
  */
-export function looksLikeMatchHighlight(title, { fixtures = false } = {}) {
+export function looksLikeMatchHighlight(title, { fixtures = false, channelId } = {}) {
   const t = deaccent(title);
   if (NOT_FIRST_TEAM_RE.test(t) || EXCLUDE_RE.test(t) || (!fixtures && CLASSIC_RE.test(t))) return false;
-  if (HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t)) return true;
+  if (HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t) || titledHighlight(title, channelId)) return true;
   return !QUOTE_OPEN_RE.test(t) && (INLINE_SCORE_RE.test(t) || PAREN_SCORE_RE.test(t));
 }
 
 /** True when a title gets past looksLikeMatchHighlight only on an inline scoreline. */
-const scorelineOnly = (title) => {
+const scorelineOnly = (title, channelId) => {
   const t = deaccent(title);
-  return !(HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t) || PAREN_SCORE_RE.test(t));
+  return !(HIGHLIGHT_RE.test(t) || HIGHLIGHT_LOCAL_RE.test(t) || PAREN_SCORE_RE.test(t) || titledHighlight(title, channelId));
 };
 
 // Club-name noise words may sit between a name and the score ("Real Sociedad 1-2 AFC
@@ -305,8 +317,8 @@ const namesSpeaker = (title, homeAlias, awayAlias) =>
  * analyse Spurs 3-0 thrashing by Brentford"). Names matched fuzzily have no known position,
  * so those titles are given the benefit of the doubt.
  */
-export function highlightTitleFor(title, normTitle, homeAlias, awayAlias) {
-  if (!scorelineOnly(title)) return true;
+export function highlightTitleFor(title, normTitle, homeAlias, awayAlias, channelId) {
+  if (!scorelineOnly(title, channelId)) return true;
   if (namesSpeaker(title, homeAlias, awayAlias)) return false;
   if (!normTitle.includes(` ${homeAlias} `) || !normTitle.includes(` ${awayAlias} `)) return true;
   return scoreBetween(normTitle, homeAlias, awayAlias) !== null;
@@ -373,13 +385,13 @@ export const unlabelledBroadcast = (v) => LABELLED_CHANNELS.has(v.channelId) && 
 
 /** Does a stored highlight still pass the title filters and the scoreline check for `f`? */
 export function stillBelongs(h, f) {
-  if (!looksLikeMatchHighlight(h.title, { fixtures: true }) || !highlightLength(h.durationSec)) return false;
+  if (!looksLikeMatchHighlight(h.title, { fixtures: true, channelId: h.channelId }) || !highlightLength(h.durationSec)) return false;
   if (unlabelledBroadcast(h)) return false;
   const t = normalize(h.title);
   const home = mentions(t, teamAliases(f.homeTeam));
   const away = mentions(t, teamAliases(f.awayTeam));
   if (!home || !away || home === away) return true;
-  return highlightTitleFor(h.title, t, home, away) && !scoreContradicts(t, home, away, f);
+  return highlightTitleFor(h.title, t, home, away, h.channelId) && !scoreContradicts(t, home, away, f);
 }
 
 /**
@@ -402,7 +414,7 @@ export function matchVideosToFixtures(fixtures, videos, { windowHours = 120, ski
   for (const v of videos) {
     if (v.embeddable === false) continue;
     if (!highlightLength(v.durationSec)) continue;
-    if (!looksLikeMatchHighlight(v.title, { fixtures: true })) continue;
+    if (!looksLikeMatchHighlight(v.title, { fixtures: true, channelId: v.channelId })) continue;
     const t = normalize(v.title);
     const published = Date.parse(v.publishedAt);
 
@@ -416,7 +428,7 @@ export function matchVideosToFixtures(fixtures, videos, { windowHours = 120, ski
       if (!h) { h = fuzzyMentions(t, aliasesOf(f.homeTeam)); fuzzy = true; }
       if (h && !a) { a = fuzzyMentions(t, aliasesOf(f.awayTeam)); fuzzy = true; }
       if (!h || !a || h === a) continue;
-      if (!highlightTitleFor(v.title, t, h, a) || unlabelledBroadcast(v)) { skipped?.add(v.videoId); continue; }
+      if (!highlightTitleFor(v.title, t, h, a, v.channelId) || unlabelledBroadcast(v)) { skipped?.add(v.videoId); continue; }
       if (scoreContradicts(t, h, a, f)) continue;
       // Prefer exact name matches over typo-tolerant ones, then the fixture whose names
       // matched most specifically, then the closest kick-off.

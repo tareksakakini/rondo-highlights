@@ -93,7 +93,10 @@ export const COMPETITIONS = [
   {
     code: 'BL1', name: 'Bundesliga', short: 'Bundesliga', country: 'Germany', color: '#EF4444',
     group: 'league', roundLabel: 'Matchday', source: 'fixtures',
-    channels: [ch('@bundesliga', { mustMatch: 'bundesliga(?!\\s*2\\b)' }), ...EURO_CLUBS],
+    // The league's own channel is blocked in Germany, Austria, Switzerland, Liechtenstein and
+    // Luxembourg; ZDF's sportstudio fußball has every match for Germany (titles: see
+    // TITLED_CHANNELS in lib/match.mjs).
+    channels: [ch('@bundesliga', { mustMatch: 'bundesliga(?!\\s*2\\b)' }), ch('@sportstudiofussball'), ...EURO_CLUBS],
   },
   {
     code: 'FL1', name: 'Ligue 1', short: 'Ligue 1', country: 'France', color: '#22C55E',

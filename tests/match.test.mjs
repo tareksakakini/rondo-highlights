@@ -439,3 +439,33 @@ test('"Prague" for Praha, plain "Sporting" for Sporting CP, OL and OM on their o
   ]);
   assert.deepEqual(ids(l1, 5), ['om']);
 });
+
+test('sportstudio fußball: its fixed "Home – Away | Bundesliga, N. Spieltag" titles are highlights', () => {
+  const ZDF = 'UClCIWcZNvq15p0Y-E4ToGOw';
+  const zdf = (videoId, title, channelId = ZDF) =>
+    ({ videoId, title, channel: 'sportstudio fußball', channelId, durationSec: 563, publishedAt: '2026-11-22T21:00:00Z', embeddable: true, priority: 1 });
+  const BAY = club(5, 'FC Bayern München', 'Bayern', 'FCB');
+  const KOE = club(1, '1. FC Köln', '1. FC Köln', 'KOE');
+  const SVW = club(12, 'SV Werder Bremen', 'Bremen', 'SVW');
+  const HSV = club(7, 'Hamburger SV', 'HSV', 'HSV');
+  const fixtures = [fixture(1, '2026-11-20T19:30:00Z', BAY, KOE, 1, 1), fixture(2, '2026-11-22T16:30:00Z', SVW, HSV, 4, 0)];
+  const bayKoe = zdf('bay', 'FC Bayern München – 1. FC Köln| Bundesliga, 10. Spieltag 2026/27 | ZDFsportstudio');
+  const res = matchVideosToFixtures(fixtures, [
+    bayKoe,
+    zdf('svw', 'SV Werder Bremen – Hamburger SV | Bundesliga, 10. Spieltag 2026/27 | ZDFsportstudio'),
+    // The same format from any other channel proves nothing.
+    zdf('other', 'FC Bayern München – 1. FC Köln | Bundesliga, 10. Spieltag 2026/27 | ZDFsportstudio', 'x'),
+  ]);
+  assert.deepEqual(ids(res, 1), ['bay']);
+  assert.deepEqual(ids(res, 2), ['svw']);
+  assert.equal(res.get(1)[0].kind, 'extended');
+  assert.ok(stillBelongs({ ...bayKoe, kind: 'extended' }, fixtures[0]));
+  for (const t of [
+    'FC St. Pauli – VfL Bochum | 2. Bundesliga, 12. Spieltag 2026/27 | ZDFsportstudio',
+    'RB Leipzig – VfL Wolfsburg | Frauen-Bundesliga, 11. Spieltag 2026/27 | ZDFsportstudio',
+    'Deutschland – Niederlande | UEFA Nations League, 6. Spieltag 2026/27 | ZDFsportstudio',
+    'FK Austria Wien – FC Bayern München | Women\'s Champions League, 5. Spieltag 2026/27 | ZDFsportstudio',
+    'Erlösung an Spieltag elf! 🥳| ZDFsportstudio | #shorts',
+    'Paderborn-Torhüter Nahuel Noll im aktuellen sportstudio | ZDFsportstudio',
+  ]) assert.ok(!looksLikeMatchHighlight(t, { fixtures: true, channelId: ZDF }), t);
+});
