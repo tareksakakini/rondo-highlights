@@ -90,6 +90,8 @@ const NAME_ALIASES = {
   'olympique lyonnais': ['lyon', 'olympique lyonnais'],
   'rc strasbourg alsace': ['strasbourg', 'rc strasbourg'],
   'olympique de marseille': ['marseille'],
+  // Toulouse's own channel: "Le résumé vidéo de RC Lens - TéFéCé (1-1)".
+  'toulouse fc': ['toulouse', 'tefece'],
   // Plain "Sporting" is what TNT writes ("Shakhtar Donetsk 0-1 Sporting"). A title must name
   // the opponent too, so Braga's or Gijón's games can't be mistaken for Sporting CP's.
   'sporting clube de portugal': ['sporting cp', 'sporting lisbon', 'sporting'],
@@ -199,12 +201,12 @@ export function fuzzyMentions(normTitle, aliases) {
   return best;
 }
 
-const HIGHLIGHT_RE = /highlight|resumen|extended|sintesi|melhores momentos|samenvatting|zusammenfassung|key moments/i;
+const HIGHLIGHT_RE = /highlight|resumen|\bresume\b|extended|sintesi|melhores momentos|samenvatting|zusammenfassung|key moments/i;
 // Anything but the men's first team: women's sides, youth and academy sides (UEFA Youth
 // League, U19 or Dutch O19, Primavera, Juvenil...), reserve and B teams (Dortmund II, Castilla, Jong Ajax).
 // Also applied to highlights kept from earlier runs, so tightening it cleans up stored data.
 const NOT_FIRST_TEAM_RE =
-  /\b(women|womens|woman|ladies|femenino|femenina|femminile|frauen|damen|feminine|feminines|wsl|nwsl|liga f|u-?1[4-9]\w*|u-?2[0-3]\w*|o-?1[4-9]|o-?2[0-3]|sub-?1[4-9]|sub-?2[0-3]|weuro|under[- ]?\d\d|[pf]1[4-9]|[pf]2[01]|academy|youth|uyl|juvenil|juveniles|primavera|jugend|a-?junioren|b-?junioren|nextgen|next gen|pl2|premier league 2|reserves?|b team|ii|castilla|filial|jong (?:ajax|psv|az|utrecht|twente))\b/i;
+  /\b(women|womens|woman|ladies|femenino|femenina|femminile|frauen|damen|feminine|feminines|wsl|nwsl|liga f|u-?1[4-9]\w*|u-?2[0-3]\w*|o-?1[4-9]|o-?2[0-3]|sub-?1[4-9]|sub-?2[0-3]|weuro|under[- ]?\d\d|[pf]1[4-9]|[pf]2[01]|academy|youth|uyl|juvenil|juveniles|primavera|jugend|a-?junioren|b-?junioren|nextgen|next gen|pl2|premier league 2|reserves?|b team|ii|castilla|filial|jong (?:ajax|psv|az|utrecht|twente)|arkema|premiere ligue)\b/i;
 
 /** False for women's, youth and reserve-team videos (the site is men's first teams only). */
 export const isFirstTeam = (title) => !NOT_FIRST_TEAM_RE.test(deaccent(title));

@@ -489,3 +489,28 @@ test('RTL Sport\'s German names: Prag, Posen, Mailand, Kreta, and Ferencvárosi 
   ]);
   assert.deepEqual([1, 2, 3, 4].map((id) => ids(res, id)), [['mil'], ['spa'], ['lec'], ['ofi']]);
 });
+
+test('Ligue 1 club summaries: "Résumé", Toulouse as "TéFéCé", Paris FC\'s women left out', () => {
+  const NIC = club(522, 'OGC Nice', 'Nice', 'NIC');
+  const PSG = club(524, 'Paris Saint-Germain FC', 'PSG', 'PSG');
+  const LEN = club(546, 'Racing Club de Lens', 'RC Lens', 'RCL');
+  const TOU = club(511, 'Toulouse FC', 'Toulouse', 'TOU');
+  const HAV = club(533, 'Le Havre AC', 'Le Havre', 'HAC');
+  const PFC = club(1045, 'Paris FC', 'Paris FC', 'PFC');
+  const fixtures = [
+    fixture(1, '2026-11-21T20:05:00Z', NIC, PSG, 2, 3),
+    fixture(2, '2026-11-22T14:00:00Z', LEN, TOU, 1, 1),
+    fixture(3, '2026-11-15T14:00:00Z', HAV, PFC, 0, 0),
+  ];
+  const fr = (videoId, title, publishedAt, durationSec = 200) =>
+    ({ videoId, title, channel: 'club', channelId: 'x', durationSec, publishedAt, embeddable: true, priority: 9 });
+  const res = matchVideosToFixtures(fixtures, [
+    fr('psg', '12 VICTOIRES DE SUITE I LE RÉSUMÉ DE NICE - PSG', '2026-11-22T12:00:00Z', 530),
+    fr('nice', "Résumé : OGC Nice 2-3 Paris Saint-Germain I Ligue 1 McDonald's 26-27", '2026-11-22T12:00:00Z', 364),
+    fr('tfc', "Le résumé vidéo de RC Lens - TéFéCé (1-1), 11ème journée de Ligue 1 McDonald's", '2026-11-23T12:00:00Z'),
+    fr('women', 'UN MATCH DISPUTÉ ! | Résumé Le Havre - Paris FC (1-2) | J9 Arkema Première Ligue', '2026-11-17T12:00:00Z'),
+  ]);
+  assert.deepEqual(ids(res, 1), ['nice', 'psg']);
+  assert.deepEqual(ids(res, 2), ['tfc']);
+  assert.deepEqual(ids(res, 3), []);
+});

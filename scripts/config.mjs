@@ -39,6 +39,13 @@ export const LALIGA_CLUBS = [
   '@RealSociedadTV', '@SevillaFC', '@ValenciaCF',
 ].map((h) => ch(h, { tier: 'club' }));
 
+/**
+ * Ligue 1 clubs (2026/27) not already in EURO_CLUBS whose own match summaries play
+ * worldwide (checked 2026-11-24). The Ligue 1 channel refuses embeds in Germany, so these
+ * and the EURO_CLUBS are what German visitors get.
+ */
+export const LIGUE1_CLUBS = ['@ogcnice', '@ToulouseFC', '@ParisFC', '@ESTAC'].map((h) => ch(h, { tier: 'club' }));
+
 /** Big European clubs: their channels carry UCL/UEL highlights worldwide. */
 export const EURO_CLUBS = [
   '@realmadrid', '@fcbarcelona', '@atleticodemadrid', '@RealBetis', '@VillarrealCF',
@@ -101,7 +108,7 @@ export const COMPETITIONS = [
   {
     code: 'FL1', name: 'Ligue 1', short: 'Ligue 1', country: 'France', color: '#22C55E',
     group: 'league', roundLabel: 'Matchweek', source: 'fixtures',
-    channels: [ch('@beINSPORTSUSA', { mustMatch: 'ligue 1' }), ch('@Ligue1'), ...EURO_CLUBS],
+    channels: [ch('@beINSPORTSUSA', { mustMatch: 'ligue 1' }), ch('@Ligue1'), ...EURO_CLUBS, ...LIGUE1_CLUBS],
   },
   {
     code: 'CL', name: 'Champions League', short: 'Champions League', country: 'Europe', color: '#3B82F6',
@@ -161,4 +168,5 @@ export const MAX_PAGES_PER_CHANNEL = 12;
 export const EMBED_BLOCKED = {
   UCpcTrCXblq78GZrTUTLWeBw: ['US'], // FIFA: World Cup 2026 highlights (checked 2026-09-28)
   'UCTv-XvfzLX3i4IGWAm4sbmA': ['US'], // LALIGA EA SPORTS: every match summary (checked 2026-10-27)
+  UCQsH5XtIc9hONE1BQjucM0g: ['DE'], // Ligue 1 McDonald's: every match summary (checked 2026-11-24)
 };
