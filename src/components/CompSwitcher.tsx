@@ -9,7 +9,7 @@ const GROUPS: { key: NonNullable<Competition['group']>; label: string }[] = [
 ];
 
 /** Country flags for the leagues; a star for European competitions, a globe for world ones. */
-export function CompMark({ comp }: { comp: Competition }) {
+export function CompMark({ comp }: { comp: Pick<Competition, 'country' | 'color'> }) {
   const flag: Record<string, React.ReactNode> = {
     England: <><rect width="20" height="14" fill="#fff" /><rect x="8.4" width="3.2" height="14" fill="#CE1124" /><rect y="5.4" width="20" height="3.2" fill="#CE1124" /></>,
     Spain: <><rect width="20" height="14" fill="#AA151B" /><rect y="3.5" width="20" height="7" fill="#F1BF00" /></>,

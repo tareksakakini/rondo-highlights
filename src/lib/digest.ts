@@ -76,9 +76,17 @@ const recentKeys = (c: Competition) => {
   return i < 0 ? [] : [c.rounds[i], c.rounds[i - 1]].filter((r) => r?.matches).map((r) => r.key);
 };
 
-/** Each competition's current round (and the one before), for the team picker and to find where your teams play. */
-export async function loadRecentRounds(index: DataIndex): Promise<{ comp: Competition; file: RoundFile }[]> {
-  const wanted = index.competitions.flatMap((c) => recentKeys(c).map((key) => ({ c, key })));
+/**
+ * The rounds the team picker lists teams from: each club competition's current round
+ * and the one before (every club plays in those), and every round of the national
+ * competitions. Those are tournaments and groups that don't all play each matchday,
+ * and the World Cup is an archive whose current round is its final, so their recent
+ * rounds would miss most teams. Round files are cached for good, so a repeat visit
+ * costs nothing.
+ */
+export async function loadPickerRounds(index: DataIndex): Promise<{ comp: Competition; file: RoundFile }[]> {
+  const keys = (c: Competition) => (c.group === 'national' ? withFiles(c).map((r) => r.key) : recentKeys(c));
+  const wanted = index.competitions.flatMap((c) => keys(c).map((key) => ({ c, key })));
   const got = await Promise.allSettled(wanted.map(({ c, key }) => fetchRound(c.code, key).then((file) => ({ comp: c, file }))));
   return got.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
 }
@@ -88,10 +96,12 @@ export const teamId = (t: Team) => t.key ?? t.name;
 const hasTeam = (m: Match, teams: Set<string>) => teams.has(teamId(m.home)) || teams.has(teamId(m.away));
 
 /**
- * Your teams' matches from DIGEST_DAYS back to AHEAD_DAYS ahead. Only competitions
+ * Your teams' matches from DIGEST_DAYS back to AHEAD_DAYS ahead. Only club competitions
  * whose recent rounds include one of your teams are read further, each as soon as its
- * own recent rounds are in (not once every competition's are). Rounds files are cached
- * for good, so a repeat visit costs nothing.
+ * own recent rounds are in (not once every competition's are). National competitions
+ * are read over the window whatever their recent rounds hold: a national team can sit
+ * out a matchday, and the picker lists every team from every round. Rounds files are
+ * cached for good, so a repeat visit costs nothing.
  */
 export async function loadTeamMatches(index: DataIndex, teams: string[], now = Date.now()): Promise<TeamMatch[]> {
   const set = new Set(teams);
@@ -99,8 +109,10 @@ export async function loadTeamMatches(index: DataIndex, teams: string[], now = D
   const to = now + AHEAD_DAYS * DAY;
   const settled = <T,>(ps: Promise<T>[]) => Promise.allSettled(ps).then((got) => got.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : [])));
   const perComp = await Promise.all(index.competitions.map(async (c) => {
-    const recent = await settled(recentKeys(c).map((key) => fetchRound(c.code, key)));
-    if (!recent.some((file) => file.matches.some((m) => hasTeam(m, set)))) return [];
+    if (c.group !== 'national') {
+      const recent = await settled(recentKeys(c).map((key) => fetchRound(c.code, key)));
+      if (!recent.some((file) => file.matches.some((m) => hasTeam(m, set)))) return [];
+    }
     const rounds = withFiles(c);
     // A round can start before the window and still have matches in it: take the one before too.
     const first = rounds.findIndex((r) => Date.parse(r.firstDate) >= from);
@@ -115,28 +127,40 @@ export async function loadTeamMatches(index: DataIndex, teams: string[], now = D
 }
 
 export interface PickerGroup {
-  comp: Competition;
+  /** A competition's code, or `intl` for the national teams. */
+  key: string;
+  name: string;
+  /** What the heading's mark shows: a competition's flag or star, or a globe (`country: 'World'`). */
+  mark: Pick<Competition, 'country' | 'color'>;
   teams: Team[];
 }
 
 /**
- * Every team in the data, for the picker, each listed once: under its league when it
- * plays in one, else under the first cup or national competition it appears in.
+ * Every team in the data, for the picker, each listed once. Clubs go under their league
+ * when they play in one, else under the first cup they appear in. National teams are one
+ * group, "International", whichever national competitions they play in (after the
+ * leagues and cups).
  */
-export function teamDirectory(recent: { comp: Competition; file: RoundFile }[], competitions: Competition[]): PickerGroup[] {
-  const rank = (c: Competition) => ({ league: 0, europe: 1, national: 2 }[c.group ?? 'league'] * 100 + competitions.indexOf(c));
-  const home = new Map<string, { comp: Competition; team: Team }>();
-  for (const { comp, file } of recent) {
+export function teamDirectory(rounds: { comp: Competition; file: RoundFile }[], competitions: Competition[]): PickerGroup[] {
+  const rank = (c: Competition) => (c.group === 'europe' ? 100 : 0) + competitions.indexOf(c);
+  const clubs = new Map<string, { comp: Competition; team: Team }>();
+  const nations = new Map<string, Team>();
+  for (const { comp, file } of rounds) {
     for (const m of file.matches) {
       for (const t of [m.home, m.away]) {
-        const was = home.get(teamId(t));
-        if (!was || rank(comp) < rank(was.comp)) home.set(teamId(t), { comp, team: t });
+        const id = teamId(t);
+        if (comp.group === 'national') { if (!nations.has(id)) nations.set(id, t); continue; }
+        const was = clubs.get(id);
+        if (!was || rank(comp) < rank(was.comp)) clubs.set(id, { comp, team: t });
       }
     }
   }
-  return [...competitions].sort((a, b) => rank(a) - rank(b))
-    .map((comp) => ({ comp, teams: [...home.values()].filter((h) => h.comp === comp).map((h) => h.team).sort((a, b) => (a.short || a.name).localeCompare(b.short || b.name)) }))
-    .filter((g) => g.teams.length);
+  const byName = (a: Team, b: Team) => (a.short || a.name).localeCompare(b.short || b.name);
+  const groups: PickerGroup[] = competitions.filter((c) => c.group !== 'national').sort((a, b) => rank(a) - rank(b))
+    .map((comp) => ({ key: comp.code, name: comp.short ?? comp.name, mark: comp, teams: [...clubs.values()].filter((h) => h.comp === comp).map((h) => h.team).sort(byName) }));
+  const national = competitions.find((c) => c.group === 'national');
+  if (national) groups.push({ key: 'intl', name: 'International', mark: { country: 'World', color: national.color }, teams: [...nations.values()].sort(byName) });
+  return groups.filter((g) => g.teams.length);
 }
 
 /** For search: lower case, no accents ("Atlético" matches "atletico"). */

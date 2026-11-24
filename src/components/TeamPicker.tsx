@@ -6,8 +6,8 @@ import { CompMark } from './CompSwitcher';
 import { TeamBadge } from './TeamBadge';
 
 /**
- * Pick your teams: every team in the data as a crest, under its league (or its
- * cup or national competition), with a search box. Your teams are listed first, in your
+ * Pick your teams: every team in the data as a crest, clubs under their league (or
+ * their cup) and national teams under International, with a search box. Your teams are listed first, in your
  * order (new ones join at the end; drag one by its handle to move it), which orders the
  * digest. Changes are saved when it closes.
  */
@@ -67,8 +67,8 @@ export function TeamPicker({ groups, selected, onClose }: {
           {!shown && <p className="muted picker-note">Loading teams…</p>}
           {shown && !shown.length && <p className="muted picker-note">No team matches “{q}”.</p>}
           {shown?.map((g) => (
-            <section key={g.comp.code} className="picker-group">
-              <h3><CompMark comp={g.comp} />{g.comp.short ?? g.comp.name}</h3>
+            <section key={g.key} className="picker-group">
+              <h3><CompMark comp={g.mark} />{g.name}</h3>
               <div className="picker-grid">
                 {g.teams.map((t) => {
                   const on = picked.includes(teamId(t));

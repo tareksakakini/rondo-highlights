@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { DataIndex, Kind, Match, Team } from '../types';
 import type { FollowsApi } from '../lib/follows';
 import { awaitingIn, cutSec, fmtRange, fmtTotal, pickHighlight, usable, type Cut } from '../lib/format';
-import { groupSlates, loadRecentRounds, loadTeamMatches, teamDirectory, teamId, type PickerGroup, type Slate, type TeamMatch } from '../lib/digest';
+import { groupSlates, loadPickerRounds, loadTeamMatches, teamDirectory, teamId, type PickerGroup, type Slate, type TeamMatch } from '../lib/digest';
 import { SlateRow } from './SlateRow';
 import { TeamsLoading } from './TeamsLoading';
 import { TeamPicker } from './TeamPicker';
@@ -56,7 +56,7 @@ export function MyTeams({ index, fol, tabs, arrival, onArrived, openMyTeams, pre
   useEffect(() => {
     if (!pickerOpen || pickerGroups) return;
     let alive = true;
-    loadRecentRounds(index).then((r) => { if (alive) setPickerGroups(teamDirectory(r, index.competitions)); });
+    loadPickerRounds(index).then((r) => { if (alive) setPickerGroups(teamDirectory(r, index.competitions)); });
     return () => { alive = false; };
   }, [pickerOpen, index, pickerGroups]);
   // Just opened (see `arrival`): the picker when asked for, or when no teams are picked yet.
