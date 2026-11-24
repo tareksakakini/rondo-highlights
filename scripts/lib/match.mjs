@@ -25,7 +25,7 @@ export function normalize(s) {
 const NOISE = new Set([
   'fc', 'cf', 'afc', 'ac', 'as', 'ss', 'ssc', 'us', 'sc', 'sv', 'sk', 'fk', 'kv', 'vfb', 'vfl',
   'tsg', 'fsv', 'rc', 'rcd', 'cd', 'ud', 'sd', 'ca', 'osc', 'sco', 'bk', 'club', 'de', 'calcio', 'bc',
-  'pae', 'rb',
+  'pae', 'rb', 'tc',
 ]);
 
 // Nicknames / short forms broadcasters use that can't be derived automatically.
@@ -100,11 +100,13 @@ const NAME_ALIASES = {
 // the plain names too: Highlightly's "Lyon" is too far from "Olympique Lyonnais" to borrow it.
 const TWO_LETTER = { 'olympique lyonnais': 'ol', lyon: 'ol', 'olympique de marseille': 'om', marseille: 'om' };
 
-// English names of cities in club names: TNT and the clubs write "Slavia Prague" and
-// "Sparta Prague" for football-data's and Highlightly's "Slavia Praha" and "Sparta Praha".
+// English and German names of cities in club names: TNT and the clubs write "Slavia Prague"
+// and "Sparta Prague" for football-data's and Highlightly's "Slavia Praha" and "Sparta Praha";
+// RTL Sport writes "Sparta Prag", "Lech Posen", "AC Mailand" and "OFI Kreta".
 const EXONYMS = [
   ['praha', 'prague'], ['plzen', 'pilsen'], ['beograd', 'belgrade'], ['kobenhavn', 'copenhagen'],
   ['lisboa', 'lisbon'], ['warszawa', 'warsaw'], ['bucuresti', 'bucharest'],
+  ['praha', 'prag'], ['poznan', 'posen'], ['milan', 'mailand'], ['crete', 'kreta'],
 ];
 
 // Lookup: any normalized national-team name/alias -> nation entry.

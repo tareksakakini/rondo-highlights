@@ -111,7 +111,9 @@ export const COMPETITIONS = [
   {
     code: 'EL', name: 'Europa League', short: 'Europa League', country: 'Europe', color: '#F59E0B',
     group: 'europe', roundLabel: 'Matchday', source: 'fixtures', highlightly: 3337,
-    channels: [ch('@CBSSportsGolazoEurope', { mustMatch: '\\buel\\b|europa league' }), ch('@TNTSportsFootball', { mustMatch: 'europa league' }), ...PL_CLUBS, ...EURO_CLUBS],
+    // RTL Sport (Germany only) posts 8-9 matches a matchday, titled in German ("AC Mailand vs.
+    // Ferencvaros Budapest - Highlights | UEFA Europa League | RTL Sport"), among NFL clips.
+    channels: [ch('@CBSSportsGolazoEurope', { mustMatch: '\\buel\\b|europa league' }), ch('@TNTSportsFootball', { mustMatch: 'europa league' }), ch('@RTLSport', { mustMatch: 'europa league' }), ...PL_CLUBS, ...EURO_CLUBS],
   },
   {
     code: 'UNL', name: 'UEFA Nations League', short: 'Nations League', country: 'Europe', color: '#14B8A6',

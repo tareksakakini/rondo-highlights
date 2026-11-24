@@ -469,3 +469,23 @@ test('sportstudio fußball: its fixed "Home – Away | Bundesliga, N. Spieltag" 
     'Paderborn-Torhüter Nahuel Noll im aktuellen sportstudio | ZDFsportstudio',
   ]) assert.ok(!looksLikeMatchHighlight(t, { fixtures: true, channelId: ZDF }), t);
 });
+
+test('RTL Sport\'s German names: Prag, Posen, Mailand, Kreta, and Ferencvárosi without the TC', () => {
+  const RTL = 'UC8WYi3XQXsf-6FNvqoEvxag';
+  const rtl = (videoId, title, publishedAt) =>
+    ({ videoId, title, channel: 'RTL Sport', channelId: RTL, durationSec: 205, publishedAt, embeddable: true, priority: 2 });
+  const MIL = club(98, 'AC Milan', 'Milan', 'MIL');
+  const fixtures = [
+    fixture(1, '2026-11-05T20:00:00Z', MIL, club(1, 'Ferencvárosi TC', 'Ferencvárosi TC', 'FTC'), 2, 0),
+    fixture(2, '2026-11-05T17:45:00Z', club(2, 'Sparta Praha', 'Sparta Praha', 'SPA'), club(3, 'Bournemouth', 'Bournemouth', 'BOU'), 1, 1),
+    fixture(3, '2026-10-15T16:45:00Z', club(4, 'Lech Poznan', 'Lech Poznan', 'LEC'), club(5, 'Bayer Leverkusen', 'Leverkusen', 'B04'), 0, 2),
+    fixture(4, '2026-10-22T16:45:00Z', club(6, 'OFI Crete', 'OFI Crete', 'OFI'), club(5, 'Bayer Leverkusen', 'Leverkusen', 'B04'), 1, 3),
+  ];
+  const res = matchVideosToFixtures(fixtures, [
+    rtl('mil', 'AC Mailand vs. Ferencvaros Budapest - Highlights | UEFA Europa League | RTL Sport', '2026-11-05T23:00:00Z'),
+    rtl('spa', 'Sparta Prag vs. AFC Bournemouth - Highlights | UEFA Europa League | RTL Sport', '2026-11-05T23:00:00Z'),
+    rtl('lec', 'Lech Posen vs. Bayer Leverkusen - die Highlights | UEFA Europa League | RTL Sport', '2026-10-15T23:00:00Z'),
+    rtl('ofi', 'OFI Kreta vs. Bayer 04 Leverkusen - Highlights | UEFA Europa League | RTL Sport', '2026-10-22T23:00:00Z'),
+  ]);
+  assert.deepEqual([1, 2, 3, 4].map((id) => ids(res, id)), [['mil'], ['spa'], ['lec'], ['ofi']]);
+});
