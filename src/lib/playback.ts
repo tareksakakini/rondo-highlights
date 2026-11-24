@@ -1,4 +1,4 @@
-import type { PlayItem } from '../types';
+import type { Kind, PlayItem } from '../types';
 
 /**
  * One play order:
@@ -10,6 +10,7 @@ import type { PlayItem } from '../types';
  *    of the queue (marked `auto`), ahead of what you had queued. Another "Play all"
  *    replaces the old round's leftovers; what you queued yourself stays, in its order.
  *  - `history` is what played before, for Previous.
+ *  - `setKind` switches the match playing to its short or extended cut, in place.
  * Clearing the queue empties it; nothing else keeps playing afterwards.
  */
 export interface PlaybackState {
@@ -34,6 +35,7 @@ export type Action =
   | { type: 'next' }
   | { type: 'prev' }
   | { type: 'failed'; videoId: string }
+  | { type: 'setKind'; kind: Kind }
   | { type: 'stop' };
 
 const HISTORY_MAX = 50;
@@ -146,6 +148,10 @@ export function playbackReducer(s: PlaybackState, a: Action): PlaybackState {
       const list = [...(s.failed[s.current.uid] ?? []), a.videoId];
       return { ...s, failed: { ...s.failed, [s.current.uid]: list } };
     }
+    case 'setKind':
+      // The match playing, at another length (its earlier failures were the other cut's).
+      if (!s.current || s.current.kind === a.kind) return s;
+      return { ...s, current: { ...s.current, kind: a.kind }, failed: { ...s.failed, [s.current.uid]: [] } };
     case 'stop':
       return { ...s, current: null, history: pushHistory(s.history, s.current) };
   }

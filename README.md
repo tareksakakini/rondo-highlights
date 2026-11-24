@@ -102,6 +102,18 @@ A **★ My teams** tab next to *Competitions* opens the favorites digest at `/my
 2. Firestore: one database, `(default)` in `nam5`.
 3. After changing `firestore.rules`: `firebase deploy --only firestore:rules`. Pushing only `firestore.rules`, `firebase.json` or `.firebaserc` doesn't start a Netlify build.
 
+## Phones
+
+Most visitors are on a phone, so up to 760 px wide the site has a layout of its own rather than the wide one squeezed down (the last section of `src/styles.css`; wide screens are unaffected).
+
+- **Tab bar** along the bottom (`src/components/TabBar.tsx`): *Matches*, *My teams*, *Up next* (with how many are queued) and *Settings*. It replaces the tabs over the page, the saved-queue bar and the watch view's back button.
+- **Top bar:** the logo and the tagline only, and it scrolls away. Short/Extended and Spoiler-free sit over the match list; every preference (those two, Auto-condense, Autoplay, account, country) is in the Settings sheet.
+- **Competitions** are one row of chips that scrolls sideways (`src/components/CompRail.tsx`), the round a stepper under it, then *Play all* with what it plays ("10 matches · 29 min").
+- **Matches are rows:** a tap anywhere on a row plays it, + queues it. Rows have no Short/Ext. chips; the length of one match is switched under the video while it plays (the playback action `setKind`). The thumbnail's time says "Auto" or "Ext." when it isn't the length asked for.
+- **The player is pinned** to the top of the screen, edge to edge, whenever something plays, so the video never moves: under it is either *Up next* (controls, the match, the queue) or the matches, with a slim bar in between (title, next, close). A phone on its side keeps the earlier behaviour: the video fits the screen.
+- **Up next with nothing playing** opens the queue as a sheet. **My teams** lists each weekend and midweek as the same rows instead of a sideways row of cards.
+- Prerendered pages carry both layouts (`scripts/prerender.ts`: the chips, the controls' space, the tab bar), so the first paint on a phone is already the phone layout and nothing moves when the app takes over.
+
 ## Project layout
 
 ```
@@ -134,7 +146,7 @@ Our own, at **rondohighlights.com/stats**. It sets no cookies and stores no IP a
 ## YouTube embed rules we follow
 
 - One player on the page.
-- It auto-advances only while visible: when you scroll away it docks into a mini player of at least 200 px.
+- It auto-advances only while visible: when you scroll away it docks into a mini player of at least 200 px. On phones it's pinned to the top of the screen at full width instead.
 - No overlays on the player.
 - The video title and channel are always shown next to it.
 - Official channels only.

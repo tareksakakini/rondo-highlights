@@ -191,16 +191,7 @@ html.player-full body { padding-bottom: 100lvh; }
 .player-shell.mini .player-frame { position: relative; aspect-ratio: 16 / 9; }
 .mini-bar { display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 12px; font-size: 13px; font-weight: 600; }
 .mini-title { flex: 1; min-width: 0; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-@media (max-width: 700px) {
-  .player-shell.mini { inset: 0 0 auto 0; width: 100%; border-radius: 0; border-width: 0 0 1px; padding-top: env(safe-area-inset-top); }
-  .mini-bar { height: 46px; padding: 0 6px 0 14px; gap: 6px; font-size: 14px; }
-  .mini-bar .btn-ghost.sm { padding: 7px 14px; font-size: 13px; }
-  /* Browsing the matches while a video plays: it stays docked at the top, so start the page below it. */
-  .app.docked { padding-top: calc(env(safe-area-inset-top) + 46px + 56.25vw); }
-  .app.docked .topbar { position: static; }
-  .app.docked .card { scroll-margin-top: calc(env(safe-area-inset-top) + 46px + 56.25vw); }
-}
-@media (min-width: 701px) and (max-width: 1099px) {
+@media (min-width: 761px) and (max-width: 1099px) {
   .app.docked .foot { padding-bottom: 300px; }
 }
 /* A phone on its side: the player fits the screen's height (the top bar scrolls away with
@@ -268,7 +259,6 @@ html.player-full body { padding-bottom: 100lvh; }
 /* The tagline: one line over the competitions while nothing is playing. */
 .tagline { margin: 2px 0 14px; font-size: 17px; font-weight: 650; letter-spacing: -0.005em; color: var(--text); }
 .tagline span { color: var(--accent); }
-@media (max-width: 760px) { .tagline { font-size: 15px; margin: 0 0 10px; } }
 .comps { position: relative; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .comp-wrap { display: contents; }
 .comp-sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; flex: none; }
@@ -603,113 +593,6 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
   .play-glyph svg { width: 22px; height: 22px; }
 }
 
-/* ---------- tablets & phones ---------- */
-@media (max-width: 760px) {
-  .desktop-only, .spoiler-toggle .toggle-text { display: none; }
-  .spoiler-toggle { padding: 7px 9px; }
-  .topbar { gap: 10px; }
-  .seg button { padding: 7px 11px; }
-  .logo { gap: 9px; }
-  .wordmark { font-size: 26px; }
-  .wordmark-sub { font-size: 8.5px; letter-spacing: .3em; }
-  .logo svg { width: 38px; height: 38px; }
-
-  /* One scrolling row, edge to edge. Snap points keep the page's 16px inset (so the first chip
-     isn't pulled under the edge), and each side fades only when there's more to scroll to. */
-  .comps { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity;
-    margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); padding: 2px max(16px, env(safe-area-inset-left));
-    scroll-padding-inline: max(16px, env(safe-area-inset-left));
-    --fl: 0px; --fr: 0px;
-    mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%); }
-  .comps.more-l { --fl: 16px; }
-  .comps.more-r { --fr: 32px; }
-  .comps::-webkit-scrollbar { display: none; }
-  .comp { scroll-snap-align: start; padding: 9px 14px; }
-
-  .round-bar { grid-template-columns: 1fr; grid-template-areas: "nav" "meta" "actions"; gap: 6px; margin: 8px 0 12px; --hl: clamp(22px, 7vw, 27px); }
-  /* Phones: the competition on its own line, then the round between its arrows. */
-  .headline { flex-direction: column; align-items: stretch; gap: 6px; width: calc(100% + 8px); }
-  .headline .comp-switch { align-self: flex-start; }
-  .hl-sep { display: none; }
-  .round-nav { gap: 4px; margin-left: 6px; }
-  .hl-skel-comp { width: 9em; font-size: 16px; height: calc(var(--hl) * 1.15 + 4px); }
-  .hl-skel-round { width: auto; height: 38px; margin-left: 6px; }
-  .round-select { flex: 1; --hl: clamp(18px, 5.4vw, 21px); }
-  .round-actions { margin-top: 6px; }
-  .round-actions .btn-primary { flex: 1; justify-content: center; padding: 12px 18px; font-size: 16px; }
-  .round-actions .btn-ghost { padding: 11px 16px; }
-
-  .now { padding-top: 10px; gap: 10px; }
-  .now-title { font-size: 22px; }
-  .yt-meta a, .yt-meta .linkish { -webkit-line-clamp: 1; }
-  /* Right under the video, ahead of the title, where a thumb looks for them. */
-  .transport { width: 100%; order: -1; }
-  .transport .switch { margin-left: auto; }
-
-  .sheet { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 88vh; border-radius: 20px 20px 0 0; border-width: 1px 0 0;
-    padding: 6px 18px calc(18px + env(safe-area-inset-bottom)); animation: slide .22s ease-out; }
-  .sheet-grip { display: block; width: 38px; height: 4px; border-radius: 4px; background: var(--line); margin: 6px auto 2px; }
-}
-
-/* ---------- phones: compact match rows ---------- */
-@media (max-width: 639px) {
-  .grid, .layout.with-aside .grid { grid-template-columns: 1fr; gap: 10px; }
-  .card { display: grid; grid-template-columns: 124px minmax(0, 1fr); border-radius: 12px; }
-  .card .thumb { aspect-ratio: auto; height: 100%; min-height: 96px; }
-  .card .thumb-teams { gap: 6px; }
-  .card .thumb-teams .badge { width: 36px !important; height: 36px !important; font-size: 11px !important; }
-  .card .thumb-teams .vs { font-size: 11px; }
-  .card .now-tag { font-size: 9.5px; left: 6px; top: 6px; }
-  .card .dur { right: 6px; bottom: 6px; font-size: 11px; }
-  .card .no-hl { font-size: 10.5px; bottom: 6px; padding: 0 6px; line-height: 1.25; }
-  .card-body { padding: 9px 10px 9px 12px; gap: 5px; }
-  .teams { gap: 3px; margin-bottom: 1px; }
-  .team-row { grid-template-columns: 18px minmax(0, 1fr) auto; column-gap: 7px; font-size: 14px; }
-  .team-row .badge { width: 18px !important; height: 18px !important; font-size: 6.5px !important; }
-  .tscore { font-size: 15px; }
-  .meta-2 { margin-top: -2px; }
-  .meta { font-size: 11.5px; }
-  .card-actions { gap: 6px; }
-  .versions { gap: 5px; }
-  .chip { padding: 6px 9px; font-size: 11.5px; }
-  .card-actions .btn-icon { width: 34px; height: 34px; }
-  .card-actions .btn-icon svg { width: 18px; height: 18px; }
-  .card.skeleton { min-height: 108px; }
-}
-@media (max-width: 480px) {
-  .lbl-long { display: none; }
-  .lbl-short { display: inline; }
-  .cond-toggle { position: relative; padding: 7px 9px; }
-  .cond-toggle sup { position: absolute; top: 1px; right: 3px; margin: 0; }
-}
-@media (max-width: 420px) {
-  .card { grid-template-columns: 112px minmax(0, 1fr); }
-  .chip { padding: 6px 8px; gap: 4px; font-size: 11px; }
-  .versions { gap: 4px; min-width: 0; }
-  .card-actions .btn-icon { flex: none; }
-  .topbar { gap: 8px; }
-  .prefs { gap: 6px; }
-  .settings-btn .flag { display: none; }
-  .settings-btn { padding: 7px 8px; }
-  .seg button { padding: 7px 9px; font-size: 13px; }
-}
-@media (max-width: 380px) {
-  .topbar { gap: 6px; }
-  .prefs { gap: 4px; }
-  .toggle, .cond-toggle, .spoiler-toggle, .settings-btn { padding: 7px; }
-  .seg button { padding: 6px 7px; font-size: 12.5px; }
-}
-@media (max-width: 359px) {
-  .topbar { padding-left: 10px; padding-right: 10px; }
-  .wordmark { font-size: 22px; }
-  .wordmark-sub { font-size: 7.5px; letter-spacing: .26em; }
-  .logo svg { width: 32px; height: 32px; }
-  .seg button { padding: 6px 6px; font-size: 12px; }
-  .prefs { gap: 3px; }
-  .toggle, .cond-toggle, .spoiler-toggle, .settings-btn { padding: 6px; }
-  .card { grid-template-columns: 104px minmax(0, 1fr); }
-  .chip-dur { display: none; }
-}
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
 /* ---------- "★ My teams" (src/lib/follows.ts, src/lib/digest.ts) ---------- */
@@ -779,21 +662,6 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
 .slate-row.loading > .card.skeleton { min-height: 300px; }
 @media (hover: none) { .slate-arrows { display: none; } }
 .card-comp { display: flex; align-items: center; gap: 6px; margin-bottom: -2px; font-size: 11.5px; font-weight: 700; letter-spacing: .02em; color: var(--muted); }
-@media (max-width: 760px) {
-  /* Edge to edge on phones, so the next card peeks in from the side. */
-  .slate-row { grid-auto-columns: min(78vw, 300px); gap: 10px;
-    margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); padding: 0 max(16px, env(safe-area-inset-left));
-    scroll-padding-inline: max(16px, env(safe-area-inset-left)); }
-  .slate-row.more-l { --fl: 16px; }
-  .slate-row.more-r { --fr: 24px; }
-  .team-wheel { margin-left: calc(-1 * max(16px, env(safe-area-inset-left))); margin-right: calc(-1 * max(16px, env(safe-area-inset-left)));
-    padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-left)); }
-}
-@media (max-width: 639px) {
-  /* Phones lay match cards out as compact rows; in a slate's row they stay full cards. */
-  .slate-row .card { display: flex; }
-  .slate-row .card .thumb { aspect-ratio: 16 / 9; height: auto; min-height: 0; }
-}
 
 /* Settings and account sheet */
 .setting-btn { width: 100%; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; color: inherit; }
@@ -845,4 +713,267 @@ body.is-reordering { user-select: none; -webkit-user-select: none; cursor: grabb
 @media (max-width: 760px) {
   .sheet.picker { width: auto; height: 92vh; max-height: none; }
   .picker-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+}
+
+/* ==========================================================================
+   Phones (up to 760px wide)
+
+   Most visitors are on a phone, and the phone has a layout of its own rather than the wide
+   one squeezed down:
+   - navigation is a tab bar along the bottom, in reach of a thumb (TabBar.tsx): Matches,
+     My teams, Up next (what's playing and the queue) and Settings;
+   - the top bar is just the logo and the tagline, and scrolls away with the page;
+   - the competitions are one row of chips (CompRail.tsx), the round a stepper under it,
+     then Play all, then the two controls that change the list (length, spoiler-free);
+   - matches are rows, not cards: a tap anywhere on a row plays it, + queues it;
+   - while something plays the video is pinned to the top of the screen, edge to edge, and
+     never moves: under it is either what's playing and the queue (Up next) or the matches,
+     with a slim bar (title, next, close) in between.
+   The parts below exist only for phones; wide screens never show them.
+   ========================================================================== */
+.top-tagline, .comp-rail, .quick-prefs, .pa-sub, .now-cuts, .now-close, .mini-next, .tabbar, .dur-kind, .ic-queued-phone, .phone-only { display: none; }
+
+@media (max-width: 760px) {
+  :root { --tab-h: 56px; }
+  .app { padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom)); }
+  .desktop-only, .view-tabs, .tagline, .prefs { display: none; }
+
+  /* ---- top bar: the logo and what the site does ---- */
+  .topbar {
+    position: static; gap: 12px; border-bottom: 0; background: none; backdrop-filter: none;
+    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 4px max(16px, env(safe-area-inset-left));
+  }
+  .logo { gap: 8px; }
+  .logo svg { width: 34px; height: 34px; }
+  .wordmark { font-size: 23px; gap: 2px; }
+  .wordmark-sub { font-size: 7.5px; letter-spacing: .3em; }
+  .top-tagline { display: block; margin: 0 0 0 auto; text-align: right; font-size: 12.5px; line-height: 1.3; font-weight: 650; color: var(--muted); }
+  .top-tagline span { display: block; color: var(--accent); }
+
+  .layout {
+    --gl: max(16px, env(safe-area-inset-left)); --gr: max(16px, env(safe-area-inset-right));
+    gap: 12px; padding: 8px var(--gr) 20px var(--gl);
+  }
+  .browse, .empty-state { scroll-margin-top: 8px; }
+  .notice { margin: 8px 16px 0; }
+
+  /* ---- competitions: one row of chips, edge to edge; each side fades while there's more ---- */
+  .comp-rail {
+    display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain;
+    margin: 0 calc(-1 * var(--gr)) 0 calc(-1 * var(--gl)); padding: 2px var(--gr) 2px var(--gl);
+    --fl: 0px; --fr: 0px;
+    mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%);
+  }
+  .comp-rail::-webkit-scrollbar { display: none; }
+  .comp-rail.more-l { --fl: 16px; }
+  .comp-rail.more-r { --fr: 32px; }
+  .cr-item {
+    flex: none; display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 14px 0 11px;
+    border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--muted); font-weight: 650; font-size: 14px; white-space: nowrap; text-decoration: none;
+  }
+  .cr-item .comp-mark { width: 18px; height: 13px; }
+  .cr-item[aria-current="page"] { color: var(--text); border-color: var(--c); background: color-mix(in srgb, var(--c) 24%, var(--surface)); }
+  .cr-skel { width: 128px; }
+
+  /* The rows of links under a prerendered page (and on the 404 page) scroll the same way. */
+  .comps { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); padding: 2px max(16px, env(safe-area-inset-left)); }
+  .comps::-webkit-scrollbar { display: none; }
+  .comp { padding: 9px 14px; }
+
+  /* ---- the round: a stepper, its dates, Play all, then the list's two controls ---- */
+  .round-bar { display: flex; flex-direction: column; align-items: stretch; gap: 0; margin: 6px 0 0; --hl: 21px; }
+  .headline { display: block; margin: 0; }
+  .headline .comp-switch, .hl-sep, .hl-skel-comp { display: none; }
+  .round-nav { gap: 4px; }
+  .round-nav .btn-icon { width: 44px; height: 44px; }
+  .round-select { flex: 1; }
+  .rs-button, .rs-sizer { padding: 10px 8px; text-align: center; }
+  .rs-button { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--text); }
+  .rs-name { min-width: 0; }
+  .rs-button .cs-caret, .round-select.is-open .rs-button .cs-caret { position: static; transform: none; width: 16px; height: 16px; }
+  .round-select.is-open .rs-button .cs-caret { transform: rotate(180deg); }
+  .rs-sizer.pre-rs { background: none; color: var(--text); }
+  .hl-skel-round { width: auto; height: 44px; }
+  .round-meta { justify-content: center; gap: 2px 12px; padding: 0; min-height: 19px; font-size: 12.5px; }
+  .rm-total { display: none; }
+  .round-actions { margin-top: 12px; gap: 8px; }
+  .round-actions .btn-primary { flex: 1; min-height: 56px; justify-content: center; gap: 10px; padding: 6px 20px 6px 16px; font-size: 17px; }
+  .round-actions .btn-primary svg { width: 26px; height: 26px; }
+  .pa-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+  .pa-sub { display: block; font-size: 12px; font-weight: 600; opacity: .75; font-variant-numeric: tabular-nums; }
+  .round-actions .btn-ghost { min-height: 56px; padding: 0 18px; }
+  .quick-prefs { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; margin: 12px 0 2px; }
+  .quick-prefs .seg button { min-height: 32px; padding: 0 14px; }
+  .quick-prefs .toggle { height: 40px; padding: 0 14px 0 12px; }
+
+  /* ---- matches: rows, edge to edge. A tap on a row plays it (MatchCard); + queues it. ---- */
+  .grid, .layout.with-aside .grid { display: block; margin: 8px calc(-1 * var(--gr)) 0 calc(-1 * var(--gl)); }
+  .grid.loading { min-height: 100vh; }
+  .card {
+    position: relative; display: grid; grid-template-columns: 124px minmax(0, 1fr); align-items: center; column-gap: 12px;
+    padding: 10px var(--gr) 10px var(--gl); border: 0; border-top: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+    border-radius: 0; background: none; overflow: visible; cursor: pointer;
+  }
+  .card.is-empty { cursor: default; }
+  .card.is-playing { border-color: color-mix(in srgb, var(--line) 75%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+  .card.skeleton { min-height: 91px; }
+  @media (hover: none) { .card:not(.is-empty):active { background: var(--surface); } }
+  .card .thumb { aspect-ratio: 16 / 9; height: auto; border-radius: 10px; }
+  .play-glyph { display: none; }
+  .card .thumb-teams { gap: 6px; }
+  .card .thumb-teams .badge { width: 32px !important; height: 32px !important; font-size: 10px !important; }
+  .card .thumb-teams .vs { font-size: 10.5px; }
+  .card .dur { right: 5px; bottom: 5px; display: inline-flex; gap: 4px; font-size: 11px; }
+  .dur-kind { display: inline; color: var(--accent); font-weight: 800; }
+  .card .now-tag { left: 5px; top: 5px; font-size: 9.5px; }
+  /* No video yet: the note where the thumbnail would be (the crests are by the names). */
+  .card.is-empty .thumb { background: var(--surface); }
+  .card.is-empty .thumb-teams { display: none; }
+  .card .no-hl { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 10px; font-size: 11px; line-height: 1.3; }
+  /* Beside the thumbnail: the two teams with the score, and one line under them (day, views
+     or "Watched"); room on the right for the queue button. */
+  .card-body { display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: center; gap: 3px 0; min-width: 0; padding: 0 46px 0 0; }
+  .card-comp, .teams { grid-column: 1 / -1; }
+  .card-comp { margin: 0; }
+  .teams { gap: 3px; margin-bottom: 1px; }
+  .team-row { grid-template-columns: 18px minmax(0, 1fr) auto; column-gap: 8px; font-size: 15px; }
+  .team-row .badge { width: 18px !important; height: 18px !important; font-size: 6.5px !important; }
+  .tscore { font-size: 16px; }
+  .meta, .meta-2 { font-size: 12px; margin: 0; }
+  .meta .dot, .meta .channel, .views-yt { display: none; }
+  .meta-2 { min-width: 0; overflow: hidden; }
+  .views::before, .watched-tag::before { content: '·'; margin: 0 5px; color: var(--muted); font-weight: 400; }
+  .watched-tag { margin-left: 0; gap: 0; }
+  .watched-tag svg { margin-right: 3px; }
+  .card:has(.watched-tag) .views { display: none; }
+  .versions { display: none; }
+  .card-actions { position: absolute; right: calc(var(--gr) - 8px); top: 50%; translate: 0 -50%; margin: 0; }
+  .card-actions .btn-icon { width: 44px; height: 44px; border-color: transparent; background: none; color: var(--muted); }
+  .card-actions .btn-icon.done { color: var(--accent); border-color: transparent; }
+  /* Queued: a list with a tick, so it doesn't read as "Watched" (wide screens keep the plain tick). */
+  .ic-queued-wide { display: none; }
+  .ic-queued-phone { display: block; }
+  .cond-note { padding: 0; }
+  .blocked-group { margin-top: 12px; }
+
+  /* ---- what's playing: the controls right under the video, then the match ---- */
+  .now { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0; padding: 0 0 2px; }
+  .now-main { display: contents; }
+  .transport { order: 1; gap: 8px; }
+  .transport .btn-icon { width: 46px; height: 46px; }
+  .transport .btn-icon svg { width: 24px; height: 24px; }
+  .now-close { display: inline-grid; }
+  .transport .switch { margin-left: auto; }
+  .now-kicker { order: 2; margin-top: 14px; font-size: 12.5px; }
+  .now-kicker .kind-tag { display: none; }
+  .now-title { order: 3; margin: 3px 0 0; font-size: 22px; }
+  /* Short or extended, for this match. */
+  .now-cuts { order: 4; display: flex; margin-top: 12px; padding: 3px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+  .now-cuts button {
+    flex: 1; min-width: 0; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border: 0; border-radius: 999px; background: none; color: var(--muted); font-weight: 650; font-size: 13.5px; white-space: nowrap;
+  }
+  .now-cuts button span { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .now-cuts button.on { background: var(--accent); color: var(--accent-ink); }
+  .yt-meta { order: 5; flex-direction: column; gap: 2px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12.5px; }
+  .yt-meta a, .yt-meta .linkish { -webkit-line-clamp: 1; }
+
+  /* The queue under it: flat, the page's own width. */
+  .upnext { padding: 14px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; }
+  .suggest-section { margin-top: 10px; }
+
+  /* ---- the tab bar ---- */
+  .tabbar {
+    position: fixed; z-index: 42; left: 0; right: 0; bottom: 0; display: flex;
+    padding: 0 max(4px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px, env(safe-area-inset-left));
+    border-top: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 92%, transparent);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  }
+  .tab {
+    flex: 1; min-width: 0; height: var(--tab-h); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    border: 0; padding: 0; background: none; color: var(--muted); text-decoration: none; font-size: 10.5px; font-weight: 650; letter-spacing: .01em;
+  }
+  .tab svg { width: 24px; height: 24px; }
+  .tab[aria-current="page"] { color: var(--accent); }
+  .tab-icon { position: relative; display: grid; }
+  .tab-badge {
+    position: absolute; top: -5px; left: 15px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+    background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 2px var(--bg);
+    font-size: 10.5px; font-weight: 800; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .tab-live { position: absolute; top: -2px; right: -5px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+  html.player-full .tabbar { display: none; }
+  .toast { bottom: calc(var(--tab-h) + 14px + env(safe-area-inset-bottom)); }
+  .foot { padding: 4px 16px 24px; }
+
+  /* ---- sheets come up from the bottom ---- */
+  .sheet { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 88dvh; border-radius: 20px 20px 0 0; border-width: 1px 0 0;
+    padding: 6px 18px calc(18px + env(safe-area-inset-bottom)); animation: slide .22s ease-out; }
+  .sheet-grip { display: block; width: 38px; height: 4px; border-radius: 4px; background: var(--line); margin: 6px auto 2px; }
+  .setting.phone-only { display: flex; }
+  .setting .seg { flex: none; }
+  .setting .seg button { min-height: 32px; padding: 0 12px; }
+  /* The queue with nothing playing (the tab bar's "Up next"). */
+  .queue-sheet .upnext { padding: 8px 0 0; border: 0; }
+  .queue-empty { padding: 10px 0 4px; }
+  .queue-empty h2 { margin: 0 0 6px; font-size: 18px; font-weight: 800; font-stretch: 112%; }
+  .queue-empty p { margin: 0 0 16px; }
+  .queue-empty strong { color: var(--text); font-weight: 650; }
+  .queue-empty .btn-ghost { width: 100%; padding: 12px 16px; font-size: 15px; }
+
+  /* ---- "My teams": each weekend and midweek a list of the same rows ---- */
+  .digest-head { align-items: center; margin: 6px 0 12px; }
+  .digest-head h1 { font-size: 24px; }
+  .digest-head p { font-size: 13px; }
+  .team-wheel { margin: 0 calc(-1 * var(--gr)) 6px calc(-1 * var(--gl)); padding: 2px var(--gr) 2px var(--gl); }
+  .slate { margin-top: 20px; }
+  .slate-head { align-items: center; margin: 0; padding-bottom: 8px; border-bottom: 0; }
+  /* The heading and Play all on one line, what it plays under them. */
+  .slate-head h2 { flex: 1; min-width: 0; font-size: 18px; }
+  .slate-meta { order: 2; flex-basis: 100%; }
+  .slate-play { order: 1; margin-left: 0; min-height: 36px; padding: 0 14px 0 10px; font-size: 13px; font-weight: 750; border-color: transparent; background: var(--accent); color: var(--accent-ink); }
+  .slate-arrows { display: none; }
+  .slate-row, .slate-row.more-l, .slate-row.more-r { display: block; overflow: visible; mask-image: none; margin: 0 calc(-1 * var(--gr)) 0 calc(-1 * var(--gl)); padding: 0; }
+  .slate-row.loading > .card.skeleton { min-height: 91px; }
+}
+@media (max-width: 359px) {
+  .top-tagline { font-size: 11.5px; }
+  .card { grid-template-columns: 104px minmax(0, 1fr); column-gap: 10px; }
+  .quick-prefs .seg button { padding: 0 10px; }
+  .quick-prefs .toggle { padding: 0 10px; }
+  .round-actions .btn-ghost { padding: 0 14px; }
+}
+
+/* Phones held upright (every phone width that isn't a phone on its side, which has its own
+   rules above): the player is pinned to the top of the screen whenever something plays, in
+   the watch view and over the matches alike, so the video never moves between the two. */
+@media (max-width: 760px) and (orientation: portrait), (max-width: 760px) and (min-height: 501px) {
+  :root { --pin-h: min(56.25vw, 46svh); --bar-h: 46px; }
+  .app.watching { padding-top: calc(env(safe-area-inset-top) + var(--pin-h)); }
+  .app.docked { padding-top: calc(env(safe-area-inset-top) + var(--pin-h) + var(--bar-h)); }
+  .app.watching .topbar, .app.docked .topbar, .watch-back, .browse-more { display: none; }
+  .app.docked .card, .app.docked .browse { scroll-margin-top: calc(env(safe-area-inset-top) + var(--pin-h) + var(--bar-h) + 8px); }
+  .stage .player-slot { aspect-ratio: auto; height: 0; overflow: visible; border-radius: 0; background: none; }
+  .player-shell:not(.full) {
+    position: fixed; z-index: 60; inset: 0 0 auto 0; width: auto; display: flex; flex-direction: column;
+    padding-top: env(safe-area-inset-top); border: 0; border-radius: 0; background: #000; box-shadow: none; overflow: visible;
+  }
+  .player-shell:not(.full) .player-frame { position: relative; inset: auto; aspect-ratio: auto; height: var(--pin-h); }
+  /* Over the matches: a bar under the video with what's playing (a tap opens Up next), Next and Close. */
+  .mini-bar { order: 1; height: var(--bar-h); gap: 0; padding: 0 4px 0 16px; font-size: 14px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .mini-bar .btn-ghost.sm { display: grid; place-items: center; width: 44px; height: 40px; padding: 0; border: 0; background: none; font-size: 17px; color: var(--muted); }
+  .mini-next svg { width: 24px; height: 24px; }
+  .app.watching .mini-bar, .mini-bar .btn-ghost.sm.mini-expand { display: none; }
+  .app.watching .layout { padding-top: 12px; }
+}
+/* A small phone on its side. Watching: the screen is the video's, so the tab bar steps aside.
+   Over the matches: the corner mini player sits above the tab bar, and the top bar scrolls away. */
+@media (max-width: 760px) and (orientation: landscape) and (max-height: 500px) {
+  .app.watching .tabbar { display: none; }
+  .app.watching { padding-bottom: 0; }
+  .app.docked .topbar { position: static; }
+  .player-shell.mini { bottom: calc(var(--tab-h) + 8px + env(safe-area-inset-bottom)); }
+  .app.docked .card, .app.docked .browse { scroll-margin-top: 8px; }
 }

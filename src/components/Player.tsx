@@ -20,6 +20,8 @@ interface Props {
   onEnded: () => void;
   onError: (code: number) => void;
   onClose: () => void;
+  /** The mini player's Next (shown on phones, where the mini player is the bar under the pinned video). */
+  onNext?: () => void;
   /** Keep it in the mini player (narrow screens, while browsing the matches). */
   docked?: boolean;
   /** What the mini player's Expand does; by default, scroll back to the full player. */
@@ -98,7 +100,7 @@ const leaveFullscreen = (el: HTMLElement | null) => {
  * each one ends it fades the sound out, seeks to the next and fades back in. If the
  * viewer scrubs to somewhere between moments, it stops steering for that video.
  */
-export function Player({ videoId, seq, label, moments = null, onMoment, onEnded, onError, onClose, docked = false, onExpand, tag = null, onWatched, onProgress, full = false, onFull }: Props) {
+export function Player({ videoId, seq, label, moments = null, onMoment, onEnded, onError, onClose, onNext, docked = false, onExpand, tag = null, onWatched, onProgress, full = false, onFull }: Props) {
   const slotRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
@@ -387,8 +389,13 @@ export function Player({ videoId, seq, label, moments = null, onMoment, onEnded,
         {mini && (
           <div className="mini-bar">
             <button className="mini-title linkish" onClick={expand} tabIndex={-1}>{label}</button>
-            <button className="btn-ghost sm" onClick={expand} aria-label="Back to full player">Expand</button>
-            <button className="btn-ghost sm" onClick={onClose} aria-label="Stop and close player">✕</button>
+            <button className="btn-ghost sm mini-expand" onClick={expand} aria-label="Back to full player">Expand</button>
+            {onNext && (
+              <button className="btn-ghost sm mini-next" onClick={onNext} aria-label="Next match">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 18 8.5-6L6 6zM16 6v12h2V6z" /></svg>
+              </button>
+            )}
+            <button className="btn-ghost sm mini-close" onClick={onClose} aria-label="Stop and close player">✕</button>
           </div>
         )}
         <div className="player-frame">

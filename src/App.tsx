@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import type { Competition, DataIndex, Kind, Match, PlayItem, RoundFile } from './types';
 import { fetchCondensed, fetchRound, fetchViews, loadIndex } from './lib/data';
 import type { CondensedMap } from './lib/moments';
-import { awaitingIn, cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, matchViews, pickCut, pickHighlight, resolveItem, scrubScore, uid, usable } from './lib/format';
+import { availableIn, awaitingIn, cutKind, cutLabel, cutSec, fmtDuration, fmtRange, fmtTotal, kindLabel, matchTitle, matchViews, pickCut, pickHighlight, resolveItem, scrubScore, uid, usable } from './lib/format';
 import { countryName, detectRegion, fetchNetworkRegion, flag } from './lib/region';
 import { initialPlayback, playbackReducer, type Action } from './lib/playback';
 import { usePersistentState } from './lib/storage';
@@ -15,6 +15,8 @@ import type { WatchTag } from './components/Player';
 import { Logo } from './components/Logo';
 import { TeamsLoading } from './components/TeamsLoading';
 import { CompSwitcher } from './components/CompSwitcher';
+import { CompRail } from './components/CompRail';
+import { TabBar } from './components/TabBar';
 import { RoundPicker } from './components/RoundPicker';
 import { MatchCard } from './components/MatchCard';
 import { Player } from './components/Player';
@@ -43,6 +45,11 @@ function readQueue(): PlayItem[] {
 
 /** Below this width the queue has no column of its own: playing opens a watch view instead. */
 const NARROW = '(max-width: 1099px)';
+/**
+ * Phones get a layout of their own (styles.css, "phones"): a tab bar along the bottom, the
+ * competitions as a row of chips, matches as rows, and the player pinned to the top of the screen.
+ */
+const PHONE = '(max-width: 760px)';
 /** A phone on its side: the full player fits the screen's height (see styles.css). */
 const SIDEWAYS = '(orientation: landscape) and (max-height: 500px)';
 /** How long a video that refused to embed stays missing, and the failures that count against its channel. */
@@ -175,6 +182,10 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   const narrow = useMedia(NARROW);
   const narrowRef = useRef(narrow);
   narrowRef.current = narrow;
+  const phone = useMedia(PHONE);
+  /** Phones, nothing playing: the queue as a sheet (the tab bar's "Up next"). */
+  const [queueOpen, setQueueOpen] = useState(false);
+  useEffect(() => { if (!phone) setQueueOpen(false); }, [phone]);
   // What the viewer last saw of each competition (current round + highlight count), for the
   // "new highlights" dots in the competition picker.
   const [seen, setSeen] = usePersistentState<Record<string, string>>('seen', {});
@@ -451,6 +462,43 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     dispatch({ type: 'next' });
     toStage();
   };
+
+  // ---- phones: the tab bar ----
+  /**
+   * Off the player's history entry without going Back (a tab takes the viewer elsewhere):
+   * the entry stays in the history as a plain one, and the next page opens from its top.
+   */
+  const dropStage = () => {
+    if (history.state?.rondoStage) history.replaceState(null, '');
+    onStageEntry.current = false;
+    setStageEntry(false);
+    returnTo.current = { y: 0, match: null };
+  };
+  const toTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  const tabMatches = () => {
+    if (page === 'teams') {
+      dropStage();
+      if (comp) navigate(comp, roundKey !== comp.currentRound ? roundKey : null);
+      window.scrollTo({ top: 0 });
+    } else if (watching) toBrowse();
+    else toTop();
+  };
+  const tabTeams = () => {
+    if (page === 'teams') { if (watching) toBrowse(); else toTop(); return; }
+    dropStage();
+    openMyTeams();
+  };
+  /** Up next: what's playing and the queue under it; with nothing playing, the queue as a sheet. */
+  const tabQueue = () => {
+    if (!current) setQueueOpen(true);
+    else if (watching) toTop();
+    else toStage();
+  };
+  /** The queue sheet's controls: starting a match there closes it and opens the player. */
+  const sheetDispatch = (a: Action) => {
+    queueDispatch(a);
+    if (a.type === 'next' || a.type === 'playQueued') { setQueueOpen(false); toStage(); }
+  };
   /** The Up next panel's own controls: starting a match from the queue counts as a play. */
   const queueDispatch = (a: Action) => {
     if (a.type === 'playQueued') track('play', { from: 'queue', comp: pb.queue.find((q) => q.uid === a.uid)?.comp.code });
@@ -492,6 +540,21 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   const picked = current ? resolveItem(current, pref, cmap, pb.failed[current.uid], region, avoid) : null;
   const video = picked?.h ?? null;
   const cut = picked?.condensed ?? null;
+
+  // The lengths the match playing comes in here ("short" may be the auto-condensed stand-in):
+  // on phones the panel under the player switches between them, for this match only.
+  const nowCuts = current ? (['short', 'extended'] as Kind[]).map((k) => {
+    const official = usable(current.match, avoid).find((h) => h.kind === k && availableIn(h, region));
+    const stand = !official && k === 'short' ? pickCut(current.match, 'short', cmap, [], region, avoid) : null;
+    const sec = official ? official.durationSec : stand?.condensed ? cutSec(stand) : null;
+    return { k, sec, auto: !official && !!stand?.condensed };
+  }) : [];
+  const nowKind = picked ? (picked.condensed ? 'short' : picked.h.kind) : null;
+  const setNowKind = (k: Kind) => {
+    if (!current || k === nowKind) return;
+    setPins((p) => ({ ...p, [current.match.id]: k }));
+    dispatch({ type: 'setKind', kind: k });
+  };
 
   // Narrow screens: watching = player + queue; otherwise the matches, with any video docked.
   const watching = narrow && !!current && stageEntry;
@@ -630,7 +693,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
   // While a match plays, the queue column stays on wide screens even when the queue is
   // empty, so the player keeps its size. While something plays it suggests the rest of the
   // browsed round, under the queue too (minus what's queued), so adding one keeps the others.
-  const showAside = narrow ? watching || (hasUpNext && !current) : hasUpNext || !!current;
+  const showAside = phone ? watching : narrow ? watching || (hasUpNext && !current) : hasUpNext || !!current;
   const suggestions = current && round && round.competition === comp?.code
     ? playable.filter((m) => m.id !== current.match.id && !queuedIds.has(m.id)).map((m) => toItem(m, pins[m.id]))
     : [];
@@ -666,6 +729,8 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     <div className={`app${watching ? ' watching' : ''}${docked ? ' docked' : ''}`}>
       <header className="topbar">
         <Logo />
+        {/* Phones: the top bar is the logo and the tagline; the controls are by the matches and in Settings. */}
+        <p className="top-tagline">The whole match week, <span>back to back</span></p>
         <div className="prefs">
           <div className="seg" role="radiogroup" aria-label="Preferred highlight length">
             {(['short', 'extended'] as Kind[]).map((k) => (
@@ -721,6 +786,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                 onEnded={onEnded}
                 onError={onError}
                 onClose={closePlayer}
+                onNext={() => dispatch({ type: 'next' })}
                 docked={docked}
                 onExpand={docked ? () => toStage() : watching ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : undefined}
                 tag={watchTag}
@@ -751,6 +817,16 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                     </p>
                   )}
                 </div>
+                {/* Phones: short or extended for this match (the cards have no chips there). */}
+                {nowCuts.some((c) => c.sec != null) && (
+                  <div className="now-cuts" role="radiogroup" aria-label="Highlight length for this match">
+                    {nowCuts.map(({ k, sec, auto }) => (
+                      <button key={k} role="radio" aria-checked={nowKind === k} className={nowKind === k ? 'on' : ''} disabled={sec == null} onClick={() => setNowKind(k)}>
+                        {auto ? 'Auto-condensed' : kindLabel(k)}<span>{sec != null ? fmtDuration(sec) : '—'}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="transport">
                   <button className="btn-icon" onClick={() => dispatch({ type: 'prev' })} aria-label="Previous (Shift+P)" title="Previous (Shift+P)">
                     <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" /></svg>
@@ -760,6 +836,9 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                   </button>
                   <button className="btn-icon" onClick={() => setFull(true)} aria-label="Full screen" title="Full screen">
                     <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z" /></svg>
+                  </button>
+                  <button className="btn-icon now-close" onClick={closePlayer} aria-label="Stop and close the player" title="Close the player">
+                    <svg viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
                   </button>
                   <label className="switch" title="Play the next match automatically">
                     <input type="checkbox" checked={autoplay} onChange={(e) => setAutoplay(e.target.checked)} />
@@ -789,6 +868,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
             <section className="browse" aria-label="Loading highlights" aria-busy="true">
               {/* The same shapes and sizes as the loaded page, so nothing jumps when it arrives. */}
               {!current && <p className="tagline">The whole match week, <span>back to back</span></p>}
+              <div className="comp-rail" aria-hidden="true"><span className="cr-item cr-skel" /><span className="cr-item cr-skel" /><span className="cr-item cr-skel" /></div>
               <div className="round-bar" aria-hidden="true">
                 <div className="headline">
                   <span className="hl-skel hl-skel-comp" />
@@ -798,10 +878,11 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                 <div className="round-actions">
                   <button className="btn-primary" disabled tabIndex={-1}>
                     <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                    Play all
+                    <span className="pa-text">Play all<span className="pa-sub">&nbsp;</span></span>
                   </button>
                   <button className="btn-ghost" disabled tabIndex={-1}>+ Queue all</button>
                 </div>
+                <div className="quick-prefs" />
               </div>
               <div className="grid loading">
                 {Array.from({ length: 6 }, (_, i) => <div key={i} className="card skeleton" />)}
@@ -814,6 +895,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
               {viewTabs}
               <h1 className="sr-only">{heading}</h1>
               {!current && <p className="tagline">The whole match week, <span>back to back</span></p>}
+              {comp && <CompRail comps={index.competitions} current={comp} fresh={fresh} onPick={(c, e) => onNav(e, () => navigate(c, null))} />}
               {comp && (
                 <div className="round-bar">
                   {/* One headline: "Premier League / Matchweek 5"; each half is its own picker. */}
@@ -841,15 +923,34 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
                         {playable.length}/{round.matches.length} playable{region ? ` in ${flag(region)}` : ''}
                         {blockedHere.length > 0 && <button className="linkish inline" onClick={() => setSettingsOpen(true)}>why?</button>}
                       </span>
-                      {roundTotal > 0 && <span>{fmtTotal(roundTotal)}</span>}
+                      {roundTotal > 0 && <span className="rm-total">{fmtTotal(roundTotal)}</span>}
                     </p>
                   )}
                   <div className="round-actions">
                     <button className="btn-primary" disabled={!playable.length} onClick={playAll}>
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-                      Play all
+                      {/* Phones: a second line under "Play all", what it plays and how long that takes. */}
+                      <span className="pa-text">Play all<span className="pa-sub">
+                        {playable.length ? `${playable.length} ${playable.length === 1 ? 'match' : 'matches'}${roundTotal > 0 ? ` · ${fmtTotal(roundTotal)}` : ''}` : round ? 'No highlights yet' : '\u00a0'}
+                      </span></span>
                     </button>
                     <button className="btn-ghost" disabled={!playable.length} onClick={queueAll}>+ Queue all</button>
+                  </div>
+                  {/* Phones: the two controls that change the list, by the list (the rest is in Settings). */}
+                  <div className="quick-prefs">
+                    <div className="seg" role="radiogroup" aria-label="Preferred highlight length">
+                      {(['short', 'extended'] as Kind[]).map((k) => (
+                        <button key={k} role="radio" aria-checked={pref === k} className={pref === k ? 'on' : ''} onClick={() => setPref(k)}>{kindLabel(k)}</button>
+                      ))}
+                    </div>
+                    <button className={`toggle${spoilerFree ? ' on' : ''}`} aria-pressed={spoilerFree} onClick={() => setSpoilerFree(!spoilerFree)}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        {spoilerFree
+                          ? <path d="M12 7a5 5 0 0 1 5 5c0 .6-.1 1.3-.4 1.8l2.9 2.9A11.8 11.8 0 0 0 23 12c-1.7-4.4-6-7.5-11-7.5-1.4 0-2.7.3-4 .7l2.2 2.2c.5-.3 1.1-.4 1.8-.4M2 4.3l2.3 2.3.4.4A11.8 11.8 0 0 0 1 12c1.7 4.4 6 7.5 11 7.5 1.5 0 3-.3 4.4-.8l.4.4 2.9 2.9 1.3-1.3L3.3 3zM7.5 9.8 9 11.4v.6a3 3 0 0 0 3 3h.6l1.6 1.6A5 5 0 0 1 7 12c0-.8.2-1.5.5-2.2m4.3-.8 3.2 3.2V12a3 3 0 0 0-3-3z" />
+                          : <path d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10m0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6" />}
+                      </svg>
+                      Spoiler-free
+                    </button>
                   </div>
                 </div>
               )}
@@ -929,10 +1030,38 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
       <Settings
         open={settingsOpen} onClose={() => setSettingsOpen(false)}
         autoplay={autoplay} setAutoplay={setAutoplay}
+        pref={pref} setPref={setPref} spoilerFree={spoilerFree} setSpoilerFree={setSpoilerFree}
+        autoCondense={autoCondense} setAutoCondense={setAutoCondense}
         detected={detected} detectedFrom={detectedFrom} override={regionOverride} setOverride={(c) => { setRegionOverride(c); setEmbedErrors(0); }}
         account={accountsAvailable ? { name: fol.user ? fol.user.name || fol.user.email : null, open: () => { setSettingsOpen(false); loadAccountSheet(); fol.openAccount(); } } : undefined}
       />
       {fol.ready && <Suspense fallback={null}><AccountSheet f={fol} onEditTeams={() => openMyTeams(true)} /></Suspense>}
+
+      {/* Phones, nothing playing: the queue, from the tab bar's "Up next". */}
+      {queueOpen && !current && (
+        <div className="sheet-backdrop" onClick={() => setQueueOpen(false)}>
+          <div className="sheet queue-sheet" role="dialog" aria-modal="true" aria-label="Up next" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-grip" aria-hidden="true" />
+            {hasUpNext ? (
+              <UpNext state={pb} pref={pref} condensed={cmap} region={region} avoid={avoid} dispatch={sheetDispatch} />
+            ) : (
+              <div className="queue-empty">
+                <h2>Up next</h2>
+                <p className="muted">Nothing queued yet. <strong>Play all</strong> lines up a whole round, and the + on a match adds just that one. Your queue plays back to back, across competitions.</p>
+                <button className="btn-ghost" onClick={() => setQueueOpen(false)}>Got it</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <TabBar
+        active={watching || queueOpen ? 'queue' : page === 'teams' ? 'teams' : 'matches'}
+        matchesHref={comp ? pathFor(comp, page === 'round' ? roundKey : null) : '/'}
+        teamsHref={accountsAvailable ? TEAMS_PATH : null}
+        queued={pb.queue.length} playing={!!current}
+        onMatches={tabMatches} onTeams={tabTeams} onQueue={tabQueue} onSettings={() => setSettingsOpen(true)}
+      />
 
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

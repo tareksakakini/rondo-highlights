@@ -57,7 +57,11 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
   const done = isDone(watched);
 
   return (
-    <article className={`card${playing ? ' is-playing' : ''}${hl ? '' : ' is-empty'}`} data-match={match.id}>
+    <article className={`card${playing ? ' is-playing' : ''}${hl ? '' : ' is-empty'}`} data-match={match.id}
+      onClick={(e) => {
+        // Phones: the card is a row, and a tap anywhere on it plays (its buttons keep their own jobs).
+        if (hl && !(e.target as HTMLElement).closest('button') && window.matchMedia?.('(max-width: 760px)').matches) onPlay(pinned);
+      }}>
       <button className="thumb" onClick={() => hl && onPlay(pinned)} disabled={!hl}
         aria-label={hl ? `Play ${label}` : `${label}: ${note}`}>
         {/* The crests, also under the thumbnail until it loads (as on the prerendered page). */}
@@ -70,7 +74,13 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
           <img src={`https://i.ytimg.com/vi/${hl.videoId}/mqdefault.jpg`} alt="" width={320} height={180}
             loading={first ? 'eager' : 'lazy'} fetchPriority={first ? 'high' : 'auto'} decoding="async" />
         )}
-        {picked && <span className="dur">{fmtDuration(cutSec(picked))}</span>}
+        {picked && (
+          <span className="dur">
+            {/* Phones (no cut chips there): say so when it isn't the length asked for. */}
+            {(picked.condensed || fallback) && <span className="dur-kind">{picked.condensed ? 'Auto' : hl!.kind === 'extended' ? 'Ext.' : 'Short'}</span>}
+            {fmtDuration(cutSec(picked))}
+          </span>
+        )}
         {hl && <span className="play-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span>}
         {watched && hl && (
           <span className="watched-bar" aria-hidden="true"><i style={{ width: `${Math.max(4, Math.round((watched.e ? 1 : watched.f) * 100))}%` }} /></span>
@@ -101,7 +111,7 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
         <div className="meta meta-2">
           {viewCount != null ? (
             <span className="views" title={`${viewCount.toLocaleString('en-US')} views on YouTube of all this match's highlights, short and extended (not on Rondo), rounded`}>
-              {fmtCount(viewCount)} YouTube {viewCount === 1 ? 'view' : 'views'}
+              {fmtCount(viewCount)} <span className="views-yt">YouTube </span>{viewCount === 1 ? 'view' : 'views'}
             </span>
           ) : <span>&nbsp;</span>}
           {done && hl && (
@@ -134,7 +144,10 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
             <button className={`btn-icon${queued ? ' done' : ''}`} onClick={() => onQueue(pinned)}
               title={queued ? 'Remove from queue' : 'Add to queue'} aria-label={queued ? `Remove ${label} from queue` : `Add ${label} to queue`}>
               {queued ? (
-                <svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg>
+                <>
+                  <svg className="ic-queued-wide" viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg>
+                  <svg className="ic-queued-phone" viewBox="0 0 24 24"><path d="M3 6h12v2H3zm0 5h12v2H3zm0 5h8v2H3zm17.6-2.5L22 14.9 16 21l-3.5-3.5 1.4-1.4 2.1 2.1z" /></svg>
+                </>
               ) : (
                 <svg viewBox="0 0 24 24"><path d="M3 6h12v2H3zm0 5h12v2H3zm0 5h8v2H3zm14-3v-3h2v3h3v2h-3v3h-2v-3h-3v-2z" /></svg>
               )}

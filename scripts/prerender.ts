@@ -15,8 +15,10 @@ import type { Plugin } from 'vite';
 import { fingerprint, loadModelFromDir, loadModelFromRepo } from './lib/pages.mjs';
 import { copySiteCrests } from './lib/site-crests.mjs';
 import {
-  SITE, compHead, compHeading, compPath, homeHead, roundHead, roundHeading, roundName, roundPath, type Head,
+  SITE, TEAMS_PATH, compHead, compHeading, compPath, homeHead, roundHead, roundHeading, roundName, roundPath, type Head,
 } from '../src/lib/routes';
+import { TAB_ICONS } from '../src/lib/tab-icons';
+import { firebaseConfig } from '../src/lib/firebase-config';
 
 interface ModelTeam { name: string; short: string; tla: string; crest: string | null }
 interface ModelMatch { home: ModelTeam; away: ModelTeam; hl: boolean; views?: number }
@@ -63,13 +65,15 @@ const PREFS_SPACE =
 
 const HEADER =
   `<header class="topbar"><a class="logo" href="/" aria-label="Rondo Highlights home">${LOGO}` +
-  `<span class="wordmark">rondo<span class="wordmark-sub">highlights</span></span></a>${PREFS_SPACE}</header>`;
+  '<span class="wordmark">rondo<span class="wordmark-sub">highlights</span></span></a>' +
+  `<p class="top-tagline">The whole match week, <span>back to back</span></p>${PREFS_SPACE}</header>`;
 const TAGLINE = '<p class="tagline">The whole match week, <span>back to back</span></p>';
 
 
 // ---------- The app's first screen, as static HTML ----------
 // Prerendered pages draw what the app will show, with the same markup and classes
-// (App.tsx, MatchCard.tsx, TeamBadge.tsx, CompSwitcher.tsx), so the first paint already
+// (App.tsx, MatchCard.tsx, TeamBadge.tsx, CompSwitcher.tsx, and for phones CompRail.tsx and
+// TabBar.tsx: both layouts are in the markup, and styles.css shows the one that fits), so the first paint already
 // has the page's final layout: on a round page, its match cards (names and crests; no
 // scores or dates, which change after the build and could spoil). The app renders off
 // screen and takes over once it has the round (src/main.tsx), so the cards never blink
@@ -127,6 +131,11 @@ function card(m: ModelMatch): string {
     `<div class="meta"><span>&nbsp;</span></div><div class="meta meta-2"><span>&nbsp;</span></div>${actions}</div></article>`;
 }
 
+// Phones: the length and spoiler-free controls over the list (App.tsx), invisible until the app draws them.
+const QUICK_PREFS_SPACE =
+  '<div class="quick-prefs pre-ghost" aria-hidden="true"><div class="seg"><button tabindex="-1">Short</button><button tabindex="-1">Extended</button></div>' +
+  '<button class="toggle" tabindex="-1"><svg viewBox="0 0 24 24"></svg>Spoiler-free</button></div>';
+
 const skeletonGrid = () => `<div class="grid loading">${'<div class="card skeleton"></div>'.repeat(6)}</div>`;
 
 /** The round bar (App.tsx): the competition / round headline, an empty date line, and Play all / Queue all (not yet active). */
@@ -138,7 +147,9 @@ function roundBar(comp: ModelComp | null, round: string): string {
   return '<div class="round-bar">' +
     `<div class="headline">${switcher}${sep}${round}</div>` +
     '<p class="round-meta muted">&nbsp;</p>' +
-    `<div class="round-actions"><button class="btn-primary" disabled>${PLAY}Play all</button><button class="btn-ghost" disabled>+ Queue all</button></div>` +
+    `<div class="round-actions"><button class="btn-primary" disabled>${PLAY}<span class="pa-text">Play all<span class="pa-sub">&nbsp;</span></span></button>` +
+    '<button class="btn-ghost" disabled>+ Queue all</button></div>' +
+    QUICK_PREFS_SPACE +
     '</div>';
 }
 
@@ -173,11 +184,31 @@ function compNav(comps: ModelComp[], current?: string): string {
   return `<nav class="comps" aria-label="Competitions">${links.join('')}</nav>`;
 }
 
+/** Phones: the competitions as a row of chips over the round (CompRail.tsx). */
+function compRail(comps: ModelComp[], current?: string): string {
+  const links = comps.map((c) =>
+    `<a class="cr-item" href="${compPath(c)}" style="--c:${esc(c.color)}"${c.code === current ? ' aria-current="page"' : ''}>${compMark(c)}${esc(c.short ?? c.name)}</a>`);
+  return `<nav class="comp-rail" aria-label="Competitions">${links.join('')}</nav>`;
+}
+
+/** Phones: the tab bar (TabBar.tsx). Its links work as they are; Up next and Settings wait for the app. */
+function tabBar(path: string): string {
+  const icon = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const teams = firebaseConfig.apiKey ? `<a href="${TEAMS_PATH}" class="tab">${icon(TAB_ICONS.teams)}<span>My teams</span></a>` : '';
+  return `<nav class="tabbar" aria-label="Main"><a href="${path}" class="tab" aria-current="page">${icon(TAB_ICONS.matches)}<span>Matches</span></a>${teams}` +
+    `<span class="tab"><span class="tab-icon">${icon(TAB_ICONS.queue)}</span><span>Up next</span></span>` +
+    `<span class="tab">${icon(TAB_ICONS.settings)}<span>Settings</span></span></nav>`;
+}
+
 /** The app's page frame around a browse section; `more` (text and links for readers and crawlers) goes under the cards. */
-const page = (comps: ModelComp[], current: string | undefined, heading: string, browse: string, more: string) =>
-  `<div class="app">${HEADER}<div class="layout"><main><section class="browse" aria-label="Browse">` +
-  `<h1 class="sr-only">${esc(heading)}</h1>${TAGLINE}${browse}` +
-  `<div class="pre-more">${more}${compNav(comps, current)}</div></section></main></div></div>`;
+const page = (comps: ModelComp[], current: string | undefined, heading: string, browse: string, more: string) => {
+  // Home opens the first competition (or the one viewed last, which the app corrects).
+  const shown = comps.find((c) => c.code === current) ?? comps[0];
+  return `<div class="app">${HEADER}<div class="layout"><main><section class="browse" aria-label="Browse">` +
+    `<h1 class="sr-only">${esc(heading)}</h1>${TAGLINE}${compRail(comps, shown?.code)}${browse}` +
+    `<div class="pre-more">${more}${compNav(comps, current)}</div></section></main></div>` +
+    `${tabBar(current && shown ? compPath(shown) : '/')}</div>`;
+};
 
 /** A round's headline, Play all row and match cards (round pages, and the current round on home and competition pages). */
 function roundBrowse(c: ModelComp, i: number): string {

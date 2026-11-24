@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { Kind } from '../types';
 import { allRegions, countryName, flag } from '../lib/region';
 
 interface Props {
@@ -6,6 +7,13 @@ interface Props {
   onClose: () => void;
   autoplay: boolean;
   setAutoplay: (v: boolean) => void;
+  // Phones: these three have no place in the top bar, so the sheet holds every preference.
+  pref: Kind;
+  setPref: (k: Kind) => void;
+  spoilerFree: boolean;
+  setSpoilerFree: (v: boolean) => void;
+  autoCondense: boolean;
+  setAutoCondense: (v: boolean) => void;
   detected: string | null;
   detectedFrom: 'network' | 'timezone' | null;
   override: string;
@@ -41,6 +49,40 @@ export function Settings(p: Props) {
             <svg viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
           </button>
         </div>
+
+        <div className="setting phone-only">
+          <div className="setting-text">
+            <span className="setting-name">Highlight length</span>
+            <span className="setting-help">Short cuts, or the extended ones.</span>
+          </div>
+          <div className="seg" role="radiogroup" aria-label="Preferred highlight length">
+            {(['short', 'extended'] as Kind[]).map((k) => (
+              <button key={k} role="radio" aria-checked={p.pref === k} className={p.pref === k ? 'on' : ''} onClick={() => p.setPref(k)}>{k === 'short' ? 'Short' : 'Extended'}</button>
+            ))}
+          </div>
+        </div>
+
+        <label className="setting phone-only">
+          <div className="setting-text">
+            <span className="setting-name">Spoiler-free</span>
+            <span className="setting-help">Hide scores and thumbnails.</span>
+          </div>
+          <span className="switch">
+            <input type="checkbox" checked={p.spoilerFree} onChange={(e) => p.setSpoilerFree(e.target.checked)} />
+            <span className="track"><span className="thumb-dot" /></span>
+          </span>
+        </label>
+
+        <label className="setting phone-only">
+          <div className="setting-text">
+            <span className="setting-name">Auto-condense</span>
+            <span className="setting-help">When a match has no short cut, play just the key moments of the extended one. It can occasionally skip a goal.</span>
+          </div>
+          <span className="switch">
+            <input type="checkbox" checked={p.autoCondense} onChange={(e) => p.setAutoCondense(e.target.checked)} />
+            <span className="track"><span className="thumb-dot" /></span>
+          </span>
+        </label>
 
         <label className="setting">
           <div className="setting-text">
