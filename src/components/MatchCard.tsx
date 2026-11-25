@@ -60,7 +60,10 @@ export function MatchCard({ match, first = false, pref, condensed, region, avoid
     <article className={`card${playing ? ' is-playing' : ''}${hl ? '' : ' is-empty'}`} data-match={match.id}
       onClick={(e) => {
         // Phones: the card is a row, and a tap anywhere on it plays (its buttons keep their own jobs).
-        if (hl && !(e.target as HTMLElement).closest('button') && window.matchMedia?.('(max-width: 760px)').matches) onPlay(pinned);
+        // The path as dispatched, not e.target.closest(): a button's own handler may have re-rendered
+        // it by now (Queue swaps its icon), leaving the tapped node detached and no button above it.
+        const onButton = e.nativeEvent.composedPath().some((n) => n instanceof HTMLButtonElement);
+        if (hl && !onButton && window.matchMedia?.('(max-width: 760px)').matches) onPlay(pinned);
       }}>
       <button className="thumb" onClick={() => hl && onPlay(pinned)} disabled={!hl}
         aria-label={hl ? `Play ${label}` : `${label}: ${note}`}>
