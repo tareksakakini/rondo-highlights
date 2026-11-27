@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-11-26T23:01:49.466Z",
+ "generatedAt": "2026-11-27T01:46:33.329Z",
  "source": "live",
- "rev": "ac21c217d79a2126014a1b0514eecb4447e5bfe7",
+ "rev": "b82a27e22d54601549b3b833bde3e1738ff7c24f",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-11-27T00:51:56.488Z",
+ "publishedAt": "2026-11-27T01:46:57.858Z",
  "competitions": [
   {
    "code": "PL",
@@ -1546,14 +1546,14 @@
      "key": "playoffs",
      "label": "Knockout play-offs",
      "firstDate": "2027-03-25T17:00:00Z",
-     "matches": 10,
+     "matches": 14,
      "withHighlights": 0
     },
     {
      "key": "quarter-finals",
      "label": "Quarter-finals",
      "firstDate": "2027-03-25T19:45:00Z",
-     "matches": 6,
+     "matches": 8,
      "withHighlights": 0
     }
    ],
