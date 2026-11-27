@@ -1,9 +1,9 @@
 {
- "generatedAt": "2026-11-27T22:11:53.349Z",
+ "generatedAt": "2026-11-27T22:22:05.055Z",
  "source": "live",
- "rev": "3b1796c59d7e7d036a9302ccdc5b8c3052509817",
+ "rev": "35d3953c32e8a924c090a3c8dca2649741d2ff3e",
  "crestsRev": "8e11f8724c84ac39d028c2a1607b58855e11d9c5",
- "publishedAt": "2026-11-27T22:11:55.830Z",
+ "publishedAt": "2026-11-27T22:22:07.468Z",
  "competitions": [
   {
    "code": "PL",
@@ -98,7 +98,7 @@
      "label": "Matchweek 12",
      "firstDate": "2026-11-27T20:00:00Z",
      "matches": 10,
-     "withHighlights": 0
+     "withHighlights": 1
     },
     {
      "key": "md-13",
@@ -665,7 +665,7 @@
      "label": "Matchweek 13",
      "firstDate": "2026-11-27T19:45:00Z",
      "matches": 10,
-     "withHighlights": 0
+     "withHighlights": 1
     },
     {
      "key": "md-14",
@@ -1106,7 +1106,7 @@
    "color": "#22C55E",
    "season": 2026,
    "seasonLabel": "2026/27",
-   "currentRound": "md-11",
+   "currentRound": "md-12",
    "rounds": [
     {
      "key": "md-1",
@@ -1190,7 +1190,7 @@
      "label": "Matchweek 12",
      "firstDate": "2026-11-27T19:45:00Z",
      "matches": 9,
-     "withHighlights": 0
+     "withHighlights": 1
     },
     {
      "key": "md-13",
